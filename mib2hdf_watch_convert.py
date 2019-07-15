@@ -12,7 +12,8 @@ import hyperspy.api as hs
 def max_contrast8(d):
     data = d.data
     data = data - data.min()
-    data = data * (255 / data.max())
+    if data.max() != 0:
+        data = data * (255 / data.max())
     d.data = data
     return d
 
@@ -30,12 +31,15 @@ def convert(beamline, year, visit, mib_to_convert, folder):
     The STEM / TEM is figured out by the exp times of frames
     If STEM, thed data is reshaped using the flyback frames
     """
+    t1 = []
+    t2 = []
+    t3 = []
     
     t0 = time.time()
-    if folder:
-        raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
-    else:
-        raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')  
+#    if folder:
+#        raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
+#    else:
+#        raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')  
         
     proc_location = os.path.join('/dls',beamline,'data', year, visit, 'processing', 'Merlin')
     if not os.path.exists(proc_location):
@@ -86,11 +90,16 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 continue
             if (STEM_flag == 0 or STEM_flag == '0'): # if it is TEM data
                 if folder:
-                    saving_path = proc_location +'/'+folder
+                    # find index
+                    temp1 = mib_path.split('/')
+                    temp2 = folder.split('/')
+                    ind = temp1.index(temp2[0])
+                    saving_path = proc_location +'/'+os.path.join(*mib_path.split('/')[ind:])
                 else:    
                     saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
+                print('saving here: ',saving_path)
                 dp_data.save(saving_path + '/' +mib_list[0], extension = 'hdf5')
                 dp_sum = max_contrast8(dp_data.sum())
                 dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
@@ -168,8 +177,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 dp_data.save(saving_path+'/'+mib_list[0], extension = 'hdf5')
                 print('Saved hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
                 t3 = time.time()
-                    
-                
                 
                 del dp
                 gc.collect()
@@ -178,11 +185,16 @@ def convert(beamline, year, visit, mib_to_convert, folder):
             # to change!!!!
             # if (STEM_flag == 0 or STEM_flag == '0'):
             if folder:
-                saving_path = proc_location +'/'+folder
+            # find index
+                temp1 = mib_path.split('/')
+                temp2 = folder.split('/')
+                ind = temp1.index(temp2[0])
+                saving_path = proc_location +'/'+os.path.join(*mib_path.split('/')[ind:])
             else:    
-                saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])
+                saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])    
             if not os.path.exists(saving_path):
                 os.makedirs(saving_path)
+            print('saving here: ', saving_path)
             for k, file in enumerate(mib_list):
                 
                 print(mib_path)
@@ -206,9 +218,11 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     t3 = time.time()
 
                     
-        if (t1 and t2 and t3) is not None:
+        if t1 is not None:
             print('time to load data: ', t1-t0)
-            print('time to save last image: ', t2-t0)   
+        if t2 is not None:
+            print('time to save last image: ', t2-t0) 
+        if t3 is not None:
             print('time to save full hdf5: ', t3-t0)  
                     
 #%%
