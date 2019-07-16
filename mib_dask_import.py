@@ -408,7 +408,11 @@ def read_mib(hdr_info, fp, mmap_mode='r', save_hdf = False, path = None):
     endian = '>'
     #print(data_length)
     data_type += str(int(data_length))
-    data_type = np.dtype(data_type)
+    if data_type == 'uint1':
+        data_type = 'uint8'
+        data_type = np.dtype(data_type)
+    else:
+        data_type = np.dtype(data_type)
     data_type = data_type.newbyteorder(endian)
     
     

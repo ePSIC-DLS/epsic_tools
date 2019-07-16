@@ -80,7 +80,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 t1 = time.time()
                 STEM_flag = dp[1].get('STEM_flag')
                 scan_X = dp[1].get('scan_X')
-                t2 = time.time()
+                
                 
                 #print('loaded the mib file')
                 
@@ -100,9 +100,12 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
                 print('saving here: ',saving_path)
-                dp_data.save(saving_path + '/' +mib_list[0], extension = 'hdf5')
+                
                 dp_sum = max_contrast8(dp_data.sum())
                 dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
+                t2 = time.time()
+                dp_data.save(saving_path + '/' +mib_list[0], extension = 'hdf5')
+                t3 = time.time()
             else:
                 saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])
                 if not os.path.exists(saving_path):
@@ -199,7 +202,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 
                 print(mib_path)
                 print(file)
-                t1 = time.time()
+                t0 = time.time()
                 dp = mib_dask_reader('/' +mib_path + '/'+ file)
                 pprint.pprint(dp[1], width=1)
                 STEM_flag = dp[1].get('STEM_flag')
