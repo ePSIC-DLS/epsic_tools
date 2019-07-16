@@ -219,11 +219,11 @@ def convert(beamline, year, visit, mib_to_convert, folder):
 
                     
         if t1 is not None:
-            print('time to load data: ', t1-t0)
+            print('time to load data: ', int(t1-t0))
         if t2 is not None:
-            print('time to save last image: ', t2-t0) 
+            print('time to save last image: ', int(t2-t0)) 
         if t3 is not None:
-            print('time to save full hdf5: ', t3-t0)  
+            print('time to save full hdf5: ', int(t3-t0))  
                     
 #%%
                     

@@ -76,6 +76,8 @@ def _manageHeader(fname):
         bitdepth =12
     elif PixelDepthInFile =='U08':
         bitdepth =6
+    elif PixelDepthInFile =='U32':
+        bitdepth =24
 
         #example output for 6bit 256*256 4DSTEM data:
         #(768, 4, 'R64', '2x2', '2019-06-14 11:46:12.607836', 0.0002, 6)
@@ -182,12 +184,14 @@ def get_mib_depth(hdr_info,fp):
         '1': 33536,
         '6': 262912,
         '12': 525056,
+        '24': 1049344,
         }
     if hdr_info['Assembly Size'] == '1x1':
         mib_file_size_dict = {
         '1': 8576,
         '6': 65920,
         '12': 131456,
+        '24': 262528,
         }
     
     width = hdr_info['width']
