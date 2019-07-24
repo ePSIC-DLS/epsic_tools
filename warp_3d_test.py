@@ -22,7 +22,7 @@ pn = r'Y:\2019\mg22549-3\processing\Merlin\20190706 MoS2 700C\20190706 153407'
 fn4d = r'\30M_25cmCL.hdf5'
 
 d_4d = hs.load(pn+fn4d, lazy = True)
-da_4d_cut = d_4d.data[100:150, 100:150, :,:]
+da_4d_cut = d_4d.data[100:200, 100:200, :,:]
 #compute PACBED of cut data
 da_4d_sum = da_4d_cut.sum(axis = (0,1))
 d= hs.signals.Signal2D(da_4d_sum.compute())
@@ -56,7 +56,7 @@ print ('final params : ', params_2)
 coords =  tf.warp_coords(transform, (da_4d_cut.shape[-2], da_4d_cut.shape[-1]))
 t0 = time.time()
 #warp data
-warped_data= da_4d_cut.map_blocks(wp.warp_all_np, dtype = 'float32', coords = coords, dat_type = 'float32')
+warped_data= da_4d_cut.map_blocks(wp.warp_all_np, dtype = 'float32', coords = coords)
 #save to hdf5
 wf = fn4d[:-5] + '_warp.hdf5'
 warped_data.to_hdf5(pn +wf,'data', compression = 'gzip')
