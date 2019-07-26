@@ -344,6 +344,7 @@ def get_coords_4d(coords, shape_4d):
     Z2 = np.ones_like(co_ords4d_a, dtype = dat_type)
     Z2 = Z2 * z2[None, None,  :, None, None] 
     
+
     co_ords4d =  np.append(Z, Z2, axis = 0)
     co_ords4d =  np.append(co_ords4d, co_ords4d_a, axis = 0)
     co_ords4d =  np.append(co_ords4d, co_ords4d_b, axis = 0)
