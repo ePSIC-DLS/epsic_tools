@@ -351,7 +351,7 @@ def get_coords_4d(coords, shape_4d):
     return co_ords4d
     
     
-def warp_all_np(data, coords, plot_me = False):
+def warp_all_np(data, coords,  order = 1, preserve_range = True, plot_me = False):
     ''' 
     apply transformation to full 4d data set 
     
@@ -379,7 +379,7 @@ def warp_all_np(data, coords, plot_me = False):
     co_ords3d = co_ords3d.astype('float32')
     #t1 = time.time()
 
-    dat_temp = tf.warp(data, co_ords3d)
+    dat_temp = tf.warp(data, co_ords3d, order = order, preserve_range = preserve_range)
 
     #print('time : ', time.time() - t1)
     im_num = 5,5
