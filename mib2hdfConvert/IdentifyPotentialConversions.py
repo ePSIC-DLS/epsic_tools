@@ -2,13 +2,37 @@ import os
 import argparse
 import sys
 
-#%%
 def check_differences(beamline, year, visit, folder = None):
-    # print("Starting main function")
-    # fist check to see which visit is active
-
+    """Checks for .mib files associated with a specified session that have
+    not yet been converted to .hdf5.
+    
+    Parameters
+    ----------
+    beamline : str
+        Assumed e02 but could be any
+    year : str
+        Year of user session
+    visit : str
+        User session number e.g. mg20198-1
+    
+    Returns
+    -------
+    to_convert : list
+        List of directories that is the difference between those converted
+        and those to be converted. NB: These are just the folder names and 
+        not complete paths, e.g. '20190830 112739'.
+    mib_files : list
+        List of ALL the mib files including the entire paths that are found 
+        in the experimental session ,e.g. '/dls/e02/data/2019/em20198-8/Merlin
+        /Merlin/Calibrations/AuXgrating/20190830 111907/
+        AuX_100kx_10umAp_20cmCL_3p55A2.mib'
+    mib_to_convert : list
+        List of unconverted mib files including the complete path
+    """
+ 
     mib_files = []
     raw_dirs = []
+    
     if folder:
         # check that the path folder exists
         raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
@@ -16,34 +40,24 @@ def check_differences(beamline, year, visit, folder = None):
         if not os.path.exists(raw_location):
             print('This folder ', raw_location,'does not exist!') 
             print('The expected format for folder is sample1/dataset1/')
-            sys.exit()  # options here?
+            sys.exit()
     else:    
         raw_location = os.path.join('/dls', beamline,'data', year, visit, 'Merlin')
     
     proc_location = os.path.join('/dls', beamline,'data', year, visit, 'processing', 'Merlin')
-    #print(proc_location)
     if not os.path.exists(proc_location):
         os.mkdir(proc_location)
-
     # look through all the files in that location and find any mib files
-    #os.chdir(raw_location)
-        
     path_walker = os.walk(raw_location)
     for p, d, files in path_walker:
         # look at the files and see if there are any mib files there
         for f in files:
             if f.endswith('mib'):
-#                if folder:
-#                    p = './'+ folder + p[1:]
-                #mib_files.append((p, f))
+
                 mib_files.append(os.path.join(str(p), str(f)))
-                #print(p)
-                #print(f)
+
                 raw_dirs.append(p)
-    
-    
-    # print('RAW dirs:  ', raw_dirs)
-    # print('MIB files: ', mib_files)
+
 
     # look in the processing folder and list all the directories
     converted_dirs = []
@@ -66,7 +80,7 @@ def check_differences(beamline, year, visit, folder = None):
         raw_dirs_check.append(folder.split('/')[-1]) 
     for folder in converted_dirs:
         converted_dirs_check.append(folder.split('/')[-1]) 
-    # compare the directory lists, and see which has the
+    # compare the directory lists, and see which have not been converted.
     converted = set(converted_dirs_check)
     to_convert = set(raw_dirs_check) - set(converted_dirs_check)
     
@@ -81,12 +95,11 @@ def check_differences(beamline, year, visit, folder = None):
     
     return to_convert, mib_files, mib_to_convert
 
-#%%
+
 def main(beamline, year, visit, folder = None):
     check_differences(beamline, year, visit, folder = None)
 
-#%%
-    
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('beamline', help='Beamline name')
