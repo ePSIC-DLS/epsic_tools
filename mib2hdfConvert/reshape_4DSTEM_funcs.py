@@ -1,10 +1,5 @@
-import hyperspy.api as hs
-import numpy as np
+
 from math import floor
-import os
-import time
-
-
 
 def reshape_4DSTEM_FrameSize(data, scan_x, scan_y):
     """Reshapes the lazy-imported frame stack to user specified navigation dimensions.
@@ -15,7 +10,7 @@ def reshape_4DSTEM_FrameSize(data, scan_x, scan_y):
     
     Parameters
     ----------
-    data : pyxem.signals.LazyElectronDiffraction2D
+    data : hyperspy lazy signal.Signal2D 
         Lazy loaded electron diffraction data: <framenumbers | det_size, det_size>
     scan_x : int
         Number of probe positions in the slow scan direction.
@@ -48,17 +43,25 @@ def reshape_4DSTEM_FrameSize(data, scan_x, scan_y):
     return data_skip
 
     
-def reshape_4DSTEM_FlyBack(data, STEM_flag_dict):
+def reshape_4DSTEM_FlyBack(data):
     """Reshapes the lazy-imported frame stack to navigation dimensions determined
     based on stored exposure times.
        
     
     Parameters
     ----------
-    data : pyxem.signals.LazyElectronDiffraction2D
+    data : hyperspy lazy Signal2D
         Lazy loaded electron diffraction data: <framenumbers | det_size, det_size>
-    STEM_flag_dict : dict
-        Dictionary containing STEM_flag, exposures
+        the data metadata contains flyback info as:
+            ├── General
+        │   └── title = 
+        └── Signal
+            ├── binned = False
+            ├── exposure_time = 0.001
+            ├── flyback_times = [0.01826, 0.066, 0.065]
+            ├── frames_number_skipped = 68
+            ├── scan_X = 256
+            └── signal_type = STEM
     
     Returns
     -------
@@ -68,10 +71,12 @@ def reshape_4DSTEM_FlyBack(data, STEM_flag_dict):
     # Get detector size in pixels
                               
     det_size = data.axes_manager[1].size  #detector size in pixels
-    # Determine frames to skip
-    n_lines = floor((data.data.shape[0] - STEM_flag_dict.get('number of frames_to_skip')) / STEM_flag_dict.get('scan_X'))
-    skip_ind = STEM_flag_dict.get('number of frames_to_skip')
-    line_len = STEM_flag_dict.get('scan_X')
+    # Read metadata
+    skip_ind = data.metadata.Signal.frames_number_skipped
+    line_len = data.metadata.Signal.scan_X
+    
+    n_lines = floor((data.data.shape[0] - skip_ind) / line_len)
+
     # Remove skipped frames
     data_skip = data.inav[skip_ind:skip_ind + (n_lines * line_len)]  
     # Reshape signal

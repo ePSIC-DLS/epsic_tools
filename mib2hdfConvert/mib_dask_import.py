@@ -19,10 +19,12 @@ out the number of frames.
 """
 import os
 import numpy as np
-import h5py
 import dask.array as da
-import dask
 import hyperspy.api as hs
+
+hs.preferences.GUIs.warn_if_guis_are_missing = False
+hs.preferences.save()
+
 
 
 def _manageHeader(fname):
@@ -189,7 +191,7 @@ def add_crosses(a):
     return b
     
 def get_mib_depth(hdr_info,fp):
-"""Determine the total number of frames based on .mib file size.
+    """Determine the total number of frames based on .mib file size.
     
     Parameters
     ----------
@@ -559,8 +561,17 @@ def mib_dask_reader(mib_filename):
     Returns
     -------
     data_hs : hyperspy.signals.Signal2D
+                The metadata adds the following domains:
+                General
+                │   └── title = 
+                └── Signal
+                    ├── binned = False
+                    ├── exposure_time = 0.001
+                    ├── flyback_times = [0.066, 0.071, 0.065, 0.017825]
+                    ├── frames_number_skipped = 90
+                    ├── scan_X = 256
+                    └── signal_type = STEM   
         
-    data_dict : dict
     
     TODO: add data_dict as attributes to data
         
@@ -575,5 +586,15 @@ def mib_dask_reader(mib_filename):
         
     data_hs = hs.signals.Signal2D(data).as_lazy()
     
-    return data_hs , data_dict
+    # Tranferring dict info to metadata
+    if data_dict['STEM_flag'] == 1:
+        data_hs.metadata.Signal.signal_type = 'STEM'
+    else: 
+        data_hs.metadata.Signal.signal_type = 'TEM'
+    data_hs.metadata.Signal.scan_X = data_dict['scan_X']
+    data_hs.metadata.Signal.exposure_time = data_dict['exposure time']
+    data_hs.metadata.Signal.frames_number_skipped = data_dict['number of frames_to_skip']
+    data_hs.metadata.Signal.flyback_times = data_dict['flyback_times']
+    
+    return data_hs
 
