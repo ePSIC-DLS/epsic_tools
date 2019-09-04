@@ -8,8 +8,22 @@ import pprint
 import reshape_4DSTEM_funcs as reshape
 import hyperspy.api as hs
 
-#%%
+hs.preferences.GUIs.warn_if_guis_are_missing = False
+hs.preferences.save()
+
 def max_contrast8(d):
+    """Rescales contrast of hyperspy Signal2D to 8-bit.
+    
+    Parameters
+    ----------
+    d : hyperspy.signals.Signal2D
+        Signal2D object to be rescaled
+    
+    Returns
+    -------
+    d : hyperspy.signals.Signal2D
+        Signal2D object following intensity rescaling
+    """
     data = d.data
     data = data - data.min()
     if data.max() != 0:
@@ -17,80 +31,90 @@ def max_contrast8(d):
     d.data = data
     return d
 
-#%%
     
 def convert(beamline, year, visit, mib_to_convert, folder):
-    """    
-    This is to convert a set of time-stamped 4DSTEM folders (mib_files) into a
-    similar folder structure in the processing folder of the same visit. The
-    following files get saved for each stack:
+    """Convert a set of Merlin/medipix .mib files in a set of time-stamped folders 
+    into corresponding .hdf5 raw data files, and a series of standard images contained 
+    within a similar folder structure in the processing folder of the same visit.
+    
+    The STEM / TEM is figured out by the exp times of frames.
+    If STEM, then data is reshaped using the flyback frames.
+    
+    Parameters
+    ----------
+    beamline : str
+    
+    year : str
+    
+    visit : str
+
+    mib_to_convert : list 
+        List of MIB files to convert
+    
+    folder : 
+    
+    Returns
+    -------
         - reshaped 4DSTEM HDF5 file
         - The above file binned by 4 in the diffraction plane
-        - TIFF file and JPG file of incoherent BF reconstruction
-        - TIFF file and JPG file of sparsed sum of the diffraction patterns
-    The STEM / TEM is figured out by the exp times of frames
-    If STEM, thed data is reshaped using the flyback frames
+        - HSPY, TIFF file and JPG file of incoherent BF reconstruction
+        - HSPY, TIFF file and JPG file of sparsed sum of the diffraction patterns
     """
     t1 = []
     t2 = []
     t3 = []
     
     t0 = time.time()
-#    if folder:
-#        raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
-#    else:
-#        raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')  
+    # Define processing path in which to save outputs
         
     proc_location = os.path.join('/dls',beamline,'data', year, visit, 'processing', 'Merlin')
     if not os.path.exists(proc_location):
         os.mkdir(proc_location)
     
-    # getting the raw data folders as a set
+    # Get the raw data folders and assign as a set
     data_folders = []
     for path in mib_to_convert:
         data_folders.append(os.path.join(*path.split('/')[:-1]))
     data_folders_set = set(data_folders)
     
-    # main loop 
+    # Loop over all data folders
     for mib_path in list(data_folders_set):
-        #time0 = time.time()
+
         print('********************************************************')
         print('Currently active in this directory: %s' % mib_path.split('/')[-1])
         
-        # get number of mib files in this folder
+        # Determine mib files in this folder
         mib_num = 0
         mib_list = []
         for file in os.listdir('/'+ mib_path):
             if file.endswith('mib'):
                 mib_num += 1
                 mib_list.append(file)
-        #print(mib_num)
-        #print(mib_list)
-        #print('STEM_flag: ', STEM_flag)
-        
+
+        # If there is only 1 mib file in folder load it as a hyperspy Signal2D
         if mib_num == 1:
+            # Load the .mib file and determine whether it contains TEM or STEM
+            # data based on frame exposure times.
             try:
-                #print(mib_path)
-                #print(mib_list[0])
-                
+
                 dp = mib_dask_reader('/' +mib_path + '/'+ mib_list[0])
-                pprint.pprint(dp[1], width=1)
-                dp[0].compute() # is replacing needed?
-                dp_data = dp[0]
+                pprint.pprint(dp.metadata)
+                dp.compute() 
                 t1 = time.time()
-                STEM_flag = dp[1].get('STEM_flag')
-                scan_X = dp[1].get('scan_X')
-                
-                
-                #print('loaded the mib file')
+                if dp.metadata.Signal.signal_type == 'STEM':
+                    STEM_flag = True
+                else: 
+                    STEM_flag = False
+                scan_X = dp.metadata.Signal.scan_X
+
                 
             except ValueError:
                 print('file could not be read into an array!')
-                
-                continue
-            if (STEM_flag == 0 or STEM_flag == '0'): # if it is TEM data
+            # Process single .mib file identified as containing TEM data.
+            # This just saves the data as an .hdf5 image stack.
+            if STEM_flag is False: 
                 if folder:
-                    # find index
+
                     temp1 = mib_path.split('/')
                     temp2 = folder.split('/')
                     ind = temp1.index(temp2[0])
@@ -100,13 +124,18 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
                 print('saving here: ',saving_path)
-                
-                dp_sum = max_contrast8(dp_data.sum())
+                # Calculate summed diffraction pattern
+                dp_sum = max_contrast8(dp.sum())
+                # Save summed diffraction pattern
                 dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
                 t2 = time.time()
-                dp_data.save(saving_path + '/' +mib_list[0], extension = 'hdf5')
+                # Save raw data in .hdf5 format
+                dp.save(saving_path + '/' +mib_list[0], extension = 'hdf5')
                 t3 = time.time()
+            # Process single .mib file identified as containing STEM data
+            # This reshapes to the correct navigation dimensions and 
             else:
+                # Define save path for STEM data
                 saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
@@ -114,39 +143,37 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 
                 print('Data loaded to hyperspy')
                 # checks to see if it is a multi-frame data before reshaping
-                if dp[0].axes_manager[0].size > 1:
-                # attampt to reshape the data 
+                if dp.axes_manager[0].size > 1:
+                # Attempt to reshape the data based on exposure times
                     try:
-                        dp_data = reshape.reshape_4DSTEM_FlyBack(dp)
-                        print('Data reshaped using flyback pixel to: '+ str(dp_data.axes_manager.navigation_shape))
+                        dp = reshape.reshape_4DSTEM_FlyBack(dp)
+                        print('Data reshaped using flyback pixel to: '+ str(dp.axes_manager.navigation_shape))
+                    # If exposure times fail use data size
                     except:
                         print('Data reshape using flyback pixel failed! - Reshaping using scan size instead.')
-                        num_frames = dp_data.axes_manager[0].size
-                        dp_data = reshape.reshape_4DSTEM_FrameSize(dp[0], scan_X, int(num_frames / scan_X))
-                        
-                    if dp_data.axes_manager[-1].size  == 515:
-                        dp_crop = dp_data.isig[1:-2,1:-2]
+                        num_frames = dp.axes_manager[0].size
+                        dp = reshape.reshape_4DSTEM_FrameSize(dp, scan_X, int(num_frames / scan_X))
+                     # Crop quad chip data to 512X512 so even numbers for binning
+                    if dp.axes_manager[-1].size  == 515:
+                        dp_crop = dp.isig[1:-2,1:-2]
                         print('cropped data to 512*512 in order to bin')
                     else:
-                        dp_crop = dp_data
+                        dp_crop = dp
+                    # Set img_flag hardcoded
+                    # This part is the "pre-processing pipeline"
                     img_flag = 1
-#                    a_chunk=(dp_crop.axes_manager[0].size//10)
-#                    b_chunk=(dp_crop.axes_manager[3].size//4)
-#                    dp_da = dp_crop.data.rechunk((a_chunk, a_chunk, b_chunk, b_chunk))
-#                    dp_crop = hs.signals.Signal2D(dp_da).as_lazy()
-                    dp_bin = dp_crop.rebin(scale = (1,1,4,4))
-               
+                    # Bin by factor of 2 in diffraction pattern
+                    dp_bin = dp_crop.rebin(scale = (1,1,2,2))
+                    # Calculate sum of binned data 
                    
                     ibf = dp_bin.sum(axis=dp_bin.axes_manager.signal_axes)
-                    # print(ibf.size)
-                    #ibf = hs.signals.Signal2D(ibf)
+                    # Rescale contrast of IBF image
                     ibf = max_contrast8(ibf)
                  
                     # sum dp image of a subset dataset
-                    dp_subset = dp_data.inav[0::int(dp_data.axes_manager[0].size / 50), 0::int(dp_data.axes_manager[0].size / 50)]
+                    dp_subset = dp.inav[0::int(dp.axes_manager[0].size / 50), 0::int(dp.axes_manager[0].size / 50)]
                     sum_dp_subset = dp_subset.sum()
                     sum_dp_subset = max_contrast8(sum_dp_subset)
-                    # img_flag = 1
                     
                     # save data
                 
@@ -157,6 +184,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                             sum_dp_subset = hs.signals.Signal2D(sum_dp_subset)
                             sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'tiff')
                             sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'jpg')
+                            sum_dp_subset.save(saving_path+'/'+file_dp)
                             print('Saving ibf image')
                             print(saving_path)
                             ibf = hs.signals.Signal2D(ibf)
@@ -164,29 +192,28 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                             ibf.save(saving_path+'/'+file_ibf, extension = 'tiff')
                             ibf.save(saving_path+'/'+file_ibf, extension = 'jpg')
                             ibf.save(saving_path+'/'+file_ibf)
-    #                        ibf.data.to_hdf5(file_ibf, saving_path, compression = 'gzip')
+
                             t2 = time.time()
                         except:
                             print('Issue with saving images!')
-                            # continue
-                                  
-#                if dp_data.axes_manager[0].size > 1:
+
+                        # Save binned data in .hdf5 file
                     print('Saving binned data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
                     dp_bin.save(saving_path+ '/'+'binned_' + mib_list[0], extension = 'hdf5')
                     print('Saved binned data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
                     del dp_bin
-                
+                 # Save complete .hdf5 files 
                 print('Saving hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
-                dp_data.save(saving_path+'/'+mib_list[0], extension = 'hdf5')
+                dp.save(saving_path+'/'+mib_list[0], extension = 'hdf5')
                 print('Saved hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
                 t3 = time.time()
                 
                 del dp
                 gc.collect()
-                        
+        # If there are multiple mib files in folder, load them.
+        # TODO: Assumes TEM data - needs updating to consider STEM data.
         elif mib_num > 1:
-            # to change!!!!
-            # if (STEM_flag == 0 or STEM_flag == '0'):
+
             if folder:
             # find index
                 temp1 = mib_path.split('/')
@@ -204,23 +231,26 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 print(file)
                 t0 = time.time()
                 dp = mib_dask_reader('/' +mib_path + '/'+ file)
-                pprint.pprint(dp[1], width=1)
-                STEM_flag = dp[1].get('STEM_flag')
-                scan_X = dp[1].get('scan_X')
-                dp[0].compute() # is replacing needed?
-                dp_data = dp[0]
+                pprint.pprint(dp.metadata)
+                if dp.metadata.Signal.signal_type == 'STEM':
+                    STEM_flag = True
+                else: 
+                    STEM_flag = False
+                    
+                scan_X = dp.metadata.Signal.scan_X
+                dp.compute() 
+                
                 t1 = time.time()
                 
-                if (STEM_flag == 0 or STEM_flag == '0'):
+                if STEM_flag is False:
 
-                    dp_data = dp[0]
-                    dp_sum = max_contrast8(dp_data.sum())
+                    dp_sum = max_contrast8(dp.sum())
                     dp_sum.save(saving_path + '/' +file+'_sum', extension = 'jpg')
                     t2 = time.time()
-                    dp_data.save(saving_path + '/' +file, extension = 'hdf5')
+                    dp.save(saving_path + '/' +file, extension = 'hdf5')
                     t3 = time.time()
 
-                    
+         # Print timing information
         if t1 is not None:
             print('time to load data: ', int(t1-t0))
         if t2 is not None:
@@ -228,12 +258,12 @@ def convert(beamline, year, visit, mib_to_convert, folder):
         if t3 is not None:
             print('time to save full hdf5: ', int(t3-t0))  
                     
-#%%
+
                     
 def watch_convert(beamline, year, visit, folder):
     
     [to_convert, mib_files, mib_to_convert] = check_differences(beamline, year, visit, folder)
-    #holder for raw data path
+    # Holder for raw data path
     if folder:
         raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
     else:
@@ -241,7 +271,7 @@ def watch_convert(beamline, year, visit, folder):
     if bool(to_convert):
         convert(beamline, year, visit, mib_to_convert, folder)
     else:
-        #watch_check = input('Do you want to keep watching this folder? (Y/N)')
+
         watch_check = 'Y'
         if (watch_check == 'Y' or watch_check == 'y'):
             print(raw_location)
@@ -254,7 +284,7 @@ def watch_convert(beamline, year, visit, folder):
                 added = [f for f in after if not f in before]
                 if added: 
                     print("Added dataset: ", ", ".join (added))
-                    # print(added[-1])
+
                     new_data_folder = os.listdir (path = os.path.join(path_to_watch, added[-1]))
                     for f in new_data_folder:
                         if f.endswith('mib'):
@@ -262,8 +292,7 @@ def watch_convert(beamline, year, visit, folder):
                             while wait_flag == 1:
                                 try:
                                     print('file name: ', f)
-                                    # f_size = os.stat(os.path.join(path_to_watch, added[-1], f)).st_size
-                                    # f_size = os.path.getsize(os.path.join(path_to_watch, added[-1], f))
+
                                     # above give the file size from source
                                     # but this below throws an error while copy is not complete:
                                     f_size = os.path.getsize(f)
@@ -281,14 +310,11 @@ def watch_convert(beamline, year, visit, folder):
            
                     [to_convert, mib_files, mib_to_convert] = check_differences(beamline, year, visit, folder)
                     convert(beamline, year, visit, mib_files, folder)
-                    # print('here!')
                 before = after
 
 def main(beamline, year, visit, folder = None):
-
-    
     watch_convert(beamline, year, visit, folder)
-            
+
 
 if __name__ == "__main__":
     from distributed import Client, LocalCluster
@@ -307,4 +333,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     main(args.beamline, args.year, args.visit, args.folder)
-    #watch_convert(args.beamline, args.year, args.visit, args.folder, args.STEM_flag, args.scan_X)
