@@ -13,7 +13,7 @@ from py4DSTEM.process.dpc import get_wavenumber, get_interaction_constant
 
 # Load data
 
-fp =  r"Y:\data\2019\mg22549-6\processing\Merlin\Merlin\20190808 145141"
+fp =  r"Y:2019\mg22549-6\processing\Merlin\Merlin\20190808 145141"
 #200e/A data: r"Y:\2019\mg22317-33\processing\Merlin\Merlin\20190527 160131"
 fn =r"\MoS2 700 20cm 20M.hdf5"
 #200e/A data: r"\binned_ZSM5_300kV_7p6mrad_20Mx_40cm_A2_2p01_072.hdf5"
@@ -29,8 +29,8 @@ dc = py4DSTEM.file.datastructure.DataCube(d.data)
 rx,ry = 30,30
 power = .5
 
-BF = np.average(dc.data,axis=(2,3))
-DP = dc.data[rx,ry,:,:]
+BF = np.average(dc.data4D,axis=(2,3))
+DP = dc.data4D[rx,ry,:,:]
 
 fig,(ax1,ax2) = plt.subplots(1,2,figsize=(12,6))
 ax1.matshow(BF)
@@ -43,15 +43,16 @@ plt.show()
 
 power = 0.1
 
-PACBED = np.average(dc.data,axis=(0,1))
+PACBED = np.average(dc.data4D[::10, ::10, :, :],axis=(0,1))
 
 # Show
 fig,ax = plt.subplots(figsize=(8,8,))
 ax.matshow(PACBED**power)
 plt.show()
+#%%
 
-thresh_lower = 0.001
-thresh_upper = 0.01
+thresh_lower = 0.01
+thresh_upper =0.05#PACBED.mean() / PACBED.max() #  0.01
 N = 100
 
 r,x0,y0 = get_probe_size(PACBED, thresh_lower=thresh_lower, thresh_upper=thresh_upper, N=N)
@@ -64,13 +65,14 @@ circle = Circle((y0,x0),r,fill=False,edgecolor='r',linewidth=1)
 ax.add_patch(circle)
 plt.show()
 
-# get ADF image
+
 
 
 
 # Get mask
 
 #%%
+# get ADF image
 fig,ax = plt.subplots(figsize=(8,8))
 ax.matshow((mask*PACBED)**power)
 plt.show()
@@ -86,14 +88,18 @@ plt.show()
 
 
 #%%
+#get mask for CoM
 expand = 30
 
 qy,qx = np.meshgrid(np.arange(dc.Q_Ny),np.arange(dc.Q_Nx))
 qr = np.hypot(qx-x0,qy-y0)
 mask = qr < r + expand
+fig,ax = plt.subplots(figsize=(8,8))
+ax.matshow(mask * PACBED)
+plt.show()
 #%%
 
-normalize = False # set to false for v. low dose data
+normalize = True # set to false for v. low dose data
 
 CoMx,CoMy = get_CoM_images(dc, mask=mask, normalize=normalize)
 

@@ -44,15 +44,23 @@ def scan_processing_file(proc_path):
     
 def define_bf_disk(dp, proct_dict):
     #define bf disk 
-    try:
-        bf_thresh = proc_dict['BF_thresh']
-    except KeyError:
-        print('BF_thresh not set, default to 0.05')
-        bf_thresh = 0.05
+    #get threshold values 
+    if 'BF_thresh_low' in proc_dict:
+        bf_thresh_low = proc_dict['BF_thresh_low']
+    else:
+        bf_thresh_low = 0.01
+    
+    if 'BF_thresh_high' in proc_dict:
+        bf_thresh_high = proc_dict['BF_thresh_high']
+    else:
+        bf_thresh_high = 0.05
+    
+        
     #print(bf_thresh)
     #bf= fs.get_bf_disk(dp, sub = 20, threshold = bf_thresh, plot_me = True)
-    PACBED = np.average(dp.data, axis = (0,1))
-    r, x0, y0 = get_probe_size(PACBED)
+    #build PACBED from every 10th diff pattern
+    PACBED = np.average(dp.data[::10, ::10, :,:], axis = (0,1))
+    r, x0, y0 = get_probe_size(PACBED,thresh_lower=bf_thresh_low, thresh_upper=bf_thresh_high)
     bf = [r,x0,y0]
     bf_exist = 1
     return bf, bf_exist

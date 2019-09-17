@@ -2,10 +2,11 @@
 #set to 1 any processing you would like to take place
 
 #overwrite: set to 1 to overwrite existing processing 
-Overwrite:0 
+Overwrite:1 
 
 #thresholding to define bright field disk
-BF_thresh: .05
+BF_thresh_low: 0.01
+BF_thresh_high: 0.05 
 
 #######################
 #compute and save ADF
