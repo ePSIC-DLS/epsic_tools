@@ -7,6 +7,7 @@ import time
 import pprint
 import reshape_4DSTEM_funcs as reshape
 import hyperspy.api as hs
+import numpy as np
 
 hs.preferences.GUIs.warn_if_guis_are_missing = False
 hs.preferences.save()
@@ -130,7 +131,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
                 t2 = time.time()
                 # Save raw data in .hdf5 format
-                dp.save(saving_path + '/' +mib_list[0], extension = 'hdf5')
+                dp.save(saving_path + '/' +mib_list[0] + data_dim(dp), extension = 'hdf5')
                 t3 = time.time()
             # Process single .mib file identified as containing STEM data
             # This reshapes to the correct navigation dimensions and 
@@ -162,8 +163,8 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     # Set img_flag hardcoded
                     # This part is the "pre-processing pipeline"
                     img_flag = 1
-                    # Bin by factor of 2 in diffraction pattern
-                    dp_bin = dp_crop.rebin(scale = (1,1,2,2))
+                    # Bin by factor of 4 in diffraction pattern
+                    dp_bin = dp_crop.rebin(scale = (1,1,4,4))
                     # Calculate sum of binned data 
                    
                     ibf = dp_bin.sum(axis=dp_bin.axes_manager.signal_axes)
@@ -199,13 +200,15 @@ def convert(beamline, year, visit, mib_to_convert, folder):
 
                         # Save binned data in .hdf5 file
                     print('Saving binned data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
-                    dp_bin.save(saving_path+ '/'+'binned_' + mib_list[0], extension = 'hdf5')
+                    dp_bin.save(saving_path+ '/'+'binned_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin), extension = 'hdf5')
                     print('Saved binned data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
                     del dp_bin
                  # Save complete .hdf5 files 
                 print('Saving hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
-                dp.save(saving_path+'/'+mib_list[0], extension = 'hdf5')
+                dp.save(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp), extension = 'hdf5')
                 print('Saved hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
+                tmp = []
+                np.savetxt(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp)+'fully_saved', tmp)
                 t3 = time.time()
                 
                 del dp
@@ -312,6 +315,25 @@ def watch_convert(beamline, year, visit, folder):
                     convert(beamline, year, visit, mib_files, folder)
                 before = after
 
+def data_dim(data):
+    """
+    This function gets the data hyperspy object and outputs the dimensions as string
+    to be written into file name ultimately saved.
+    input:
+        data
+    returns:
+        data_dim_str: data dimensions as string
+    """ 
+    dims = str(data.data.shape)[1:-1].replace(' ','').split(',')
+    # 4DSTEM data
+    if len(data.data.shape) == 4:
+        data_dim_str = '_scan_array_'+dims[0]+'by'+dims[1]+'_diff_plane_'+dims[2]+'by'+dims[3]+'_'
+    # stack of images
+    if len(data.data.shape) == 3:
+        data_dim_str = '_number_of_frames_' + dims[0]+'_detector_plane_'+dims[2]+'by'+dims[3]+'_'
+    return data_dim_str
+        
+    
 def main(beamline, year, visit, folder = None):
     watch_convert(beamline, year, visit, folder)
 
