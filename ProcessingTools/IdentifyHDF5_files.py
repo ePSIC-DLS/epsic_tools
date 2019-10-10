@@ -22,13 +22,13 @@ def get_HDF5_files(beamline, year, visit, folder = None):
             sys.exit()  # options here?
     else:
         #my local path 
-        proc_location = os.path.join('y:',os.sep, year, visit,'processing', 'Merlin')
+        #proc_location = os.path.join('/dls/e02/data/',os.sep, year, visit,'processing', 'Merlin')
         #linux path
-        #proc_location = os.path.join(os.sep,  'dls', beamline,'data', year, visit, 'processing', 'Merlin')    
+        proc_location = os.path.join('/dls', beamline,'data', year, visit, 'processing', 'Merlin')    
     #print(proc_location)
-    if not os.path.exists(proc_location):
-         print('Cannot find',proc_location)
-         sys.exit()
+    #if not os.path.exists(proc_location):
+    #     print('Cannot find',proc_location)
+    #     sys.exit()
 
 
     #itterator for directorys and files
