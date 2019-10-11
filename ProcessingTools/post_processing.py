@@ -137,7 +137,7 @@ def process_data(proc_path,proc_bin_path, proc_dict):
             time_ADF0 = time.time()
             #check if lazy and compute
             if dp_bin._lazy:
-                dp_bin = dp.bin.compute() 
+                dp_bin = dp_bin.compute() 
             time_ADF1 = time.time()
             print('loaded binned data into memory in : ', time_ADF1 - time_ADF0)
             if bf_bin_exist == 0:
@@ -183,7 +183,7 @@ def process_data(proc_path,proc_bin_path, proc_dict):
             if 'bin_CoM' in proc_dict:
                 if proc_dict['bin_CoM'] ==1:
                     if dp_bin._lazy:
-                        dp_bin = dp.bin.compute() 
+                        dp_bin = dp_bin.compute() 
                     if bf_bin_exist == 0:
                         #get BF thrershold value
                         bf_bin, bf_bin_exist = define_bf_disk(dp_bin, proc_dict)
