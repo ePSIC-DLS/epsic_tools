@@ -14,7 +14,7 @@ def get_HDF5_files(beamline, year, visit, folder = None):
     
     if folder:
         # check that the path folder exists
-        proc_location = os.path.join('/dls',beamline,'data', year, visit,'processing', os.path.relpath(folder))
+        proc_location = os.path.join('/dls',beamline,'data', year, visit,'processing','Merlin', os.path.relpath(folder))
         print(proc_location)
         if not os.path.exists(proc_location):
             print('This folder ', proc_location,'does not exist!') 

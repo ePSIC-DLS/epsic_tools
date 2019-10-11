@@ -10,7 +10,9 @@ import sys
 import hyperspy.api as hs
 import numpy as np
 import os
+import time
 from IdentifyHDF5_files import get_HDF5_files
+import functions_4DSTEM as fs
 import py4DSTEM
 from py4DSTEM.process.calibration import get_probe_size
 from py4DSTEM.process.dpc import get_CoM_images, get_rotation_and_flip, get_phase_from_CoM
@@ -101,9 +103,16 @@ def process_data(proc_path,proc_bin_path, proc_dict):
         Overwrite = bool(proc_dict['Overwrite'] )
     else:
         Overwrite = False
+    print('Overwrite : ', Overwrite)
     #load data lazily
+    print('loading : ' , proc_path)
+    time0 = time.time()
     dp = hs.load(proc_path, lazy = True)
-    dp_bin = hs.load(proc_bin_path)
+    time1 = time.time()
+    print('lazy loaded full data in :', time1 - time0,  ' s')
+    dp_bin = hs.load(proc_bin_path, lazy = True)
+    time2 = time.time()
+    print('lazy loaded binned data in :', time2 - time1, 's')
     #flag to tell if bf has already been calculated
     bf_bin_exist = 0
     bf_exist = 0
@@ -114,12 +123,23 @@ def process_data(proc_path,proc_bin_path, proc_dict):
         run_ADF = proc_dict['ADF']
         #define file save names
         ADF_file = proc_bin_path.rpartition('.')[0] + '_ADF'
-        if os.path.isfile(ADF_file):
+        #print('ADF_file : ', ADF_file)
+        if os.path.isfile(ADF_file + '.hspy'):
             #check overwrite flag and skip processing if set to zero
             if Overwrite == False:
+                print('ADF data exists, skipping ADF analysis')
                 run_ADF = 0 
+            else:
+                print('ADF data exists, overwriting')
         #run adf analysis
         if run_ADF == 1:
+            print('Running ADF analysis')
+            time_ADF0 = time.time()
+            #check if lazy and compute
+            if dp_bin._lazy:
+                dp_bin = dp.bin.compute() 
+            time_ADF1 = time.time()
+            print('loaded binned data into memory in : ', time_ADF1 - time_ADF0)
             if bf_bin_exist == 0:
                 #get bf thrershold value
                 bf_bin, bf_bin_exist = define_bf_disk(dp_bin, proc_dict)
@@ -135,7 +155,8 @@ def process_data(proc_path,proc_bin_path, proc_dict):
             hs_ADF = hs.signals.Signal2D(ADF)
             hs_ADF.save(ADF_file, overwrite = Overwrite) 
             hs_ADF.save(ADF_file, overwrite = Overwrite, extension = 'png') 
-    
+            time_ADF2 = time.time()
+            print('ADF analysis completed and saved in : ', time_ADF2 - time_ADF0, ' s') 
     #CoM analysis
     if 'CoM' in proc_dict:
         run_COM = proc_dict['CoM']
@@ -148,14 +169,21 @@ def process_data(proc_path,proc_bin_path, proc_dict):
         CoMx_file = file_path + '_CoMx'
         CoMy_file = file_path +  '_CoMy'
         #check if file exists
-        if os.path.isfile(CoMx_file):
+        if os.path.isfile(CoMx_file + '.hspy'):
             #check overwrite flag and skip processing if set to zero
             if Overwrite == False:
+                print('CoM data exists, skipping CoM analysis')
                 run_COM = 0 
+            else:
+                print('CoM data exists, overwriting')
         #run CoM analysis
         if run_COM ==1:     
+            print('Running CoM analysis')
+            time_CoM1 = time.time()
             if 'bin_CoM' in proc_dict:
                 if proc_dict['bin_CoM'] ==1:
+                    if dp_bin._lazy:
+                        dp_bin = dp.bin.compute() 
                     if bf_bin_exist == 0:
                         #get BF thrershold value
                         bf_bin, bf_bin_exist = define_bf_disk(dp_bin, proc_dict)
@@ -190,16 +218,23 @@ def process_data(proc_path,proc_bin_path, proc_dict):
             hs_CoMy = hs.signals.Signal2D(CoMy)
             hs_CoMy.save(CoMy_file, overwrite = Overwrite)
             hs_CoMy.save(CoMy_file, overwrite = Overwrite, extension = 'png')
+            time_CoM2 = time.time()
+            print('CoM analysis completed and saved in : ', time_CoM2 - time_CoM1, ' s') 
             
     if 'DPC' in proc_dict:
         run_DPC = proc_dict['DPC']
         #define file name
         phase_file = file_path + '_phase'
-        if os.path.isfile(phase_file):
+        if os.path.isfile(phase_file + '.hspy'):
             #check overwrite flag and skip processing if set to zero
             if Overwrite == False:
+                print('DPC data exists, skipping DPC analysis')
                 run_DPC = 0
+            else:
+                print('DPC data exists, overwriting')
         if run_DPC ==1:
+            print('Running DPC analysis')
+            time_DPC1 = time.time()
             #get parameters
             theta = proc_dict['DPC_theta']
             flip = bool(proc_dict['DPC_flip'])
@@ -215,7 +250,10 @@ def process_data(proc_path,proc_bin_path, proc_dict):
             hs_phase = hs.signals.Signal2D(phase)
             hs_phase.save(phase_file, overwrite=Overwrite)
             hs_phase.save(phase_file, overwrite=Overwrite, extension = 'png')
-            
+            time_DPC2 = time.time()
+            print('DPC analysis completed and saved in : ', time_DPC2 - time_DPC1, ' s') 
+    time2 = time.time()
+    print('Processing complete in : ', time2 - time0 , ' s')
 #%%
 def main(beamline, year, visit, folder = None):
     #check_differences(beamline, year, visit, folder = None)
@@ -225,7 +263,7 @@ def main(beamline, year, visit, folder = None):
     #year = '2019'
     #visit = 'mg22549-6'
     #get hdf5 files
-    HDF5_dict= get_HDF5_files(beamline, year, visit)
+    HDF5_dict= get_HDF5_files(beamline, year, visit, folder)
     #get processing parameters
     proc_path = HDF5_dict['processing_path']
     proc_dict = scan_processing_file(proc_path)
