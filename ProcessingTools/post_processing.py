@@ -111,8 +111,16 @@ def process_data(proc_path,proc_bin_path, proc_dict):
     
     #ADF analysis
     if 'ADF' in proc_dict:
+        #pass ADF value from config file 
+        run_ADF = proc_dict['ADF']
+        #define file save names
+        ADF_file = proc_bin_path.rpartition('.')[0] + '_ADF'
+        if os.path.isfile(ADF_file):
+            #check overwrite flag and skip processing if set to zero
+            if Overwrite == False:
+                run_ADF = 0 
         #run adf analysis
-        if proc_dict['ADF'] == 1:
+        if run_ADF == 1:
             if bf_bin_exist == 0:
                 #get bf thrershold value
                 bf_bin, bf_bin_exist = define_bf_disk(dp_bin, proc_dict)
@@ -131,8 +139,22 @@ def process_data(proc_path,proc_bin_path, proc_dict):
     
     #CoM analysis
     if 'CoM' in proc_dict:
+        run_COM = proc_dict['CoM']
+        #define file save names
+        if 'bin_CoM' in proc_dict:
+            if proc_dict['bin_CoM'] ==1:
+                file_path = proc_bin_path.rpartition('.')[0]
+            elif proc_dict['bin_CoM'] ==0:
+                file_path = proc_path.rpartition('.')[0]
+        CoMx_file = file_path + '_CoMx'
+        CoMy_file = file_path +  '_CoMy'
+        #check if file exists
+        if os.path.isfile(CoMx_file):
+            #check overwrite flag and skip processing if set to zero
+            if Overwrite == False:
+                run_COM = 0 
         #run CoM analysis
-        if proc_dict['CoM'] ==1:
+        if run_COM ==1:     
             if 'bin_CoM' in proc_dict:
                 if proc_dict['bin_CoM'] ==1:
                     if bf_bin_exist == 0:
@@ -140,13 +162,13 @@ def process_data(proc_path,proc_bin_path, proc_dict):
                         bf_bin, bf_bin_exist = define_bf_disk(dp_bin, proc_dict)
                     bf_CoM = bf_bin
                     dp_CoM = py4DSTEM.file.datastructure.DataCube(dp_bin.data)
-                    file_path = proc_bin_path.rpartition('.')[0]
+                    
                 elif proc_dict['bin_CoM'] ==0:
                     if bf_exist ==0:
                         bf, bf_exist = define_bf_disk(dp, proc_dict)
                     bf_CoM = bf
                     dp_CoM = py4DSTEM.file.datastructure.DataCube(dp.data)
-                    file_path = proc_path.rpartition('.')[0]
+                    
             #get BF outer angle
             if 'BF_expand' in proc_dict:
                 BF_expand = proc_dict['ADF_expand']
@@ -162,18 +184,23 @@ def process_data(proc_path,proc_bin_path, proc_dict):
             #get CoM 
             CoMx, CoMy = get_CoM_images(dp_CoM, mask = mask, normalize = Normalize_CoM)
             #pass to hyperspy and save
-            CoMx_file = file_path + '_CoMx'
             hs_CoMx = hs.signals.Signal2D(CoMx)
             hs_CoMx.save(CoMx_file, overwrite = Overwrite)
             hs_CoMx.save(CoMx_file, overwrite = Overwrite, extension = 'png')
             
-            CoMy_file = file_path +  '_CoMy'
             hs_CoMy = hs.signals.Signal2D(CoMy)
             hs_CoMy.save(CoMy_file, overwrite = Overwrite)
             hs_CoMy.save(CoMy_file, overwrite = Overwrite, extension = 'png')
             
     if 'DPC' in proc_dict:
-        if proc_dict['DPC'] ==1:
+        run_DPC = proc_dict['DPC']
+        #define file name
+        phase_file = file_path + '_phase'
+        if os.path.isfile(phase_file):
+            #check overwrite flag and skip processing if set to zero
+            if Overwrite == False:
+                run_DPC = 0
+        if run_DPC ==1:
             #get parameters
             theta = proc_dict['DPC_theta']
             flip = bool(proc_dict['DPC_flip'])
@@ -193,25 +220,25 @@ def process_data(proc_path,proc_bin_path, proc_dict):
 #%%
 def main(beamline, year, visit, folder = None):
     #check_differences(beamline, year, visit, folder = None)
-	#%%
-	#testing useage
-	#beamline = 'e02'
-	#year = '2019'
-	#visit = 'mg22549-6'
-	#get hdf5 files
-	HDF5_dict= get_HDF5_files(beamline, year, visit)
-	#get processing parameters
-	proc_path = HDF5_dict['processing_path']
-	proc_dict = scan_processing_file(proc_path)
-	print(proc_dict)
-	print(HDF5_dict)
-	#just do one file 
-	#file_n = 4 #3
-	for file_n in np.arange(len(HDF5_dict['HDF5_files'])):
-		this_fp = os.path.join(HDF5_dict['HDF5_paths'][file_n], HDF5_dict['HDF5_files'][file_n])
-		this_bin_fp = os.path.join(HDF5_dict['binned_HDF5_paths'][file_n], HDF5_dict['binned_HDF5_files'][file_n])
-		print(this_fp)
-		dp_bin = process_data(this_fp, this_bin_fp, proc_dict)
+    #%%
+    #testing useage
+    #beamline = 'e02'
+    #year = '2019'
+    #visit = 'mg22549-6'
+    #get hdf5 files
+    HDF5_dict= get_HDF5_files(beamline, year, visit)
+    #get processing parameters
+    proc_path = HDF5_dict['processing_path']
+    proc_dict = scan_processing_file(proc_path)
+    print(proc_dict)
+    print(HDF5_dict)
+    #just do one file 
+    #file_n = 4 #3
+    for file_n in np.arange(len(HDF5_dict['HDF5_files'])):
+        this_fp = os.path.join(HDF5_dict['HDF5_paths'][file_n], HDF5_dict['HDF5_files'][file_n])
+        this_bin_fp = os.path.join(HDF5_dict['binned_HDF5_paths'][file_n], HDF5_dict['binned_HDF5_files'][file_n])
+        print(this_fp)
+        dp_bin = process_data(this_fp, this_bin_fp, proc_dict)
 #%%
     
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ bin_CoM:0
 #distance outside BF disk to include in calculation (px)
 BF_expand:20
 
-#Normalize CoM data
+#Normalize CoM data (subtract mean of CoM)
 Normalize_CoM:1
 #######################
 #perform DPC (phase from CoM)
