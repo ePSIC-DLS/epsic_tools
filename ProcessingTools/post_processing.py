@@ -11,7 +11,6 @@ import hyperspy.api as hs
 import numpy as np
 import os
 from IdentifyHDF5_files import get_HDF5_files
-import functions_4DSTEM as fs
 import py4DSTEM
 from py4DSTEM.process.calibration import get_probe_size
 from py4DSTEM.process.dpc import get_CoM_images, get_rotation_and_flip, get_phase_from_CoM
