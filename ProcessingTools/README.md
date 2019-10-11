@@ -8,5 +8,6 @@ This can then be run on the cluster by navigating to the location of the .sh fil
 	module load global/cluster
 	qsub process_STEM.sh
 	
-The processing_params.txt sets what processing to perform and must exist in the session processing directory 
+The processing_params.txt sets what processing to perform and must exist in the session processing directory
+
 To determine the parameters for finding the bright field disk diameter, first run the get_bdf.ipynb notebook. 
