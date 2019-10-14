@@ -12,10 +12,10 @@ import numpy as np
 import os
 import time
 from IdentifyHDF5_files import get_HDF5_files
-import functions_4DSTEM as fs
+#import functions_4DSTEM as fs
 import py4DSTEM
 from py4DSTEM.process.calibration import get_probe_size
-from py4DSTEM.process.dpc import get_CoM_images, get_rotation_and_flip, get_phase_from_CoM
+from py4DSTEM.process.dpc import get_CoM_images, get_phase_from_CoM
 from py4DSTEM.process.dpc import get_wavenumber, get_interaction_constant
 
 def scan_processing_file(proc_path):
