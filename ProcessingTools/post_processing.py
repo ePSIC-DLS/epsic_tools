@@ -136,8 +136,8 @@ def process_data(proc_path,proc_bin_path, proc_dict):
             print('Running ADF analysis')
             time_ADF0 = time.time()
             #check if lazy and compute
-            if dp_bin._lazy:
-                dp_bin = dp_bin.compute() 
+            #if dp_bin._lazy:
+                #dp_bin = dp_bin.compute() 
             time_ADF1 = time.time()
             print('loaded binned data into memory in : ', time_ADF1 - time_ADF0)
             if bf_bin_exist == 0:
@@ -182,8 +182,8 @@ def process_data(proc_path,proc_bin_path, proc_dict):
             time_CoM1 = time.time()
             if 'bin_CoM' in proc_dict:
                 if proc_dict['bin_CoM'] ==1:
-                    if dp_bin._lazy:
-                        dp_bin = dp_bin.compute() 
+                    #if dp_bin._lazy:
+                        #dp_bin = dp_bin.compute() 
                     if bf_bin_exist == 0:
                         #get BF thrershold value
                         bf_bin, bf_bin_exist = define_bf_disk(dp_bin, proc_dict)
@@ -275,7 +275,7 @@ def main(beamline, year, visit, folder = None):
         this_fp = os.path.join(HDF5_dict['HDF5_paths'][file_n], HDF5_dict['HDF5_files'][file_n])
         this_bin_fp = os.path.join(HDF5_dict['binned_HDF5_paths'][file_n], HDF5_dict['binned_HDF5_files'][file_n])
         print(this_fp)
-        dp_bin = process_data(this_fp, this_bin_fp, proc_dict)
+        process_data(this_fp, this_bin_fp, proc_dict)
 #%%
     
 if __name__ == "__main__":
