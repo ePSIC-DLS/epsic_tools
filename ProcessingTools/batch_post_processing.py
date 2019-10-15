@@ -272,7 +272,7 @@ def process_data(proc_path,proc_bin_path, proc_dict):
     time2 = time.time()
     print('Processing complete in : ', time2 - time0 , ' s')
 #%%
-def main(beamline, year, visit, folder = None):
+def main(beamline, year, visit, folder_num, folder = None):
     #check_differences(beamline, year, visit, folder = None)
     #%%
     #testing useage
@@ -286,17 +286,17 @@ def main(beamline, year, visit, folder = None):
     proc_dict = scan_processing_file(proc_path)
     print(proc_dict)
     print(HDF5_dict)
-    #just do one file 
-    #file_n = 4 #3
-    for file_n in np.arange(len(HDF5_dict['HDF5_files'])):
-        this_fp = os.path.join(HDF5_dict['HDF5_paths'][file_n], HDF5_dict['HDF5_files'][file_n])
-        this_bin_fp = os.path.join(HDF5_dict['binned_HDF5_paths'][file_n], HDF5_dict['binned_HDF5_files'][file_n])
-        print(this_fp)
-        try:
-            process_data(this_fp, this_bin_fp, proc_dict)
-        except:
-            print('** ERROR processing**')
-            continue
+    print(folder_num)
+    #just do one file  -1 as python indexing starts at 0
+    folder_num = int(folder_num) -1
+    #for file_n in np.arange(len(HDF5_dict['HDF5_files'])):
+    this_fp = os.path.join(HDF5_dict['HDF5_paths'][folder_num], HDF5_dict['HDF5_files'][folder_num])
+    this_bin_fp = os.path.join(HDF5_dict['binned_HDF5_paths'][folder_num], HDF5_dict['binned_HDF5_files'][folder_num])
+    print(this_fp)
+    try:
+        process_data(this_fp, this_bin_fp, proc_dict)
+    except:
+        print('** ERROR processing**')
 #%%
     
 if __name__ == "__main__":
@@ -304,14 +304,15 @@ if __name__ == "__main__":
     parser.add_argument('beamline', help='Beamline name')
     parser.add_argument('year', help='Year')
     parser.add_argument('visit', help='Session visit code')
-    parser.add_argument('folder', nargs= '?', help='Option to add folder')
+    parser.add_argument('folder_num', nargs= '?', help='passed by scheduler')
+    parser.add_argument('folder', nargs= '?', help='folder to process')
     v_help = "Display all debug log messages"
     parser.add_argument("-v", "--verbose", help=v_help, action="store_true",
                         default=False)
 
     args = parser.parse_args()
     
-    main(args.beamline, args.year, args.visit, args.folder)            
+    main(args.beamline, args.year, args.visit, args.folder_num, args.folder)            
             
 
         
