@@ -295,8 +295,8 @@ def main(beamline, year, visit, folder_num, folder = None):
     print(this_fp)
     try:
         process_data(this_fp, this_bin_fp, proc_dict)
-    except:
-        print('** ERROR processing**')
+    except Exception as e:
+        print('** ERROR processing** \n ' , e)
 #%%
     
 if __name__ == "__main__":

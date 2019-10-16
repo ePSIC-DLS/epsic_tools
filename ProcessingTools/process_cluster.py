@@ -5,10 +5,11 @@ perform ePSIC 4DSTEM analysis on the DLS cluster
 
 import os
 import sys
+import numpy as np
 sys.path.append('/dls_sw/e02/scripts/Merlin-Medipix/ProcessingTools')
 import IdentifyHDF5_files as IH5
 #maximum number of jobs to run concurrently
-max_c = 10
+max_c = 10  
 
 beamline = sys.argv[1]
 year = sys.argv[2]
@@ -25,6 +26,8 @@ processing_dir = os.path.join(expt_path, 'logs')
 print(processing_dir)
 if os.path.exists(processing_dir) == False:
     os.makedirs(processing_dir)
-
+with open(processing_dir + '/file_numbers.txt', 'w') as f:
+    for i in np.arange(n_files):
+        f.write(str(i) + ' : ' + hdf5_dict['HDF5_paths'][i] + ' \n ')
 os.system('echo /dls_sw/e02/scripts/Merlin-Medipix/ProcessingTools/batch_process_STEM.sh ' + beamline + ' ' + year + ' ' + visit)
-os.system('cd ' + processing_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(mac_c) + ' /dls_sw/e02/scripts/Merlin-Medipix/ProcessingTools/batch_process_STEM.sh ' + beamline + ' ' + year + ' ' + visit)
+os.system('cd ' + processing_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls_sw/e02/scripts/Merlin-Medipix/ProcessingTools/batch_process_STEM.sh ' + beamline + ' ' + year + ' ' + visit)
