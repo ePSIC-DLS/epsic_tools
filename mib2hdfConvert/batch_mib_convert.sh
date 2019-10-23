@@ -1,0 +1,10 @@
+#!/bin/bash
+#$ -l h_rt=48:00:00
+#$ -cwd
+#$ -q high.q
+#$ -l redhat_release=rhel7
+#$ -l m_mem_free=200G
+
+
+module load python/3.7
+python /dls_sw/e02/scripts/batch_mib_convert/mib2hdf_watch_convert.py $1 $2 $3 $4

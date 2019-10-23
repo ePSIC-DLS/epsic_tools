@@ -5,7 +5,6 @@ import gc
 from mib_dask_import import mib_dask_reader
 import time
 import pprint
-import reshape_4DSTEM_funcs as reshape
 import hyperspy.api as hs
 import numpy as np
 
@@ -32,14 +31,28 @@ def max_contrast8(d):
     d.data = data
     return d
 
+def change_dtype(d):
+    """
+    Changes the data type of hs object d to int16
+    Parameters:
+    -----------
+    d : hyperspy.signals.Signal2D
+        Signal2D object with dtype float64
+
+    Returns
+    -------
+    d : hyperspy.signals.Signal2D
+        Signal2D object following dtype change to int16
+    """
+    d = d.data.astype('int16')
+    d = hs.signals.Signal2D(d)
+    
+    return d
 
 def convert(beamline, year, visit, mib_to_convert, folder):
     """Convert a set of Merlin/medipix .mib files in a set of time-stamped folders
     into corresponding .hdf5 raw data files, and a series of standard images contained
     within a similar folder structure in the processing folder of the same visit.
-
-    The STEM / TEM is figured out by the exp times of frames.
-    If STEM, then data is reshaped using the flyback frames.
 
     Parameters
     ----------
@@ -106,7 +119,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     STEM_flag = True
                 else:
                     STEM_flag = False
-                scan_X = dp.metadata.Signal.scan_X
+#                scan_X = dp.metadata.Signal.scan_X
 
 
             except ValueError:
@@ -127,6 +140,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 print('saving here: ',saving_path)
                 # Calculate summed diffraction pattern
                 dp_sum = max_contrast8(dp.sum())
+                dp_sum = change_dtype(dp_sum)
                 # Save summed diffraction pattern
                 dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
                 t2 = time.time()
@@ -146,14 +160,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 # checks to see if it is a multi-frame data before reshaping
                 if dp.axes_manager[0].size > 1:
                 # Attempt to reshape the data based on exposure times
-                    try:
-                        dp = reshape.reshape_4DSTEM_FlyBack(dp)
-                        print('Data reshaped using flyback pixel to: '+ str(dp.axes_manager.navigation_shape))
-                    # If exposure times fail use data size
-                    except:
-                        print('Data reshape using flyback pixel failed! - Reshaping using scan size instead.')
-                        num_frames = dp.axes_manager[0].size
-                        dp = reshape.reshape_4DSTEM_FrameSize(dp, scan_X, int(num_frames / scan_X))
                      # Crop quad chip data to 512X512 so even numbers for binning
                     if dp.axes_manager[-1].size  == 515:
                         dp_crop = dp.isig[1:-2,1:-2]
@@ -170,11 +176,13 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     ibf = dp_bin.sum(axis=dp_bin.axes_manager.signal_axes)
                     # Rescale contrast of IBF image
                     ibf = max_contrast8(ibf)
+                    ibf = change_dtype(ibf)
 
                     # sum dp image of a subset dataset
                     dp_subset = dp.inav[0::int(dp.axes_manager[0].size / 50), 0::int(dp.axes_manager[0].size / 50)]
                     sum_dp_subset = dp_subset.sum()
                     sum_dp_subset = max_contrast8(sum_dp_subset)
+                    sum_dp_subset = change_dtype(sum_dp_subset)
 
                     # save data
 
@@ -240,7 +248,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 else:
                     STEM_flag = False
 
-                scan_X = dp.metadata.Signal.scan_X
                 dp.compute()
 
                 t1 = time.time()
@@ -248,6 +255,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 if STEM_flag is False:
 
                     dp_sum = max_contrast8(dp.sum())
+                    dp_sum = change_dtype(dp_sum)
                     dp_sum.save(saving_path + '/' +file+'_sum', extension = 'jpg')
                     t2 = time.time()
                     dp.save(saving_path + '/' +file, extension = 'hdf5')
@@ -265,29 +273,28 @@ def convert(beamline, year, visit, mib_to_convert, folder):
 
 def watch_convert(beamline, year, visit, folder):
 
-    [to_convert, mib_files, mib_to_convert] = check_differences(beamline, year, visit, folder)
+    mib_dict = check_differences(beamline, year, visit, folder)
     # Holder for raw data path
     if folder:
         raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
     else:
         raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')
+    to_convert = mib_dict['MIB_to_convert']
     if bool(to_convert):
-        convert(beamline, year, visit, mib_to_convert, folder)
+        convert(beamline, year, visit, to_convert, folder)
     else:
-
         watch_check = 'Y'
         if (watch_check == 'Y' or watch_check == 'y'):
             print(raw_location)
             path_to_watch = raw_location
-            [to_convert, mib_files, mib_to_convert] = check_differences(beamline, year, visit, folder)
-            before = dict ([(f, None) for f in os.listdir (path_to_watch)])
+            # mib_dict = check_differences(beamline, year, visit, folder)
+            before = dict ([(f, None) for f in os.listdir(path_to_watch)])
             while True:
                 time.sleep (60)
                 after = dict ([(f, None) for f in os.listdir (path_to_watch)])
                 added = [f for f in after if not f in before]
                 if added:
                     print("Added dataset: ", ", ".join (added))
-
                     new_data_folder = os.listdir (path = os.path.join(path_to_watch, added[-1]))
                     for f in new_data_folder:
                         if f.endswith('mib'):
@@ -311,8 +318,9 @@ def watch_convert(beamline, year, visit, folder):
                                     else:
                                         pass
 
-                    [to_convert, mib_files, mib_to_convert] = check_differences(beamline, year, visit, folder)
-                    convert(beamline, year, visit, mib_files, folder)
+                            mib_dict = check_differences(beamline, year, visit, folder)
+                            to_convert = mib_dict['MIB_to_convert']
+                            convert(beamline, year, visit, to_convert, folder)
                 before = after
 
 def data_dim(data):
