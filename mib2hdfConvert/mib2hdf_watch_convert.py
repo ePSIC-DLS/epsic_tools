@@ -49,6 +49,57 @@ def change_dtype(d):
     
     return d
 
+def bin_sig(d, bin_fact):
+    """
+    bins the reshaped 4DSTEMhs object by bin_fact on signal (diffraction) plane
+    Parameters:
+    ------------
+    d: hyperspy.signals.Signal2D
+        reshaped to scanX, scanY | DetX, DetY
+        This needs to be computed, i.e. not lazy, to work. If lazy, and binning 
+        not aligned with dask chunks raises ValueError 
+    Returns:
+    -------------
+    d_sigbin: binned d in the signal plane
+    """
+    # figuring out how many pixles to crop before binning
+    # we assume the Detx and DetY dimensions are the same
+    to_crop = d.axes_manager[-1].size % bin_fact
+    d_crop = d.isig[to_crop:,to_crop:]
+    try:
+        d_sigbin = d_crop.rebin(scale=(1,1,bin_fact,bin_fact))
+    except ValueError:
+        print('Rebinning does not align with data dask chunks. Pass non-lazy signal before binning.')
+        return
+    return d_sigbin
+
+def bin_nav(d, bin_fact):
+    """
+    bins the reshaped 4DSTEMhs object by bin_fact on navigation (probe scan) plane
+    Parameters:
+    ------------
+    d: hyperspy.signals.Signal2D
+        reshaped to scanX, scanY | DetX, DetY
+        This needs to be computed, i.e. not lazy, to work. If lazy, and binning 
+        not aligned with dask chunks raises ValueError 
+    Returns:
+    -------------
+    d_navbin: binned d in the signal plane
+    """
+    # figuring out how many pixles to crop before binning
+    # we assume the Detx and DetY dimensions are the same
+    to_cropx = d.axes_manager[0].size % bin_fact
+    to_cropy = d.axes_manager[1].size % bin_fact
+    d_crop = d.inav[to_cropx:,to_cropy:]
+    try:
+        d_navbin = d_crop.rebin(scale=(bin_fact,bin_fact,1,1))
+    except ValueError:
+        print('Rebinning does not align with data dask chunks. Pass non-lazy signal before binning.')
+        return
+    return d_navbin
+    
+    
+
 def convert(beamline, year, visit, mib_to_convert, folder):
     """Convert a set of Merlin/medipix .mib files in a set of time-stamped folders
     into corresponding .hdf5 raw data files, and a series of standard images contained
@@ -71,6 +122,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
     -------
         - reshaped 4DSTEM HDF5 file
         - The above file binned by 4 in the diffraction plane
+        - The above file binned by 4 in the navigation plane
         - HSPY, TIFF file and JPG file of incoherent BF reconstruction
         - HSPY, TIFF file and JPG file of sparsed sum of the diffraction patterns
     """
@@ -154,63 +206,55 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
-                img_flag = 0
 
-                print('Data loaded to hyperspy')
-                # checks to see if it is a multi-frame data before reshaping
-                if dp.axes_manager[0].size > 1:
-                # Attempt to reshape the data based on exposure times
-                     # Crop quad chip data to 512X512 so even numbers for binning
-                    if dp.axes_manager[-1].size  == 515:
-                        dp_crop = dp.isig[1:-2,1:-2]
-                        print('cropped data to 512*512 in order to bin')
-                    else:
-                        dp_crop = dp
-                    # Set img_flag hardcoded
-                    # This part is the "pre-processing pipeline"
-                    img_flag = 1
-                    # Bin by factor of 4 in diffraction pattern
-                    dp_bin = dp_crop.rebin(scale = (1,1,4,4))
-                    # Calculate sum of binned data
 
-                    ibf = dp_bin.sum(axis=dp_bin.axes_manager.signal_axes)
-                    # Rescale contrast of IBF image
-                    ibf = max_contrast8(ibf)
-                    ibf = change_dtype(ibf)
+                # Bin by factor of 4 in diffraction and navigation planes
+                dp_bin_sig = bin_sig(dp,4)
+                dp_bin_nav = bin_nav(dp,4)
+                
+                # Calculate sum of binned data
 
-                    # sum dp image of a subset dataset
-                    dp_subset = dp.inav[0::int(dp.axes_manager[0].size / 50), 0::int(dp.axes_manager[0].size / 50)]
-                    sum_dp_subset = dp_subset.sum()
-                    sum_dp_subset = max_contrast8(sum_dp_subset)
-                    sum_dp_subset = change_dtype(sum_dp_subset)
+                ibf = dp_bin_sig.sum(axis=dp_bin_sig.axes_manager.signal_axes)
+                # Rescale contrast of IBF image
+                ibf = max_contrast8(ibf)
+                ibf = change_dtype(ibf)
 
-                    # save data
+                # sum dp image of a subset dataset
+                dp_subset = dp.inav[0::int(dp.axes_manager[0].size / 50), 0::int(dp.axes_manager[0].size / 50)]
+                sum_dp_subset = dp_subset.sum()
+                sum_dp_subset = max_contrast8(sum_dp_subset)
+                sum_dp_subset = change_dtype(sum_dp_subset)
 
-                    if img_flag == 1:
-                        try:
-                            print('Saving average diffraction pattern')
-                            file_dp = mib_list[0].rpartition('.')[0]+ '_subset_dp'
-                            sum_dp_subset = hs.signals.Signal2D(sum_dp_subset)
-                            sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'tiff')
-                            sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'jpg')
-                            sum_dp_subset.save(saving_path+'/'+file_dp)
-                            print('Saving ibf image')
-                            print(saving_path)
-                            ibf = hs.signals.Signal2D(ibf)
-                            file_ibf =  mib_list[0].rpartition('.')[0]+ '_ibf'
-                            ibf.save(saving_path+'/'+file_ibf, extension = 'tiff')
-                            ibf.save(saving_path+'/'+file_ibf, extension = 'jpg')
-                            ibf.save(saving_path+'/'+file_ibf)
+                # save data
 
-                            t2 = time.time()
-                        except:
-                            print('Issue with saving images!')
+                try:
+                    print('Saving average diffraction pattern')
+                    file_dp = mib_list[0].rpartition('.')[0]+ '_subset_dp'
+                    sum_dp_subset = hs.signals.Signal2D(sum_dp_subset)
+                    sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'tiff')
+                    sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'jpg')
+                    sum_dp_subset.save(saving_path+'/'+file_dp)
+                    print('Saving ibf image')
+                    print(saving_path)
+                    ibf = hs.signals.Signal2D(ibf)
+                    file_ibf =  mib_list[0].rpartition('.')[0]+ '_ibf'
+                    ibf.save(saving_path+'/'+file_ibf, extension = 'tiff')
+                    ibf.save(saving_path+'/'+file_ibf, extension = 'jpg')
+                    ibf.save(saving_path+'/'+file_ibf)
 
-                        # Save binned data in .hdf5 file
-                    print('Saving binned data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
-                    dp_bin.save(saving_path+ '/'+'binned_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin), extension = 'hdf5')
-                    print('Saved binned data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
-                    del dp_bin
+                    t2 = time.time()
+                except:
+                    print('Issue with saving images!')
+
+                    # Save binned data in .hdf5 file
+                print('Saving binned diffraction data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
+                dp_bin_sig.save(saving_path+ '/'+'binned_diff_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin_sig), extension = 'hdf5')
+                print('Saved binned diffraction data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
+                del dp_bin_sig
+                print('Saving binned navigation data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
+                dp_bin_nav.save(saving_path+ '/'+'binned_nav_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin_nav), extension = 'hdf5')
+                print('Saved binned navigation data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
+                del dp_bin_nav
                  # Save complete .hdf5 files
                 print('Saving hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
                 dp.save(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp), extension = 'hdf5')
