@@ -30,7 +30,7 @@ year = sys.argv[2]
 visit = sys.argv[3]
 
 if len(sys.argv) < 5:
-    folder = ' '
+    folder = None
 else:
     folder = sys.argv[4]
 
@@ -44,9 +44,15 @@ outputs_dir = os.path.join(saving_path, 'logs')
 
 if os.path.exists(outputs_dir) == False:
     os.makedirs(outputs_dir)
+    
 with open(outputs_dir + '/file_numbers.txt', 'w') as f:
     for i in np.arange(n_files):
         f.write(str(i) + ' : ' + mib_data_dict['MIB_to_convert'][i] + '\n')
         f.write('\n')
+
+if len(sys.argv) < 5:
+    folder = 'False'
+else:
+    folder = sys.argv[4]
 
 os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls_sw/e02/scripts/batch_mib_convert/batch_mib_convert.sh ' + beamline + ' ' + year + ' ' + visit+ ' '+ folder)

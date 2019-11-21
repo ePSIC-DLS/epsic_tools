@@ -21,7 +21,6 @@ import os
 import numpy as np
 import dask.array as da
 import hyperspy.api as hs
-import warnings
 from math import floor
 from scipy.signal import find_peaks
 
@@ -324,7 +323,7 @@ def read_exposures(hdr_info, fp, pct_frames_to_read = 0.1, mmap_mode='r'):
 
                 else:
 
-                    data = data.reshape(-1,  width_height + hdr_bits)[:,71:79]
+                    data = data.reshape(-1, width_height + hdr_bits)[:,71:79]
 
                 data = data [:, ]
                 data_crop = data[:int(depth*pct_frames_to_read)]
@@ -746,11 +745,13 @@ def mib_dask_reader(mib_filename):
         else:
             data_hs = reshape_4DSTEM_FlyBack(data_hs)
     except TypeError:
-        warnings.warn('Warning: Reshaping did not work. Returning the stack with no reshaping!')
+        # warnings.warn('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
+        print('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
         return data_hs
         
     except ValueError:
-        warnings.warn('Warning: Reshaping did not work. Returning the stack with no reshaping!')
+        # warnings.warn('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
+        print('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
         return data_hs
         
     return data_hs

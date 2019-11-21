@@ -125,6 +125,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
         - The above file binned by 4 in the navigation plane
         - HSPY, TIFF file and JPG file of incoherent BF reconstruction
         - HSPY, TIFF file and JPG file of sparsed sum of the diffraction patterns
+        - An empty txt file is saved to show that the saving of HDF5 files is complete.
     """
     t1 = []
     t2 = []
@@ -165,7 +166,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
 
                 dp = mib_dask_reader('/' +mib_path + '/'+ mib_list[0])
                 pprint.pprint(dp.metadata)
-                dp.compute()
+                dp.compute(progressbar = False)
                 t1 = time.time()
                 if dp.metadata.Signal.signal_type == 'STEM':
                     STEM_flag = True
@@ -179,16 +180,24 @@ def convert(beamline, year, visit, mib_to_convert, folder):
             # Process single .mib file identified as containing TEM data.
             # This just saves the data as an .hdf5 image stack.
             if STEM_flag is False:
-                if folder:
-
-                    temp1 = mib_path.split('/')
-                    temp2 = folder.split('/')
-                    ind = temp1.index(temp2[0])
-                    saving_path = proc_location +'/'+os.path.join(*mib_path.split('/')[ind:])
-                else:
-                    saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])
-                if not os.path.exists(saving_path):
+                
+                saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])
+                if os.path.exists(saving_path) == False:
                     os.makedirs(saving_path)
+                
+#                save_location = os.path.join('/dls',beamline,'data', year, visit, 'processing', folder)
+#                if not os.path.exists(save_location):
+#                    os.makedirs(save_location)
+                
+#                if folder:
+#                    temp1 = mib_path.split('/')
+#                    temp2 = folder.split('/')
+#                    ind = temp1.index(temp2[0])
+#                    saving_path = proc_location +'/'+os.path.join(*mib_path.split('/')[ind:])
+#                else:
+#                    saving_path = proc_location +'/'+ os.path.join(*mib_path.split('/')[6:])
+#                if not os.path.exists(saving_path):
+#                    os.makedirs(saving_path)
                 print('saving here: ',saving_path)
                 # Calculate summed diffraction pattern
                 dp_sum = max_contrast8(dp.sum())
@@ -198,6 +207,8 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 t2 = time.time()
                 # Save raw data in .hdf5 format
                 dp.save(saving_path + '/' +mib_list[0] + data_dim(dp), extension = 'hdf5')
+                tmp = []
+                np.savetxt(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp)+'fully_saved', tmp)
                 t3 = time.time()
             # Process single .mib file identified as containing STEM data
             # This reshapes to the correct navigation dimensions and
@@ -292,7 +303,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 else:
                     STEM_flag = False
 
-                dp.compute()
+                dp.compute(progressbar=False)
 
                 t1 = time.time()
 
@@ -386,8 +397,26 @@ def data_dim(data):
     return data_dim_str
 
 
-def main(beamline, year, visit, folder = None):
-    watch_convert(beamline, year, visit, folder)
+def main(beamline, year, visit, folder, folder_num):
+    print(beamline, year, visit, folder)
+    if folder=='False':
+        folder = ''
+        HDF5_dict= check_differences(beamline, year, visit)
+    else:
+        HDF5_dict= check_differences(beamline, year, visit, folder)
+
+    # proc_path = HDF5_dict['processing_path']
+    
+    to_convert = HDF5_dict['MIB_to_convert']
+    folder = to_convert[int(folder_num)-1].rpartition('/')[0].rpartition(visit)[2][1:]
+    try:
+        save_location = os.path.join('/dls',beamline,'data', year, visit, 'processing', folder)
+        if os.path.exists(save_location) == False:
+            os.makedirs(save_location)
+        watch_convert(beamline, year, visit, folder)
+        
+    except Exception as e:
+        print('** ERROR processing** \n ' , e)
 
 
 if __name__ == "__main__":
@@ -400,10 +429,12 @@ if __name__ == "__main__":
     parser.add_argument('visit', help='Session visit code')
     parser.add_argument('folder', nargs= '?',default=None, help='OPTION to add a specific folder within a visit \
                         to look for data, e.g. sample1/dataset1/. If None the assumption would be to look in Merlin folder')
+    parser.add_argument('folder_num', nargs= '?', help='passed by scheduler')
     v_help = "Display all debug log messages"
     parser.add_argument("-v", "--verbose", help=v_help, action="store_true",
                         default=False)
 
     args = parser.parse_args()
+    print(args)
 
-    main(args.beamline, args.year, args.visit, args.folder)
+    main(args.beamline, args.year, args.visit, args.folder, args.folder_num)
