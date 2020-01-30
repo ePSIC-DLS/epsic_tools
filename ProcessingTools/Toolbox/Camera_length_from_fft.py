@@ -3,6 +3,7 @@
 Created on Sat Nov 16 09:01:43 2019
 
 @author: gys37319
+Code snippet : needs generalising
 """
 
 import hyperspy.api as hs
