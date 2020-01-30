@@ -3,6 +3,7 @@
 Created on Thu Jan 23 10:08:22 2020
 
 @author: gys37319
+Calculate the overlap percentage of two circles
 """
 import numpy as np
 r = 4e-10 #probe radius
