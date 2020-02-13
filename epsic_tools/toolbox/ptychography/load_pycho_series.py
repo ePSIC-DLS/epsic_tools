@@ -17,7 +17,7 @@ from epsic_tools.toolbox import radial_profile
 #%%
 #directory path
 
-def load_ptycho_series(pn,crop_to, sort_by = 'rot', blur = 0):
+def load_series(pn,crop_to, sort_by = 'rot', blur = 0):
     ''' 
     loads all ptycho reconstructions in a folder and sorts by a parameter
     
@@ -52,8 +52,9 @@ def load_ptycho_series(pn,crop_to, sort_by = 'rot', blur = 0):
     
     Example usage
     -------------
+    from epsic_tools.toolbox.ptychography.load_pycho_series import load_series
     pn = r'Y:\2020\cm26481-1\processing\Merlin\20200130_80kV_graphene_600C_pty\cluster\processing\pycho'
-    d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s =  = load_pycho_series(pn sort_by = 'rot', crop_to = 80)
+    d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s = load_series(pn,sort_by = 'rot', crop_to = 80)
     hs.plot.plot_signals([d_s,p_s,d_s_fft, rad_fft], navigator_list=[r_s,s_s, e_s,None])
 
     ##set positions
