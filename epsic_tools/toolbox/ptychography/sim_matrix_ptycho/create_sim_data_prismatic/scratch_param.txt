@@ -1,0 +1,40 @@
+--algorithm:m
+--input-file:/dls/science/groups/e02/Mohsen/code/sim_4DSTEM/ptypy_pycho_sim_matrix/create_sim_data_prismatic/xyz_files/graphene_island_doped_extended.xyz
+--output-file:/dls/e02/data/2020/cm26481-1/processing/pty_simulated_data_MD/sim_matrix_v2/graphene_island_doped_25mrad_300A_def/graphene_island_doped_25mrad_300A_def.h5
+--num-threads:12
+--pixel-size-x:0.2
+--pixel-size-y:0.2
+--potential-bound:2
+--num-FP:8
+--slice-thickness:8
+--num-slices:0
+--zstart-slices:0
+--energy:80
+--alpha-max:26
+--batch-size-cpu:1
+--probe-step-x:0.2
+--probe-step-y:0.2
+--cell-dimension:50.1717 50.4031 6.6485
+--tile-uc:1 1 1
+--probe-defocus:300
+-C3:0
+-C5:0
+--probe-semiangle:25
+--detector-angle-step:1
+--probe-xtilt:0
+--probe-ytilt:0
+--scan-window-x:0.3 0.7
+--scan-window-y:0.3 0.7
+--scan-window-xr:0 1
+--scan-window-yr:0 1
+--random-seed:25212
+--4D-amax:0.1
+--thermal-effects:1
+--save-3D-output:0
+--save-4D-output:1
+--4D-crop:0
+--save-DPC-CoM:1
+--save-potential-slices:1
+--save-real-space-coords:0
+--occupancy:1
+--nyquist-sampling:0
