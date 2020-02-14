@@ -17,7 +17,7 @@ from epsic_tools.toolbox import radial_profile
 #%%
 #directory path
 
-def load_series(pn,crop_to, sort_by = 'rot', blur = 0):
+def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     ''' 
     loads all ptycho reconstructions in a folder and sorts by a parameter
     
@@ -31,6 +31,8 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0):
     crop_to: Int size of cropped object reconstruction 
     
     blur: Int to pass as sigma to gaussian blur object phase. 0 = no blur 
+    
+    verbose: Bool to print detailed output
     
     Returns
     -------
@@ -151,7 +153,7 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0):
             shape_dat = int(10 * (np.ceil(dat.shape[0]/10) +1))
             shape_probe = int(10 * (np.ceil(probe.shape[0]/ 10)+1))
             #print(n, shape_dat, shape_probe)
-            print(n,len_dat, shape_dat, shape_dat)
+            #print(n,len_dat, shape_dat, shape_dat)
             dat_arr = np.empty(shape = (2,len_dat, shape_dat, shape_dat))
             probe_arr = np.empty(shape = (2, len_dat, shape_probe, shape_probe))
             rot_arr = np.empty(shape = len_dat)
@@ -168,7 +170,8 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0):
         err_arr[n] = error[-1]
         
         #print(n,len_dat, dat.shape[0] , shape_dat, del_dat, pad_dat, 'dx : ', )
-        print(n, ' step : ', step_arr[n], ', rot : ', rot_arr[n], ', err : ', err_arr[n])
+        if verbose == True:
+            print(n, ' step : ', step_arr[n], ', rot : ', rot_arr[n], ', err : ', err_arr[n])
         probe_diff =shape_probe - probe.shape[0] 
         pad_probe = int(np.ceil(probe_diff / 2))
         del_probe = int(pad_probe - np.floor(probe_diff / 2))
@@ -250,7 +253,7 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0):
     d_s_fft.inav[:,0].data[:,:,int(fft_shape[-2]/2)] =0
     
     rad_fft = radial_profile.radial_profile_stack(d_s_fft)
-
+    print(n, ' files loaded successfully')
     return d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s
 
 
