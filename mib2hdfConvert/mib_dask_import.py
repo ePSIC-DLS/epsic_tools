@@ -239,38 +239,65 @@ def get_mib_depth(hdr_info,fp):
 
     return depth
 
-def read_exposures(hdr_info, fp, pct_frames_to_read = 0.1, mmap_mode='r'):
+def read_to_memmap(hdr_info, fp, mmap_mode='r'):
     """
-    Looks into the frame times of the first 10 pct of the frames to see if they are
-    all the same (TEM) or there is a flyback (4D-STEM).
-    For this to work, the tick in the Merlin softeare to print exp time into header
-    must be selected!
-
+    Reads the binary mib file into a numpy memmap object
+    
     Parameters
-    -------------
+    --------------
     hdr_info: dict
         Output from parse_hdr function
     fp: str
         MIB file name / path
-    pct_frames_to_read : float
-        Percentage of frames to read, default value 0.1
     mmap_mode: str
         Memmpa read mode - default is 'r'
     Returns
-    ------------
-    exp_time: list
-        List of frame exposure times
+    --------------
+    data_mem: data as a memmap object
+        
     """
-    width = hdr_info['width']
-    height = hdr_info['height']
-    depth = get_mib_depth(hdr_info, fp)
-    offset = hdr_info['offset']
+#    width = hdr_info['width']
+#    height = hdr_info['height']
+#    depth = get_mib_depth(hdr_info, fp)
+#    offset = hdr_info['offset']
     data_length = hdr_info['data-length']
     data_type = hdr_info['data-type']
     endian = hdr_info['byte-order']
-    record_by = hdr_info['record-by']
     read_offset = 0
 
+    if data_type == 'signed':
+        data_type = 'int'
+    elif data_type == 'unsigned':
+        data_type = 'uint'
+    elif data_type == 'float':
+        pass
+    else:
+        raise TypeError('Unknown "data-type" string.')
+
+    # mib data always big-endian
+    endian = '>'
+    data_type += str(int(data_length))
+    # uint1 not a valid dtype
+    if data_type == 'uint1':
+        data_type = 'uint8'
+        data_type = np.dtype(data_type)
+    else:
+        data_type = np.dtype(data_type)
+    data_type = data_type.newbyteorder(endian)
+
+    data_mem = np.memmap(fp,
+                     offset=read_offset,
+                     dtype=data_type,
+                     mode=mmap_mode)
+    return data_mem
+    
+def get_hdr_bits(hdr_info):
+    """
+    gets the number of character bits for the header for each frame given the data type
+    """
+    data_length = hdr_info['data-length']
+    data_type = hdr_info['data-type']
+    
     if data_type == 'signed':
         data_type = 'int'
     elif data_type == 'unsigned':
@@ -297,11 +324,73 @@ def read_exposures(hdr_info, fp, pct_frames_to_read = 0.1, mmap_mode='r'):
         hdr_multiplier = (int(data_length)/8)**-1
 
     hdr_bits = int(hdr_info['data offset'] * hdr_multiplier)
+    
+    return hdr_bits
 
-    data = np.memmap(fp,
-                     offset=read_offset,
-                     dtype=data_type,
-                     mode=mmap_mode)
+def read_exposures(hdr_info, fp, pct_frames_to_read = 0.1):
+    """
+    Looks into the frame times of the first 10 pct of the frames to see if they are
+    all the same (TEM) or there is a flyback (4D-STEM).
+    For this to work, the tick in the Merlin softeare to print exp time into header
+    must be selected!
+
+    Parameters
+    -------------
+    hdr_info: dict
+        Output from parse_hdr function
+    fp: str
+        MIB file name / path
+    pct_frames_to_read : float
+        Percentage of frames to read, default value 0.1
+
+    Returns
+    ------------
+    exp_time: list
+        List of frame exposure times
+    """
+    width = hdr_info['width']
+    height = hdr_info['height']
+    depth = get_mib_depth(hdr_info, fp)
+#    offset = hdr_info['offset']
+#    data_length = hdr_info['data-length']
+#    data_type = hdr_info['data-type']
+#    endian = hdr_info['byte-order']
+    record_by = hdr_info['record-by']
+#    read_offset = 0
+#
+#    if data_type == 'signed':
+#        data_type = 'int'
+#    elif data_type == 'unsigned':
+#        data_type = 'uint'
+#    elif data_type == 'float':
+#        pass
+#    else:
+#        raise TypeError('Unknown "data-type" string.')
+#
+#    # mib data always big-endian
+#    endian = '>'
+#    data_type += str(int(data_length))
+#    # uint1 not a valid dtype
+#    if data_type == 'uint1':
+#        data_type = 'uint8'
+#        data_type = np.dtype(data_type)
+#    else:
+#        data_type = np.dtype(data_type)
+#    data_type = data_type.newbyteorder(endian)
+#
+#    if data_length == '1':
+#        hdr_multiplier = 1
+#    else:
+#        hdr_multiplier = (int(data_length)/8)**-1
+#
+#    hdr_bits = int(hdr_info['data offset'] * hdr_multiplier)
+#
+#    data = np.memmap(fp,
+#                     offset=read_offset,
+#                     dtype=data_type,
+#                     mode=mmap_mode)
+    data = read_to_memmap(hdr_info, fp)
+    hdr_bits = get_hdr_bits(hdr_info)
     data = da.from_array(data)
 
     if record_by == 'vector':   # spectral image
@@ -350,9 +439,9 @@ def read_exposures(hdr_info, fp, pct_frames_to_read = 0.1, mmap_mode='r'):
                 print('Frame exposure times are not appearing in header!')
 
 
-    elif record_by == 'dont-care':  # stack of images
-        size = (height, width)
-        data = data.reshape(size)
+#    elif record_by == 'dont-care':  # stack of images
+#        size = (height, width)
+#        data = data.reshape(size)
     return exp_time
 
 
@@ -446,54 +535,57 @@ def read_mib(fp, hdr_info, mmap_mode='r'):
 
     """
 
-    reader_offset = 0
-
+#    reader_offset = 0
+#
     width = hdr_info['width']
     height = hdr_info['height']
-
-    offset = hdr_info['offset']
-    data_length = hdr_info['data-length']
-    data_type = hdr_info['data-type']
-    endian = hdr_info['byte-order']
+#
+#    offset = hdr_info['offset']
+#    data_length = hdr_info['data-length']
+#    data_type = hdr_info['data-type']
+#    endian = hdr_info['byte-order']
     record_by = hdr_info['record-by']
-
+#
     depth = get_mib_depth(hdr_info, fp)
-
-
-    if data_type == 'signed':
-        data_type = 'int'
-    elif data_type == 'unsigned':
-        data_type = 'uint'
-    elif data_type == 'float':
-        pass
-    else:
-        raise TypeError('Unknown "data-type" string.')
-
-    # mib data always big-endian
-    endian = '>'
-
-    data_type += str(int(data_length))
-    if data_type == 'uint1':
-        data_type = 'uint8'
-        data_type = np.dtype(data_type)
-    else:
-        data_type = np.dtype(data_type)
-    data_type = data_type.newbyteorder(endian)
-
-    if data_length == '1':
-        hdr_multiplier = 1
-    else:
-        hdr_multiplier = (int(data_length)/8)**-1
-
-
-    hdr_bits = int(hdr_info['data offset'] * hdr_multiplier)
-
-
-    data = np.memmap(fp,
-                     offset=reader_offset,
-                     dtype=data_type,
-                     mode=mmap_mode)
+#
+#
+#    if data_type == 'signed':
+#        data_type = 'int'
+#    elif data_type == 'unsigned':
+#        data_type = 'uint'
+#    elif data_type == 'float':
+#        pass
+#    else:
+#        raise TypeError('Unknown "data-type" string.')
+#
+#    # mib data always big-endian
+#    endian = '>'
+#
+#    data_type += str(int(data_length))
+#    if data_type == 'uint1':
+#        data_type = 'uint8'
+#        data_type = np.dtype(data_type)
+#    else:
+#        data_type = np.dtype(data_type)
+#    data_type = data_type.newbyteorder(endian)
+#
+#    if data_length == '1':
+#        hdr_multiplier = 1
+#    else:
+#        hdr_multiplier = (int(data_length)/8)**-1
+#
+#
+#    hdr_bits = int(hdr_info['data offset'] * hdr_multiplier)
+#
+#
+#    data = np.memmap(fp,
+#                     offset=reader_offset,
+#                     dtype=data_type,
+#                     mode=mmap_mode)
+    data = read_to_memmap(hdr_info, fp)
     data = da.from_array(data)
+    hdr_bits = get_hdr_bits(hdr_info)
+    
 
 
     if record_by == 'vector':   # spectral image
@@ -518,7 +610,7 @@ def read_mib(fp, hdr_info, mmap_mode='r'):
             if hdr_info['Counter Depth (number)'] == 1:
                 # RAW 1 bit data: the header bits are written as uint8 but the frames
                 # are binary and need to be unpacked as such.
-                data = data.reshape(-1, width_height/8 + hdr_bits)
+                data = data.reshape(-1, int(width_height/8 + hdr_bits))
                 data = data[:,hdr_bits:]
                 data = np.unpackbits(data)
                 data = data.reshape(depth,width,height)
@@ -576,6 +668,7 @@ def read_mib(fp, hdr_info, mmap_mode='r'):
         data = data.reshape(size)
 
     return data
+
 
 def reshape_4DSTEM_SumFrames(data):
     """

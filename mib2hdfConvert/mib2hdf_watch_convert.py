@@ -337,46 +337,46 @@ def watch_convert(beamline, year, visit, folder):
     to_convert = mib_dict['MIB_to_convert']
     if bool(to_convert):
         convert(beamline, year, visit, to_convert, folder)
-    else:
-        watch_check = 'Y'
-        if (watch_check == 'Y' or watch_check == 'y'):
-            print(raw_location)
-            path_to_watch = raw_location
-            # mib_dict = check_differences(beamline, year, visit, folder)
-            before = dict ([(f, None) for f in os.listdir(path_to_watch)])
-            while True:
-                time.sleep (60)
-                after = dict ([(f, None) for f in os.listdir (path_to_watch)])
-                added = [f for f in after if not f in before]
-                if added:
-                    print("Added dataset: ", ", ".join (added))
-                    new_data_folder = os.listdir (path = os.path.join(path_to_watch, added[-1]))
-                    for f in new_data_folder:
-                        if f.endswith('mib'):
-                            wait_flag = 1
-                            while wait_flag == 1:
-                                try:
-                                    print('file name: ', f)
-
-                                    # above give the file size from source
-                                    # but this below throws an error while copy is not complete:
-                                    f_size = os.path.getsize(f)
-                                    # print(f_size)
-                                    print('file size: ', f_size)
-                                    wait_flag = 0
-                                except FileNotFoundError:
-                                    time.sleep(20)
-                                    print('waiting for mib data to copy!!')
-                                    print(os.path.isfile(os.path.join(path_to_watch, added[-1], f)))
-                                    if os.path.isfile(os.path.join(path_to_watch, added[-1], f)):
-                                        wait_flag = 0
-                                    else:
-                                        pass
-
-                            mib_dict = check_differences(beamline, year, visit, folder)
-                            to_convert = mib_dict['MIB_to_convert']
-                            convert(beamline, year, visit, to_convert, folder)
-                before = after
+#    else:
+#        watch_check = 'Y'
+#        if (watch_check == 'Y' or watch_check == 'y'):
+#            print(raw_location)
+#            path_to_watch = raw_location
+#            # mib_dict = check_differences(beamline, year, visit, folder)
+#            before = dict ([(f, None) for f in os.listdir(path_to_watch)])
+#            while True:
+#                time.sleep (60)
+#                after = dict ([(f, None) for f in os.listdir (path_to_watch)])
+#                added = [f for f in after if not f in before]
+#                if added:
+#                    print("Added dataset: ", ", ".join (added))
+#                    new_data_folder = os.listdir (path = os.path.join(path_to_watch, added[-1]))
+#                    for f in new_data_folder:
+#                        if f.endswith('mib'):
+#                            wait_flag = 1
+#                            while wait_flag == 1:
+#                                try:
+#                                    print('file name: ', f)
+#
+#                                    # above give the file size from source
+#                                    # but this below throws an error while copy is not complete:
+#                                    f_size = os.path.getsize(f)
+#                                    # print(f_size)
+#                                    print('file size: ', f_size)
+#                                    wait_flag = 0
+#                                except FileNotFoundError:
+#                                    time.sleep(20)
+#                                    print('waiting for mib data to copy!!')
+#                                    print(os.path.isfile(os.path.join(path_to_watch, added[-1], f)))
+#                                    if os.path.isfile(os.path.join(path_to_watch, added[-1], f)):
+#                                        wait_flag = 0
+#                                    else:
+#                                        pass
+#
+#                            mib_dict = check_differences(beamline, year, visit, folder)
+#                            to_convert = mib_dict['MIB_to_convert']
+#                            convert(beamline, year, visit, to_convert, folder)
+#                before = after
 
 def data_dim(data):
     """
