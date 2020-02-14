@@ -669,6 +669,19 @@ def read_mib(fp, hdr_info, mmap_mode='r'):
 
     return data
 
+def _untangle_raw(data, hdr_info):
+    """
+    Corrects the raw mib format
+    
+    Inputs
+    --------
+        data: dask array object
+        hdr_info: dict with the info read from the header
+        
+    Outputs
+    ----------
+    untangled_data: corrected dask object
+    """
 
 def reshape_4DSTEM_SumFrames(data):
     """
