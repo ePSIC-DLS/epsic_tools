@@ -14,8 +14,51 @@ import glob
 import json
 import hyperspy.api as hs
 from epsic_tools.toolbox import radial_profile
-#%%
-#directory path
+
+def build_json(params):
+    ''' 
+    Builds a dictionary of parameters required for a ptyrex json file
+    
+    Parameters
+    ----------
+    
+    params : dict comprising parameters
+    
+    sort_by: 'rot' or 'step' parameter by which to sort the data
+    
+    crop_to: Int size of cropped object reconstruction 
+    
+    blur: Int to pass as sigma to gaussian blur object phase. 0 = no blur 
+    
+    verbose: Bool to print detailed output
+    
+    Returns
+    -------
+    
+    d_s: hyperspy singnal2D object function
+    
+    p_s: hyperspy singnal2D probe function
+    
+    d_s_fft: hyperspy singnal2D fourier transfor of object function
+    
+    rad_fft: hyperspy singnal1D object radial profile of d_s_fft 
+    
+    r_s: hyperspy signal1D object scan rotation
+    
+    s_s: hyperspy signal1D object probe step size
+    
+    e_s: hyperspy signal1D object final error value 
+    
+    
+    Example usage
+    -------------
+    from epsic_tools.toolbox.ptychography.load_pycho_series import load_series
+    pn = r'Y:\2020\cm26481-1\processing\Merlin\20200130_80kV_graphene_600C_pty\cluster\processing\pycho'
+    d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s = load_series(pn,sort_by = 'rot', crop_to = 80)
+    hs.plot.plot_signals([d_s,p_s,d_s_fft, rad_fft], navigator_list=[r_s,s_s, e_s,None])
+
+
+    '''
 
 def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     ''' 
