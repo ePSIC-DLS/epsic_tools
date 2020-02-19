@@ -52,7 +52,7 @@ class Ptychography2D(object):
         return self.ptyrex['process']['save_interval']
     
     def set_save_interval(self, val):
-        if val.is_integer() == True:
+        if int(val) == val:
             self.ptyrex['process']['save_interval'] = val
         else:
             raise ValueError("save_interval must be an integer")
@@ -65,12 +65,12 @@ class Ptychography2D(object):
         
     def set_decay(self, val):
         if len(val) == 3:
-            self.ptyrex['process']['PIE']['decay'] = decay
+            self.ptyrex['process']['PIE']['decay'] = val
         else:
             raise ValueError("decay must be of the form [max, min, power]")
         
     def set_iterations(self, val):
-        if val.is_integer() == True:
+        if int(val) == val:
             self.ptyrex['process']['PIE']['iterations'] = val
         else:
             raise ValueError("iterations must be an integer")
@@ -80,7 +80,7 @@ class Ptychography2D(object):
         
     def set_energy(self, val):
         if val > 0:
-            self.ptyrex['process']['common']['source']['energy'] = val
+            self.ptyrex['process']['common']['source']['energy'] = [val]
         else:
             raise ValueError("energy must be a positive real number")
             
@@ -290,7 +290,7 @@ class Ptychography2D(object):
         return self.ptyrex['process']['cores']
         
     def set_n_cores(self, val):
-        if val > 0 and val.is_integer() == True :
+        if val > 0 and int(val) == val:
             self.ptyrex['process']['cores'] = val
         else:
             raise ValueError("number of cores must be a positive integer")

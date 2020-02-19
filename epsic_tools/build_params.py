@@ -44,17 +44,58 @@ def init_ptyrex():
     params['process']['save_interval'] = 10
 
     params['process']['PIE']['iterations'] = 100
-
-    params['process']['common']['source']['energy'] = 200e3
+    
+    params['process']['PIE']['object']['alpha'] = 1
+    
+    params['process']['PIE']['object']['end'] = -1
+    
+    params['process']['PIE']['object']['start'] = 1
+    
+    params['process']['PIE']['scan']['start'] = -1
+    
+    params['process']['PIE']['scan']['area'] = [-1,-1]
+    
+    params['process']['PIE']['scan']['end'] = -1
+    
+    params['process']['PIE']['scan']['shift radius'] = 1
+    
+    params['process']['PIE']['scan']['shift trials'] = 1
+    
+    params['process']['PIE']['scan']['tilt radius'] = 1
+    
+    params['process']['PIE']['scan']['tilt trials'] = 1
+    
+    params['process']['PIE']['probe']['alpha'] = 1
+    
+    params['process']['PIE']['probe']['end'] = -1
+    
+    params['process']['PIE']['probe']['start'] = 1
+    
+    params['process']['PIE']['probe']['n'] = 1
+    
+    params['process']['PIE']['scan']['alpha'] = 1
+    
+    params['process']['PIE']['scan']['sy'] = 1
+    
+    params['process']['PIE']['scan']['sx'] = 1
+    
+    params['process']['PIE']['scan']['end'] = -1
+    
+    params['process']['PIE']['scan']['start'] = 1
+    
+    params['process']['common']['source']['energy'] = [200e3]
 
     params['process']['common']['source']['radiation'] = 'electron'
 
     params['process']['common']['source']['flux'] = -1
     
     params['process']['PIE']['decay'] = [1, 0, 0]
+    
+    params['process']['interaction'] = 'dawn'
 
     
-
+    params['process']['common']['detector']['name'] = 'merlin_epsic'
+    
     params['process']['common']['detector']['pix_pitch'] = [55e-6, 55e-6]
 
     #params['process']['common']['detector']['distance'] = 0.125
@@ -129,7 +170,7 @@ def init_ptyrex():
 
     params['experiment']['data']['meta_type'] = 'hdf'
 
-    params['experiment']['data']['key'] = ''
+    params['experiment']['data']['data_key'] = ''
 
     
 
@@ -157,7 +198,7 @@ def init_ptyrex():
 
     params['base_dir'] = 'None'
 
-    params['process']['save_dir'] = 'None'
+    params['process']['save_dir'] = ''
 
     params['process']['cores'] = 1
     
