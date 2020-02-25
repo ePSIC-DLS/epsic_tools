@@ -939,7 +939,8 @@ def mib_dask_reader(mib_filename, h5_stack_path = None):
     data_dict = STEM_flag_dict(exp_times_list)
 
     if hdr_stuff['Assembly Size'] == '2x2':
-        data = add_crosses(data)
+        # add_crosses expects a dask array object
+        data = add_crosses(data.data)
 
     data_hs = hs.signals.Signal2D(data).as_lazy()
 
