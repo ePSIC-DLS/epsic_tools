@@ -58,7 +58,7 @@ def bin_sig(d, bin_fact):
     bins the reshaped 4DSTEMhs object by bin_fact on signal (diffraction) plane
     Parameters:
     ------------
-    d: hyperspy.signals.Signal2D
+    d: hyperspy.signals.Signal2D - can also be lazy
         reshaped to scanX, scanY | DetX, DetY
         This needs to be computed, i.e. not lazy, to work. If lazy, and binning 
         not aligned with dask chunks raises ValueError 
@@ -82,7 +82,7 @@ def bin_nav(d, bin_fact):
     bins the reshaped 4DSTEMhs object by bin_fact on navigation (probe scan) plane
     Parameters:
     ------------
-    d: hyperspy.signals.Signal2D
+    d: hyperspy.signals.Signal2D - can also be lazy
         reshaped to scanX, scanY | DetX, DetY
         This needs to be computed, i.e. not lazy, to work. If lazy, and binning 
         not aligned with dask chunks raises ValueError 
