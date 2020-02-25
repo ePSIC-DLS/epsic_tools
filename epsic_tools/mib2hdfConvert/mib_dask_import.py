@@ -183,7 +183,7 @@ def add_crosses(a):
     Parameters
     ----------
     a : dask.array
-        Stack of raw frames, prior to dimension reshaping, to insert
+        Stack of raw frames or reshaped dask array object, prior to dimension reshaping, to insert
         3 pixel buffer cross into.
 
     Returns
@@ -193,19 +193,31 @@ def add_crosses(a):
     """
     # Determine dimensions of raw frame data
     a_type = a.dtype
+    original_shape = a.shape
     a_shape = a.shape
 
     len_a_shape = len(a_shape)
+    if len_a_shape == 4:
+        a = a.reshape(a_shape[0] * a_shape[1], a_shape[2], a_shape[3])
+        a_shape = a.shape
+        len_a_shape = len(a_shape)
+        
     img_axes = len_a_shape - 2, len_a_shape - 1
     a_half = int(a_shape[img_axes[0]] / 2), int(a_shape[img_axes[1]] / 2)
     # Define 3 pixel wide cross of zeros to pad raw data
     z_array = da.zeros((a_shape[0], a_shape[1], 3), dtype=a_type)
     z_array2 = da.zeros((a_shape[0], 3, a_shape[img_axes[1]] + 3), dtype=a_type)
     # Insert blank cross into raw data
+    print(a_half)
+    print(z_array.shape)
+    print(z_array2.shape)
 
     b = da.concatenate((a[:, :, :a_half[1]], z_array, a[:, :, a_half[1]:]), axis=-1)
 
     b = da.concatenate((b[:, :a_half[0], :], z_array2, b[:, a_half[0]:, :]), axis=-2)
+    
+    if len_a_shape == 4:
+        a = a.reshape(original_shape[0] , original_shape[1], a_shape[2]+3, a_shape[3]+3)
 
     return b
 
@@ -934,13 +946,14 @@ def mib_dask_reader(mib_filename, h5_stack_path = None):
             data = _untangle_raw(data, hdr_stuff, depth)
     else:
         data = h5stack_to_hs(h5_stack_path, hdr_stuff)
+        data = data.data
 
     exp_times_list = read_exposures(hdr_stuff, mib_filename)
     data_dict = STEM_flag_dict(exp_times_list)
 
     if hdr_stuff['Assembly Size'] == '2x2':
         # add_crosses expects a dask array object
-        data = add_crosses(data.data)
+        data = add_crosses(data)
 
     data_hs = hs.signals.Signal2D(data).as_lazy()
 
