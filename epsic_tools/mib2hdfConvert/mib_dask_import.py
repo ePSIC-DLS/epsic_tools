@@ -602,12 +602,12 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
         data = data.reshape(-1, int(width_height + hdr_bits))
 
     data = data[:, hdr_bits:]
-    iters_num = int(data.shape[0]/1000)+1
+    iters_num = int(data.shape[0]/60000)+1
     for i in range(iters_num):
-        if (i+1)*1000 < data.shape[0]:
+        if (i+1)*60000 < data.shape[0]:
             if i == 0:
                 print(i)
-                data_dump0 = data[:(i+1)*1000, :]
+                data_dump0 = data[:(i+1)*60000, :]
                 print(data_dump0.shape)
                 if raw_binary is True:
                     data_dump1 = np.unpackbits(data_dump0)
@@ -622,7 +622,7 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
                 del data_dump1
             else:
                 print(i)
-                data_dump0 = data[i*1000:(i+1)*1000, :]
+                data_dump0 = data[i*60000:(i+1)*60000, :]
                 print(data_dump0.shape)
                 if raw_binary is True:
                     data_dump1 = np.unpackbits(data_dump0)
@@ -636,7 +636,7 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
                 del data_dump1
         else:
             print(i)
-            data_dump0 = data[i*1000:, :]
+            data_dump0 = data[i*60000:, :]
             print(data_dump0.shape)
             if raw_binary is True:
                 data_dump1 = np.unpackbits(data_dump0)
@@ -673,7 +673,7 @@ def _h5_chunk_write(data, saving_path):
     else:
         hf = h5py.File(saving_path, 'w')
         print('creating the h5 file')
-        hf.create_dataset('data_stack', data = data, maxshape = (None,512, 512))
+        hf.create_dataset('data_stack', data = data, maxshape = (None,512, 512), compression = 'gzip')
     return
 
 def _untangle_raw(data, hdr_info, stack_size):

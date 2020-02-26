@@ -197,7 +197,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 if dp.metadata.Signal.signal_type == 'STEM':
                     STEM_flag = True
                 else:
-                    STEM_flag = False
+                    STEM_flag = Falsea
 #                scan_X = dp.metadata.Signal.scan_X
 
             except ValueError:
