@@ -208,9 +208,6 @@ def add_crosses(a):
     z_array = da.zeros((a_shape[0], a_shape[1], 3), dtype=a_type)
     z_array2 = da.zeros((a_shape[0], 3, a_shape[img_axes[1]] + 3), dtype=a_type)
     # Insert blank cross into raw data
-    print(a_half)
-    print(z_array.shape)
-    print(z_array2.shape)
 
     b = da.concatenate((a[:, :, :a_half[1]], z_array, a[:, :, a_half[1]:]), axis=-1)
 
@@ -682,13 +679,15 @@ def _untangle_raw(data, hdr_info, stack_size):
     
     Inputs
     --------
-        data: dask array object - as stack
+        data: dask array object - as stack with the detector array unreshaped, e.g. for a 
+        single frame 512*512: (1, 262144)
         hdr_info: dict, with the info read from the header- ouput of the parse_hdr function
         stack_size: The number of frames in the data
         
     Outputs
     ----------
-    untangled_data: corrected dask array object
+    untangled_data: corrected dask array object reshaped on the detector plane, e.g. for a 
+    single frame case as above: (1, 512, 512)
     """
     width = hdr_info['width']
     height = hdr_info['height']
@@ -927,23 +926,25 @@ def mib_dask_reader(mib_filename, h5_stack_path = None):
     width_height = width * height
     if h5_stack_path is None:
         data = mib_to_daskarr(hdr_stuff, mib_filename)
+        depth = get_mib_depth(hdr_stuff, mib_filename)
+        hdr_bits = get_hdr_bits(hdr_stuff)
+        if hdr_stuff['Counter Depth (number)'] == 1:
+            # RAW 1 bit data: the header bits are written as uint8 but the frames
+            # are binary and need to be unpacked as such.
+            data = data.reshape(-1, int(width_height / 8 + hdr_bits))
+            data = data[:, hdr_bits:]
+            # get the shape axis 1 before unpackbit
+            s0 = data.shape[0]
+            s1 = data.shape[1]
+            data = np.unpackbits(data)
+            data.reshape(s0, s1 * 8)
+        else:
+            data = data.reshape(-1, int(width_height + hdr_bits))
+            data = data[:, hdr_bits:]
         if hdr_stuff['raw'] == 'R64':
-            depth = get_mib_depth(hdr_stuff, mib_filename)
-            hdr_bits = get_hdr_bits(hdr_stuff)
-            if hdr_stuff['Counter Depth (number)'] == 1:
-                # RAW 1 bit data: the header bits are written as uint8 but the frames
-                # are binary and need to be unpacked as such.
-                data = data.reshape(-1, int(width_height / 8 + hdr_bits))
-                data = data[:, hdr_bits:]
-                # get the shape axis 1 before unpackbit
-                s0 = data.shape[0]
-                s1 = data.shape[1]
-                data = np.unpackbits(data)
-                data.reshape(s0, s1 * 8)
-            else:
-                data = data.reshape(-1, int(width_height + hdr_bits))
-                data = data[:, hdr_bits:]
             data = _untangle_raw(data, hdr_stuff, depth)
+        elif hdr_stuff['raw'] == 'MIB':
+            data = data.reshape(depth, width, height)
     else:
         data = h5stack_to_hs(h5_stack_path, hdr_stuff)
         data = data.data
@@ -966,18 +967,20 @@ def mib_dask_reader(mib_filename, h5_stack_path = None):
     data_hs.metadata.Signal.exposure_time = data_dict['exposure time']
     data_hs.metadata.Signal.frames_number_skipped = data_dict['number of frames_to_skip']
     data_hs.metadata.Signal.flyback_times = data_dict['flyback_times']
+    print(data_hs)
 
-    if data_hs.metadata.Signal.signal_type == 'TEM' and data_hs.metadata.Signal.exposure_time != None:
-        print('This mib file appears to be TEM data. The stack is returned with no reshaping.')
-        return data_hs
-    # to catch single frames:
-    if data_hs.axes_manager[0].size == 1:
-        print('This mib file is a single frame.')
-        return data_hs
+
     try:
+        if data_hs.metadata.Signal.signal_type == 'TEM': 
+            print('This mib file appears to be TEM data. The stack is returned with no reshaping.')
+            return data_hs
+        # to catch single frames:
+        if data_hs.axes_manager[0].size == 1:
+            print('This mib file is a single frame.')
+            return data_hs
         # If the exposure time info not appearing in the header bits use reshape_4DSTEM_SumFrames
         # to reshape otherwise use reshape_4DSTEM_FlyBack function
-        if data_hs.metadata.Signal.exposure_time is None:
+        if data_hs.metadata.Signal.signal_type == 'STEM' and data_hs.metadata.Signal.exposure_time is None:
             (data_hs, skip_ind) = reshape_4DSTEM_SumFrames(data_hs)
             data_hs.metadata.Signal.signal_type = 'STEM'
             data_hs.metadata.Signal.frames_number_skipped = skip_ind
