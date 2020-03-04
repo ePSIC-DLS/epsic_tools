@@ -7,4 +7,4 @@ before_script:
   - pip install hyperspy
   - pip install dask
 script:
-  - python ./mib2hdfConvert/test_mib_dask_reader.py
+  - python ./epsic_tools/mib2hdfConvert/test_mib_dask_reader.py
