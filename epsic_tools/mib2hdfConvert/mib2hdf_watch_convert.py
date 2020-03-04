@@ -176,12 +176,14 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 depth = get_mib_depth(hdr_info, hdr_info['title'] + '.mib')
                 print(depth)
                 # Only write the h5 stack for large scan arrays
-                if depth > 300*300:
+                if (depth > 300*300) or (hdr_info['Counter Depth (number)'] > 8):
                     print('large file 4DSTEM file - first saving the stack into h5 file!')
                     # if folder:
                     #     h5_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
                     # else:
-                    h5_path = proc_location + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
+                    merlin_ind = hdr_info['title'].split('/').index('Merlin')
+                    h5_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):])+ '/' + hdr_info['title'].split('/')[-1] + '.h5'
+                    #h5_path = proc_location + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
                     if not os.path.exists(os.path.dirname(h5_path)):
                         os.makedirs(os.path.dirname(h5_path))
                     print(h5_path)
@@ -197,7 +199,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 if dp.metadata.Signal.signal_type == 'STEM':
                     STEM_flag = True
                 else:
-                    STEM_flag = Falsea
+                    STEM_flag = False
 #                scan_X = dp.metadata.Signal.scan_X
 
             except ValueError:
@@ -205,18 +207,19 @@ def convert(beamline, year, visit, mib_to_convert, folder):
             # Process single .mib file identified as containing TEM data.
             # This just saves the data as an .hdf5 image stack.
             if STEM_flag is False:
-                
-                saving_path = proc_location +'/'+ hdr_info['title'].split('/')[-2] + '/'
+                merlin_ind = hdr_info['title'].split('/').index('Merlin')
+                saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):])
+                #saving_path = proc_location +'/'+ hdr_info['title'].split('/')[-2] + '/'
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
                 
 
                 print('saving here: ',saving_path)
                 # Calculate summed diffraction pattern
-                #dp_sum = max_contrast8(dp.sum())
-                #dp_sum = change_dtype(dp_sum)
+                dp_sum = max_contrast8(dp.sum())
+                dp_sum = change_dtype(dp_sum)
                 # Save summed diffraction pattern
-                #dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
+                dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
                 t2 = time.time()
                 # Save raw data in .hdf5 format
                 dp.save(saving_path + '/' +mib_list[0] + data_dim(dp), extension = 'hdf5')
@@ -230,9 +233,11 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 # if folder:
                 #     saving_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/'
                 # else:
-                saving_path = proc_location +'/'+ hdr_info['title'].split('/')[-2] + '/'
-                # if not os.path.exists(saving_path):
-                #     os.makedirs(saving_path)
+                merlin_ind = hdr_info['title'].split('/').index('Merlin')
+                saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):])
+                print(saving_path)
+                if not os.path.exists(saving_path):
+                     os.makedirs(saving_path)
 
 
                 # Bin by factor of 4 in diffraction and navigation planes
@@ -274,7 +279,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 except:
                     print('Issue with saving images!')
 
-                    # Save binned data in .hdf5 file
+#                    # Save binned data in .hdf5 file
                 print('Saving binned diffraction data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
                 dp_bin_sig.save(saving_path+ '/'+'binned_diff_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin_sig), extension = 'hdf5')
                 print('Saved binned diffraction data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
@@ -283,7 +288,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 dp_bin_nav.save(saving_path+ '/'+'binned_nav_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin_nav), extension = 'hdf5')
                 print('Saved binned navigation data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
                 del dp_bin_nav
-                 # Save complete .hdf5 files
+#                 # Save complete .hdf5 files
                 print('Saving hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
                 dp.save(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp), extension = 'hdf5')
                 print('Saved hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
@@ -348,10 +353,10 @@ def watch_convert(beamline, year, visit, folder):
 
     mib_dict = check_differences(beamline, year, visit, folder)
     # Holder for raw data path
-    if folder:
-        raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
-    else:
-        raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')
+#    if folder:
+#        raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
+#    else:
+#        raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')
     to_convert = mib_dict['MIB_to_convert']
     if bool(to_convert):
         convert(beamline, year, visit, to_convert, folder)
@@ -399,9 +404,9 @@ def main(beamline, year, visit, folder, folder_num):
 
 
 if __name__ == "__main__":
-    from distributed import Client, LocalCluster
-    cluster = LocalCluster(n_workers =20, memory_limit = 100e9)
-    client = Client(cluster)
+    #from distributed import Client, LocalCluster
+    #cluster = LocalCluster(n_workers =20, memory_limit = 100e9)
+    #client = Client(cluster)
     parser = argparse.ArgumentParser()
     parser.add_argument('beamline', help='Beamline name')
     parser.add_argument('year', help='Year')

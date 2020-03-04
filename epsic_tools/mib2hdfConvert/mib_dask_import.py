@@ -24,6 +24,7 @@ import hyperspy.api as hs
 from math import floor
 from scipy.signal import find_peaks
 import h5py
+from struct import unpack
 
 hs.preferences.GUIs.warn_if_guis_are_missing = False
 hs.preferences.save()
@@ -402,7 +403,7 @@ def read_exposures(hdr_info, fp, pct_frames_to_read=0.1):
     record_by = hdr_info['record-by']
 
     data = mib_to_daskarr(hdr_info, fp)
-    hdr_bits = get_hdr_bits(hdr_info)
+    hdr_bits = get_hdr_bits(hdr_info) 
 
 
     if record_by == 'vector':  # spectral image
@@ -414,19 +415,36 @@ def read_exposures(hdr_info, fp, pct_frames_to_read=0.1):
 
         if hdr_info['raw'] == 'R64':
             try:
-                if hdr_info['Counter Depth (number)'] == 1:
+
+                if hdr_info['Counter Depth (number)'] == 12:
+                    data = data.reshape(-1, width_height + hdr_bits)[:,:68]
+                    data_crop = data[:int(depth * pct_frames_to_read)]
+                    d = data_crop.compute()
+                    exp_time = []
+                    for frame in range(d.shape[0]):
+                        frame_text = str()
+                        for item in d[frame]:
+                            temp = unpack('cc', item)
+                            c1 = temp[1].decode('ascii')
+                            c2 = temp[0].decode('ascii')
+                            frame_text = frame_text+c1
+                            frame_text = frame_text+c2
+                        exp_time.append(float(frame_text[71:79]))
+                else:
+                    if hdr_info['Counter Depth (number)'] == 1:
                     # RAW 1 bit data: the header bits are written as uint8 but the frames
                     # are binary and need to be unpacked as such.
-                    data = data.reshape(-1, width_height / 8 + hdr_bits)[:, 71:79]
-                else:
-                    data = data.reshape(-1, width_height + hdr_bits)[:, 71:79]
-                data = data[:, ]
-                data_crop = data[:int(depth * pct_frames_to_read)]
-                d = data_crop.compute()
-                exp_time = []
-                for line in range(d.shape[0]):
-                    str_list = [chr(d[line][n]) for n in range(d.shape[1])]
-                    exp_time.append(float(''.join(str_list)))
+                        data = data.reshape(-1, width_height / 8 + hdr_bits)[:, 71:79]
+                        
+                    else:
+                        data = data.reshape(-1, width_height + hdr_bits)[:, 71:79]
+                    data = data[:, ]
+                    data_crop = data[:int(depth * pct_frames_to_read)]
+                    d = data_crop.compute()
+                    exp_time = []
+                    for line in range(d.shape[0]):
+                        str_list = [chr(d[line][n]) for n in range(d.shape[1])]
+                        exp_time.append(float(''.join(str_list)))
             except ValueError:
                 print('Frame exposure times are not appearing in header!')
         else:
@@ -587,6 +605,7 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
     -------
     None
     """
+    stack_num = 100
     hdr_bits = get_hdr_bits(hdr_info)
     width = hdr_info['width']
     height = hdr_info['height']
@@ -599,12 +618,12 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
         data = data.reshape(-1, int(width_height + hdr_bits))
 
     data = data[:, hdr_bits:]
-    iters_num = int(data.shape[0]/60000)+1
+    iters_num = int(data.shape[0]/stack_num)+1
     for i in range(iters_num):
-        if (i+1)*60000 < data.shape[0]:
+        if (i+1)*stack_num < data.shape[0]:
             if i == 0:
                 print(i)
-                data_dump0 = data[:(i+1)*60000, :]
+                data_dump0 = data[:(i+1)*stack_num, :]
                 print(data_dump0.shape)
                 if raw_binary is True:
                     data_dump1 = np.unpackbits(data_dump0)
@@ -619,7 +638,7 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
                 del data_dump1
             else:
                 print(i)
-                data_dump0 = data[i*60000:(i+1)*60000, :]
+                data_dump0 = data[i*stack_num:(i+1)*stack_num, :]
                 print(data_dump0.shape)
                 if raw_binary is True:
                     data_dump1 = np.unpackbits(data_dump0)
@@ -633,7 +652,7 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
                 del data_dump1
         else:
             print(i)
-            data_dump0 = data[i*60000:, :]
+            data_dump0 = data[i*stack_num:, :]
             print(data_dump0.shape)
             if raw_binary is True:
                 data_dump1 = np.unpackbits(data_dump0)
@@ -850,7 +869,7 @@ def h5stack_to_hs(h5_path, hdr_info):
 
     data = f['data_stack']
 
-    chunks = (1000, hdr_info['width'], hdr_info['height'])
+    chunks = (100, hdr_info['width'], hdr_info['height'])
 
     x = da.from_array(data, chunks=chunks)
     data_hs = hs.signals.Signal2D(x).as_lazy()
