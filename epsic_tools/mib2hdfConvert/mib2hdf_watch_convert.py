@@ -182,7 +182,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     #     h5_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
                     # else:
                     merlin_ind = hdr_info['title'].split('/').index('Merlin')
-                    h5_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):])+ '/' + hdr_info['title'].split('/')[-1] + '.h5'
+                    h5_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])+ '/' + hdr_info['title'].split('/')[-1] + '.h5'
                     #h5_path = proc_location + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
                     if not os.path.exists(os.path.dirname(h5_path)):
                         os.makedirs(os.path.dirname(h5_path))
@@ -208,7 +208,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
             # This just saves the data as an .hdf5 image stack.
             if STEM_flag is False:
                 merlin_ind = hdr_info['title'].split('/').index('Merlin')
-                saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):])
+                saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])
                 #saving_path = proc_location +'/'+ hdr_info['title'].split('/')[-2] + '/'
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
@@ -234,7 +234,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 #     saving_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/'
                 # else:
                 merlin_ind = hdr_info['title'].split('/').index('Merlin')
-                saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):])
+                saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])
                 print(saving_path)
                 if not os.path.exists(saving_path):
                      os.makedirs(saving_path)
