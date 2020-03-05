@@ -179,7 +179,8 @@ def parse_hdr(fp):
 
 def add_crosses(a):
     """
-    Adds 3 pixel buffer cross to quad chip data.
+    Adds 3 pixel buffer cross to quad chip data. the input can be a stack or a reshaped 4DSTEM dask object. It returns
+    the object with the same number of axes.
 
     Parameters
     ----------
@@ -190,7 +191,7 @@ def add_crosses(a):
     Returns
     -------
     b : dask.array
-        Stack of frames including 3 pixel buffer cross.
+        Stack of frames or reshaped 4DSTEM object including 3 pixel buffer cross in the diffraction plane.
     """
     # Determine dimensions of raw frame data
     a_type = a.dtype
@@ -198,11 +199,12 @@ def add_crosses(a):
     a_shape = a.shape
 
     len_a_shape = len(a_shape)
+    print(len_a_shape)
     if len_a_shape == 4:
         a = a.reshape(a_shape[0] * a_shape[1], a_shape[2], a_shape[3])
         a_shape = a.shape
         len_a_shape = len(a_shape)
-        
+
     img_axes = len_a_shape - 2, len_a_shape - 1
     a_half = int(a_shape[img_axes[0]] / 2), int(a_shape[img_axes[1]] / 2)
     # Define 3 pixel wide cross of zeros to pad raw data
@@ -213,9 +215,10 @@ def add_crosses(a):
     b = da.concatenate((a[:, :, :a_half[1]], z_array, a[:, :, a_half[1]:]), axis=-1)
 
     b = da.concatenate((b[:, :a_half[0], :], z_array2, b[:, a_half[0]:, :]), axis=-2)
-    
-    if len_a_shape == 4:
-        a = a.reshape(original_shape[0] , original_shape[1], a_shape[2]+3, a_shape[3]+3)
+
+    if len(original_shape) == 4:
+        print('reshaping to the original shape')
+        b = b.reshape(original_shape[0], original_shape[1], original_shape[2] + 3, original_shape[3] + 3)
 
     return b
 
@@ -378,7 +381,8 @@ def get_hdr_bits(hdr_info):
 def read_exposures(hdr_info, fp, pct_frames_to_read=0.1):
     """
     Looks into the frame times of the first 10 pct of the frames to see if they are
-    all the same (TEM) or there is a flyback (4D-STEM).
+    all the same (TEM) or there is a more intense flyback (4D-STEM). This works due to the way we trigger the
+    4DSTEM acquisitions at ePSIC.
     For this to work, the tick in the Merlin software to print exp time into header
     must be selected!
 
@@ -403,8 +407,7 @@ def read_exposures(hdr_info, fp, pct_frames_to_read=0.1):
     record_by = hdr_info['record-by']
 
     data = mib_to_daskarr(hdr_info, fp)
-    hdr_bits = get_hdr_bits(hdr_info) 
-
+    hdr_bits = get_hdr_bits(hdr_info)
 
     if record_by == 'vector':  # spectral image
         size = (height, width, depth)
@@ -415,9 +418,9 @@ def read_exposures(hdr_info, fp, pct_frames_to_read=0.1):
 
         if hdr_info['raw'] == 'R64':
             try:
-
+                # the header for the case of 12 bit data should be unpacked first
                 if hdr_info['Counter Depth (number)'] == 12:
-                    data = data.reshape(-1, width_height + hdr_bits)[:,:68]
+                    data = data.reshape(-1, width_height + hdr_bits)[:, :68]
                     data_crop = data[:int(depth * pct_frames_to_read)]
                     d = data_crop.compute()
                     exp_time = []
@@ -427,15 +430,15 @@ def read_exposures(hdr_info, fp, pct_frames_to_read=0.1):
                             temp = unpack('cc', item)
                             c1 = temp[1].decode('ascii')
                             c2 = temp[0].decode('ascii')
-                            frame_text = frame_text+c1
-                            frame_text = frame_text+c2
+                            frame_text = frame_text + c1
+                            frame_text = frame_text + c2
                         exp_time.append(float(frame_text[71:79]))
                 else:
                     if hdr_info['Counter Depth (number)'] == 1:
-                    # RAW 1 bit data: the header bits are written as uint8 but the frames
-                    # are binary and need to be unpacked as such.
+                        # RAW 1 bit data: the header bits are written as uint8 but the frames
+                        # are binary and need to be unpacked as such.
                         data = data.reshape(-1, width_height / 8 + hdr_bits)[:, 71:79]
-                        
+
                     else:
                         data = data.reshape(-1, width_height + hdr_bits)[:, 71:79]
                     data = data[:, ]
@@ -447,6 +450,7 @@ def read_exposures(hdr_info, fp, pct_frames_to_read=0.1):
                         exp_time.append(float(''.join(str_list)))
             except ValueError:
                 print('Frame exposure times are not appearing in header!')
+        # TODO complete the cases for the non-RAW scenarios
         else:
             try:
                 data = data.reshape(-1, width_height + hdr_bits)[:, 71:79]
@@ -459,8 +463,6 @@ def read_exposures(hdr_info, fp, pct_frames_to_read=0.1):
                     exp_time.append(float(''.join(str_list)))
             except ValueError:
                 print('Frame exposure times are not appearing in header!')
-
-
     return exp_time
 
 
@@ -590,7 +592,8 @@ def mib_to_h5stack(fp, hdr_info, save_path, mmap_mode='r'):
             _stack_h5dump(data, hdr_info, save_path)
     return
 
-def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
+
+def _stack_h5dump(data, hdr_info, saving_path, raw_binary=False):
     """
     Incremental reading of a large stack dask array object and saving it in a h5 file.
 
@@ -618,16 +621,16 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
         data = data.reshape(-1, int(width_height + hdr_bits))
 
     data = data[:, hdr_bits:]
-    iters_num = int(data.shape[0]/stack_num)+1
+    iters_num = int(data.shape[0] / stack_num) + 1
     for i in range(iters_num):
-        if (i+1)*stack_num < data.shape[0]:
+        if (i + 1) * stack_num < data.shape[0]:
             if i == 0:
                 print(i)
-                data_dump0 = data[:(i+1)*stack_num, :]
+                data_dump0 = data[:(i + 1) * stack_num, :]
                 print(data_dump0.shape)
                 if raw_binary is True:
                     data_dump1 = np.unpackbits(data_dump0)
-                    data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1]*8)
+                    data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1] * 8)
                     data_dump1 = _untangle_raw(data_dump1, hdr_info, data_dump0.shape[0])
                 else:
                     data_dump1 = _untangle_raw(data_dump0, hdr_info, data_dump0.shape[0])
@@ -638,11 +641,11 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
                 del data_dump1
             else:
                 print(i)
-                data_dump0 = data[i*stack_num:(i+1)*stack_num, :]
+                data_dump0 = data[i * stack_num:(i + 1) * stack_num, :]
                 print(data_dump0.shape)
                 if raw_binary is True:
                     data_dump1 = np.unpackbits(data_dump0)
-                    data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1]*8)
+                    data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1] * 8)
                     data_dump1 = _untangle_raw(data_dump1, hdr_info, data_dump0.shape[0])
                 else:
                     data_dump1 = _untangle_raw(data_dump0, hdr_info, data_dump0.shape[0])
@@ -652,11 +655,11 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
                 del data_dump1
         else:
             print(i)
-            data_dump0 = data[i*stack_num:, :]
+            data_dump0 = data[i * stack_num:, :]
             print(data_dump0.shape)
             if raw_binary is True:
                 data_dump1 = np.unpackbits(data_dump0)
-                data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1]*8)
+                data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1] * 8)
                 data_dump1 = _untangle_raw(data_dump1, hdr_info, data_dump0.shape[0])
             else:
                 data_dump1 = _untangle_raw(data_dump0, hdr_info, data_dump0.shape[0])
@@ -665,6 +668,7 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary = False):
             del data_dump0
             del data_dump1
             return
+
 
 def _h5_chunk_write(data, saving_path):
     """
@@ -684,13 +688,14 @@ def _h5_chunk_write(data, saving_path):
     if os.path.exists(saving_path):
         with h5py.File(saving_path, 'a') as hf:
             print('appending to existing dataset')
-            hf['data_stack'].resize((hf['data_stack'].shape[0] + data.shape[0]), axis = 0)
-            hf['data_stack'][-data.shape[0]:,:,:] = data
+            hf['data_stack'].resize((hf['data_stack'].shape[0] + data.shape[0]), axis=0)
+            hf['data_stack'][-data.shape[0]:, :, :] = data
     else:
         hf = h5py.File(saving_path, 'w')
         print('creating the h5 file')
-        hf.create_dataset('data_stack', data = data, maxshape = (None,512, 512), compression = 'gzip')
+        hf.create_dataset('data_stack', data=data, maxshape=(None, data.shape[1], data.shape[2]), compression='gzip')
     return
+
 
 def _untangle_raw(data, hdr_info, stack_size):
     """
@@ -743,6 +748,7 @@ def _untangle_raw(data, hdr_info, stack_size):
 
         untangled_data = da.concatenate((da.concatenate((det1, det3), 1), da.concatenate((det2, det4), 1)), 2)
     return untangled_data
+
 
 def reshape_4DSTEM_SumFrames(data):
     """
@@ -851,6 +857,7 @@ def reshape_4DSTEM_FlyBack(data):
 
     return data_skip
 
+
 def h5stack_to_hs(h5_path, hdr_info):
     """
     this function reads the saved stack h5 file into a reshaped 4DSTEM hyerspy lazy object
@@ -875,7 +882,7 @@ def h5stack_to_hs(h5_path, hdr_info):
 
     x = da.from_array(data, chunks=chunks)
     data_hs = hs.signals.Signal2D(x).as_lazy()
-    
+
     mib_path = hdr_info['title'] + '.mib'
 
     exp_times_list = read_exposures(hdr_info, mib_path)
@@ -909,12 +916,15 @@ def h5stack_to_hs(h5_path, hdr_info):
             print('reshaping using flyback pixel')
             data_hs = reshape_4DSTEM_FlyBack(data_hs)
     except TypeError:
-        print('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
+        print(
+            'Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
     except ValueError:
-        print('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
+        print(
+            'Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
     return data_hs
 
-def mib_dask_reader(mib_filename, h5_stack_path = None):
+
+def mib_dask_reader(mib_filename, h5_stack_path=None):
     """Read a .mib file using dask and return as a lazy pyXem / hyperspy signal.
 
     Parameters
@@ -990,12 +1000,12 @@ def mib_dask_reader(mib_filename, h5_stack_path = None):
     data_hs.metadata.Signal.frames_number_skipped = data_dict['number of frames_to_skip']
     data_hs.metadata.Signal.flyback_times = data_dict['flyback_times']
     print(data_hs)
-    
-    #only attempt reshaping if it is not already reshaped!
+
+    # only attempt reshaping if it is not already reshaped!
 
     if len(data_hs.data.shape) == 3:
         try:
-            if data_hs.metadata.Signal.signal_type == 'TEM': 
+            if data_hs.metadata.Signal.signal_type == 'TEM':
                 print('This mib file appears to be TEM data. The stack is returned with no reshaping.')
                 return data_hs
             # to catch single frames:
@@ -1013,12 +1023,10 @@ def mib_dask_reader(mib_filename, h5_stack_path = None):
                 print('reshaping using flyback pixel')
                 data_hs = reshape_4DSTEM_FlyBack(data_hs)
         except TypeError:
-            # warnings.warn('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
             print(
                 'Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
             return data_hs
         except ValueError:
-            # warnings.warn('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
             print(
                 'Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
             return data_hs
