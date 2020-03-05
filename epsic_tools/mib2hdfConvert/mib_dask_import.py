@@ -837,9 +837,11 @@ def reshape_4DSTEM_FlyBack(data):
     line_len = data.metadata.Signal.scan_X
 
     n_lines = floor((data.data.shape[0] - skip_ind) / line_len)
+    print(n_lines)
 
     # Remove skipped frames
     data_skip = data.inav[skip_ind:skip_ind + (n_lines * line_len)]
+    print(data_skip.data.shape)
     # Reshape signal
     data_skip.data = data_skip.data.reshape(n_lines, line_len, det_size, det_size)
     data_skip.axes_manager._axes.insert(0, data_skip.axes_manager[0].copy())
@@ -904,6 +906,7 @@ def h5stack_to_hs(h5_path, hdr_info):
             data_hs.metadata.Signal.signal_type = 'STEM'
             data_hs.metadata.Signal.frames_number_skipped = skip_ind
         else:
+            print('reshaping using flyback pixel')
             data_hs = reshape_4DSTEM_FlyBack(data_hs)
     except TypeError:
         print('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
@@ -987,32 +990,36 @@ def mib_dask_reader(mib_filename, h5_stack_path = None):
     data_hs.metadata.Signal.frames_number_skipped = data_dict['number of frames_to_skip']
     data_hs.metadata.Signal.flyback_times = data_dict['flyback_times']
     print(data_hs)
+    
+    #only attempt reshaping if it is not already reshaped!
 
-
-    try:
-        if data_hs.metadata.Signal.signal_type == 'TEM': 
-            print('This mib file appears to be TEM data. The stack is returned with no reshaping.')
+    if len(data_hs.data.shape) == 3:
+        try:
+            if data_hs.metadata.Signal.signal_type == 'TEM': 
+                print('This mib file appears to be TEM data. The stack is returned with no reshaping.')
+                return data_hs
+            # to catch single frames:
+            if data_hs.axes_manager[0].size == 1:
+                print('This mib file is a single frame.')
+                return data_hs
+            # If the exposure time info not appearing in the header bits use reshape_4DSTEM_SumFrames
+            # to reshape otherwise use reshape_4DSTEM_FlyBack function
+            if data_hs.metadata.Signal.signal_type == 'STEM' and data_hs.metadata.Signal.exposure_time is None:
+                print('reshaping using sum frames intensity')
+                (data_hs, skip_ind) = reshape_4DSTEM_SumFrames(data_hs)
+                data_hs.metadata.Signal.signal_type = 'STEM'
+                data_hs.metadata.Signal.frames_number_skipped = skip_ind
+            else:
+                print('reshaping using flyback pixel')
+                data_hs = reshape_4DSTEM_FlyBack(data_hs)
+        except TypeError:
+            # warnings.warn('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
+            print(
+                'Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
             return data_hs
-        # to catch single frames:
-        if data_hs.axes_manager[0].size == 1:
-            print('This mib file is a single frame.')
+        except ValueError:
+            # warnings.warn('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
+            print(
+                'Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
             return data_hs
-        # If the exposure time info not appearing in the header bits use reshape_4DSTEM_SumFrames
-        # to reshape otherwise use reshape_4DSTEM_FlyBack function
-        if data_hs.metadata.Signal.signal_type == 'STEM' and data_hs.metadata.Signal.exposure_time is None:
-            (data_hs, skip_ind) = reshape_4DSTEM_SumFrames(data_hs)
-            data_hs.metadata.Signal.signal_type = 'STEM'
-            data_hs.metadata.Signal.frames_number_skipped = skip_ind
-        else:
-            data_hs = reshape_4DSTEM_FlyBack(data_hs)
-    except TypeError:
-        # warnings.warn('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
-        print(
-            'Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
-        return data_hs
-    except ValueError:
-        # warnings.warn('Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
-        print(
-            'Warning: Reshaping did not work or TEM data with no exposure info. Returning the stack with no reshaping!')
-        return data_hs
     return data_hs
