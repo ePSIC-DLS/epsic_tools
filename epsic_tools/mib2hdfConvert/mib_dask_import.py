@@ -193,25 +193,21 @@ def add_crosses(a):
     b : dask.array
         Stack of frames or reshaped 4DSTEM object including 3 pixel buffer cross in the diffraction plane.
     """
-    # Determine dimensions of raw frame data
-    a_type = a.dtype
     original_shape = a.shape
-    a_shape = a.shape
 
-    len_a_shape = len(a_shape)
-    print(len_a_shape)
-    if len_a_shape == 4:
-        a = a.reshape(a_shape[0] * a_shape[1], a_shape[2], a_shape[3])
-        a_shape = a.shape
-        len_a_shape = len(a_shape)
+    if len(original_shape) == 4:
+        a = a.reshape(original_shape[0] * original_shape[1], original_shape[2], original_shape[3])
 
-    img_axes = len_a_shape - 2, len_a_shape - 1
-    a_half = int(a_shape[img_axes[0]] / 2), int(a_shape[img_axes[1]] / 2)
+    a_half = int(original_shape[-1] / 2), int(original_shape[-2] / 2)
     # Define 3 pixel wide cross of zeros to pad raw data
-    z_array = da.zeros((a_shape[0], a_shape[1], 3), dtype=a_type)
-    z_array2 = da.zeros((a_shape[0], 3, a_shape[img_axes[1]] + 3), dtype=a_type)
+    if len(original_shape) == 4:
+        z_array = da.zeros((original_shape[0] * original_shape[1], original_shape[-2], 3), dtype=a.dtype)
+        z_array2 = da.zeros((original_shape[0] * original_shape[1], 3, original_shape[-1] + 3), dtype=a.dtype)
+    else:
+        z_array = da.zeros((original_shape[0], original_shape[-2], 3), dtype=a.dtype)
+        z_array2 = da.zeros((original_shape[0], 3, original_shape[-1] + 3), dtype=a.dtype)
+    
     # Insert blank cross into raw data
-
     b = da.concatenate((a[:, :, :a_half[1]], z_array, a[:, :, a_half[1]:]), axis=-1)
 
     b = da.concatenate((b[:, :a_half[0], :], z_array2, b[:, a_half[0]:, :]), axis=-2)
@@ -539,7 +535,7 @@ def STEM_flag_dict(exp_times_list):
     return output
 
 
-def mib_to_h5stack(fp, hdr_info, save_path, mmap_mode='r'):
+def mib_to_h5stack(fp, save_path, mmap_mode='r'):
     """
     Read a .mib file using memory mapping where the array
     is stored on disk and not directly loaded, but may be treated
@@ -549,9 +545,6 @@ def mib_to_h5stack(fp, hdr_info, save_path, mmap_mode='r'):
     ----------
     fp: str
         Filepath of .mib file to be loaded.
-
-    hdr_info: dict
-        A dictionary containing the keywords as parsed by read_hdr
     save_path: str, h5 filename path to save the h5 file stack
     mmap_mode: default 'r' - {None, 'r+', 'r', 'w+', 'c'}, optional
         If not None, then memory-map the file, using the given mode
@@ -562,6 +555,7 @@ def mib_to_h5stack(fp, hdr_info, save_path, mmap_mode='r'):
     -------
     None
     """
+    hdr_info = parse_hdr(fp)
     width = hdr_info['width']
     height = hdr_info['height']
 
@@ -861,7 +855,7 @@ def reshape_4DSTEM_FlyBack(data):
 def h5stack_to_hs(h5_path, hdr_info):
     """
     this function reads the saved stack h5 file into a reshaped 4DSTEM hyerspy lazy object
-    chunks are defined as (1000, det_x, det_y)
+    chunks are defined as (100, det_x, det_y)
     This function assumes the mib file path corresponding to this h5 file is the path provided in the hdr_info
     TODO: Make this an argument to input the mib path if different
 
