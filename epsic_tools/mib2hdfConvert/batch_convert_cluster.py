@@ -19,7 +19,7 @@ In order to monitor the status of jobs, user needs to run:
 import os
 import sys
 import numpy as np
-#sys.path.append('/dls_sw/e02/scripts/batch_mib_convert')
+sys.path.append('/dls_sw/e02/scripts/batch_mib_convert')
 from IdentifyPotentialConversions import check_differences
 #maximum number of jobs to run concurrently
 max_c = 10
@@ -54,4 +54,4 @@ if len(sys.argv) < 5:
 else:
     folder = sys.argv[4]
 
-os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin_Medipix/epsic_tools/mib2hdfConvert/batch_mib_convert.sh ' + beamline + ' ' + year + ' ' + visit+ ' '+ folder)
+os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls_sw/e02/scripts/batch_mib_convert/batch_mib_convert.sh ' + beamline + ' ' + year + ' ' + visit+ ' '+ folder)
