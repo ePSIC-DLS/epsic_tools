@@ -7,5 +7,5 @@
 
 echo "I am task $SGE_TASK_ID"
 
-module load python/3.7
+module load python/epsic3.7
 python /dls_sw/e02/scripts/batch_mib_convert/mib2hdf_watch_convert.py $1 $2 $3 $4 "$SGE_TASK_ID"

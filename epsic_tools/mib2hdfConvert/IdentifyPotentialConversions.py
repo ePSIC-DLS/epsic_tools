@@ -17,7 +17,7 @@ def check_differences(beamline, year, visit, folder = None):
 
     Returns
     -------
-    a dictionart with the following keys:
+    a dictionary with the following keys:
     to_convert_folder : list
         List of directories that is the difference between those converted
         and those to be converted. NB: These are just the folder names and
@@ -54,10 +54,10 @@ def check_differences(beamline, year, visit, folder = None):
         proc_location = os.path.join('/dls', beamline,'data', year, visit, 'processing', 'Merlin')
     # print(proc_location)
     if not os.path.exists(proc_location):
-        os.mkdir(proc_location)
+        os.makedirs(proc_location)
     # look through all the files in that location and find any mib files
-    path_walker = os.walk(raw_location)
-    for p, d, files in path_walker:
+
+    for p, d, files in os.walk(raw_location):
         # look at the files and see if there are any mib files there
         for f in files:
             if f.endswith('mib'):
@@ -67,8 +67,7 @@ def check_differences(beamline, year, visit, folder = None):
     converted_dirs = []
 
     hdf_files = []
-    path_walker = os.walk(proc_location)
-    for p, d, files in path_walker:
+    for p, d, files in os.walk(proc_location):
         # look at the files and see if there are any mib files there
         for f in files:
             if f.endswith('hdf5'):
@@ -85,7 +84,7 @@ def check_differences(beamline, year, visit, folder = None):
     for folder in converted_dirs:
         converted_dirs_check.append(folder.split('/')[-1])
     # compare the directory lists, and see which have not been converted.
-    converted = set(converted_dirs_check)
+    #converted = set(converted_dirs_check)
     # print(converted)
     to_convert_folder = set(raw_dirs_check) - set(converted_dirs_check)
 
