@@ -57,9 +57,7 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s = load_series(pn,sort_by = 'rot', crop_to = 80)
     hs.plot.plot_signals([d_s,p_s,d_s_fft, rad_fft], navigator_list=[r_s,s_s, e_s,None])
 
-    to do 
-    ------
-    Break loading from hdf file into seperate functions 
+
     '''
     pn = pn +'/*.hdf'
     #build list of files
@@ -68,8 +66,7 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     n = 0 # counter
     # iterate through files
     print(pn)
-    if verbose:
-        print(fp_list)
+    print(fp_list)
     for this_fp in fp_list: 
         fj = this_fp[:-4] + '.json'
         #open json file
@@ -116,7 +113,6 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
             rot_arr = np.empty(shape = len_dat)
             step_arr =np.empty(shape = len_dat)
             err_arr = np.empty(shape = len_dat)
-            #full_err_arr = []#np.empty( (len_dat, len(error),))
             
         # calculate parameters to pad loaded data to same size as initiated array if necessary
         dat_diff =shape_dat - dat.shape[0] 
@@ -132,7 +128,6 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
         step_arr[n] = float(params['process']['common']['scan']['dR'][0])
         
         err_arr[n] = error[-1]
-        #full_err_arr.append(error)
         
         if verbose == True:
             print(n, ' step : ', step_arr[n], ', rot : ', rot_arr[n], ', err : ', err_arr[n])
@@ -178,13 +173,7 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     err_sort = err_arr[sort_ind]
     dat_sort =  dat_arr[:,sort_ind,:,:]
     probe_sort = probe_arr[:,sort_ind,:,:]
-    #full_err_arr from list to padded array
-    #temp_arr = np.zeros([len(full_err_arr),len(max(full_err_arr,key = lambda x: len(x)))])
-    #for i,j in enumerate(full_err_arr):
-    #    temp_arr[i][0:len(j)] = j
-    #full_err_arr = temp_arr
     
-    #full_err_sort = full_err_arr[sort_ind, :]
     # unsorted to hs signals
     '''
     d = hs.signals.Signal2D(data = dat_arr)
@@ -200,7 +189,6 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     r_s = hs.signals.Signal1D(data = rot_sort)
     s_s = hs.signals.Signal1D(data = step_sort)
     e_s = hs.signals.Signal1D(data = err_sort)
-    #fe_s = hs.signals.Signal1D(data = full_err_sort)
     #crop
     '''
     d.crop(axis = (2), start =int((shape_dat / 2) - (crop_to/2)), end = int((shape_dat / 2) + (crop_to/2) ))
@@ -236,77 +224,6 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     
     rad_fft = radial_profile.radial_profile_stack(d_s_fft)
     print(n, ' files loaded successfully')
-    return d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s#, fe_s
+    return d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s
 
-def load_recon(fn):
-    params = get_json_params(fn)
 
-    with h5py.File(fn, 'r') as h5_file:
-        err = get_hdf5_error(h5_file)
-        dat_phase = get_hdf5_object_phase(h5_file, params)
-        dat_mod = get_hdf5_object_modulus(h5_file, params)
-        probe_phase = get_hdf5_probe_phase(h5_file)
-        probe_mod = get_hdf5_probe_modulus(h5_file)
-    
-    dat_shape = dat_phase.shape
-    dat = np.empty(shape = (2, dat_shape[0], dat_shape[1]))
-    dat[0,:,:] = dat_phase
-    dat[1,:,:] = dat_mod
-    
-    probe_shape = probe_phase.shape
-    probe = np.empty(shape = (2, probe_shape[0], probe_shape[1]))
-    probe[0,:,:] = probe_phase
-    probe[1,:,:] = probe_mod
-    
-    #to hyperspy objects
-    dat = hs.signals.Signal2D(data = dat)
-    probe = hs.signals.Signal2D(data = probe)
-    err = hs.signals.Signal1D(data = err)
-
-    return dat, probe, err
-
-def get_hdf5_error(h5_file):
-    error = np.array(h5_file['entry_1']['process_1']['output_1']['error'])
-    return error
-
-def get_hdf5_object_phase(h5_file, params):
-    #get object_phase
-    dat = h5_file['entry_1']['process_1']['output_1']['object_phase']
-    dat = dat[0,0,0,0,0,:,:]
-    #rotate
-    rot_angle = 90-params['process']['common']['scan']['rotation']
-    dat = rotate(dat, rot_angle)
-    return dat
-
-def get_hdf5_object_modulus(h5_file, params):
-    #get modulus data
-    dat_m = h5_file['entry_1']['process_1']['output_1']['object_modulus']
-    dat_m  = dat_m[0,0,0,0,0,:,:]
-    #rotate
-    rot_angle = 90-params['process']['common']['scan']['rotation']
-    dat_m = rotate(dat_m, rot_angle)
-          
-def get_hdf5_probe_phase(h5_file):
-    #get probe
-    probe = np.array(h5_file['entry_1']['process_1']['output_1']['probe_phase'])
-    #sum seperate coherent modes
-    probe = probe[:,:,0,0,0,:,:].sum(axis = (0,1))
-    return probe
-
-def get_hdf5_probe_modulus(h5_file):
-    probe_m = np.array(h5_file['entry_1']['process_1']['output_1']['probe_modulus'])
-    probe_m = probe_m[:,:,0,0,0,:,:].sum(axis = (0,1))
-    return probe_m
-
-def get_hdf5_complex_probe(h5_file):
-    #get complex probe
-    probe_c = np.array(h5_file['entry_1']['process_1']['output_1']['probe'])
-    probe_c = probe_c[:,:,0,0,0,:,:].sum(axis = (0,1))
-    return probe_c   
-
-def get_json_params(h5_file):      
-    fj = h5_file[:-4] + '.json'
-    #open json file
-    with open(fj) as r:
-        params = json.load(r)
-    return params

@@ -73,15 +73,15 @@ def init_ptyrex():
     
     params['process']['PIE']['probe']['n'] = 1
     
-    params['process']['PIE']['scan']['alpha'] = 1
+    params['process']['PIE']['source']['alpha'] = 1
     
-    params['process']['PIE']['scan']['sy'] = 1
+    params['process']['PIE']['source']['sy'] = 1
     
-    params['process']['PIE']['scan']['sx'] = 1
+    params['process']['PIE']['source']['sx'] = 1
     
-    params['process']['PIE']['scan']['end'] = -1
+    params['process']['PIE']['source']['end'] = -1
     
-    params['process']['PIE']['scan']['start'] = 1
+    params['process']['PIE']['source']['start'] = 1
     
     params['process']['common']['source']['energy'] = [200e3]
 
@@ -156,6 +156,8 @@ def init_ptyrex():
 
     params['experiment']['data']['data_path'] = 'None'
     
+    params['experiment']['experiment_ID'] = ''
+    
     params['experiment']['data']['load_flag'] = 1
     
     params['experiment']['data']['dead_pixel_flag'] = 0 
@@ -187,6 +189,7 @@ def init_ptyrex():
     params['experiment']['optics']['lens']['defocus'] = [0,0]
 
     params['experiment']['optics']['lens']['use'] = 1
+    
 
     #params['experiment']['optics']['diffuser']['use'] = 0
 
@@ -199,6 +202,8 @@ def init_ptyrex():
     params['base_dir'] = 'None'
 
     params['process']['save_dir'] = ''
+    
+    params['process']['save_prefix'] = ''
 
     params['process']['cores'] = 1
     

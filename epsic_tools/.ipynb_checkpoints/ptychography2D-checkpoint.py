@@ -40,15 +40,6 @@ class Ptychography2D(object):
     
     def __init__(self):
         self.ptyrex = build_params.init_ptyrex()
-        self.recon = []
-        self.recon_object = []
-        self.recon_probe = []
-        self.recon_object_fft = []
-        self.recon_radial_object_fft = []
-        self.recon_scan_rotation = []
-        self.recon_scan_step = []
-        self.recon_error = []
-        #self.recon_full_error = []
         #self.ptypy = build.ptypy()
         
     def load_series(self, pn,crop_to, sort_by = 'rot', blur = 0, verbose = False, plot_me = True):
@@ -56,29 +47,14 @@ class Ptychography2D(object):
         d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s = ptyrex.load_series(pn,crop_to, sort_by = sort_by, blur = blur, verbose = verbose)
         if plot_me:
             hs.plot.plot_signals([d_s,p_s,d_s_fft, rad_fft], navigator_list=[r_s,s_s, e_s,None])
-        self.recon_object = d_s
-        self.recon_probe = p_s
-        self.recon_object_fft = d_s_fft
-        self.recon_radial_object_fft = rad_fft
-        self.recon_scan_rotation = r_s
-        self.recon_scan_step = s_s
-        self.recon_error = e_s
-        #self.recon_full_error = fe_s
-    
-    def load_recon(self, fn):
-    #load a ptyrex reconstruction
- 
-        d, p, e = ptyrex.load_recon(fn)
-        self.recon_object = d
-        self.recon_probe = p
-        #self.recon_object_fft = d_s_fft
-        #self.recon_radial_object_fft = rad_fft
-        #self.recon_scan_rotation = r_s
-        #self.recon_scan_step = s_s
-        self.recon_error = e
-    #self.recon_error = ptyrex.load_error(fn)
-
-    
+        self.recon.object = d_s
+        self.recon.probe = p_s
+        self.recon.object_fft = d_s_fft
+        self.recon.radial_object_fft = rad_fft
+        self.recon.scan_rotation = r_s
+        self.recon.scan_step = s_s
+        self.recon.error = e_s
+        
     def get_interaction(self):
         return self.ptyrex['process']['interaction']
         
