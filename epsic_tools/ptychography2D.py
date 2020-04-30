@@ -196,6 +196,15 @@ class Ptychography2D(object):
         else:
             raise ValueError("detector crop must take the form [x,y]")
             
+    def get_detector_orientation(self):
+        return self.ptyrex['process']['common']['detector']['orientation']
+        
+    def set_detector_orientation(self, val):
+        if len(val) == 2:
+            self.ptyrex['process']['common']['detector']['orientation'] = val
+        else:
+            raise ValueError("detector orientation must take the form [x,y]")
+    
     def get_convergence(self):
         return self.ptyrex['process']['common']['probe']['convergence']
         
