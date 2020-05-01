@@ -263,7 +263,7 @@ def load_recon(fn):
     probe = hs.signals.Signal2D(data = probe)
     err = hs.signals.Signal1D(data = err)
 
-    return dat, probe, err
+    return params, dat, probe, err
 
 def get_hdf5_error(h5_file):
     error = np.array(h5_file['entry_1']['process_1']['output_1']['error'])
