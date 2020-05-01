@@ -285,6 +285,7 @@ def get_hdf5_object_modulus(h5_file, params):
     #rotate
     rot_angle = 90-params['process']['common']['scan']['rotation']
     dat_m = rotate(dat_m, rot_angle)
+    return dat_m
           
 def get_hdf5_probe_phase(h5_file):
     #get probe
