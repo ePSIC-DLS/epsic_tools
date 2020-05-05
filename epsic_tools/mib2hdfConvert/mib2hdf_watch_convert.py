@@ -17,12 +17,10 @@ hs.preferences.save()
 
 def max_contrast8(d):
     """Rescales contrast of hyperspy Signal2D to 8-bit.
-
     Parameters
     ----------
     d : hyperspy.signals.Signal2D
         Signal2D object to be rescaled
-
     Returns
     -------
     d : hyperspy.signals.Signal2D
@@ -125,7 +123,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
     Returns
     -------
         - reshaped 4DSTEM HDF5 file
-        - The above file binned by 4 in the diffraction plane
         - The above file binned by 4 in the navigation plane
         - HSPY, TIFF file and JPG file of incoherent BF reconstruction
         - HSPY, TIFF file and JPG file of sparsed sum of the diffraction patterns
@@ -149,13 +146,11 @@ def convert(beamline, year, visit, mib_to_convert, folder):
     for path in mib_to_convert:
         data_folders.append(os.path.join(*path.split('/')[:-1]))
     data_folders_set = set(data_folders)
-
     # Loop over all data folders
     for mib_path in list(data_folders_set):
 
         print('********************************************************')
         print('Currently active in this directory: %s' % mib_path.split('/')[-1])
-
         # Determine mib files in this folder
         mib_num = 0
         mib_list = []
@@ -314,7 +309,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 os.makedirs(saving_path)
             print('saving here: ', saving_path)
             for k, file in enumerate(mib_list):
-
                 print(mib_path)
                 print(file)
                 t0 = time.time()
