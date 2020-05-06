@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 This script is to perform batch parallel mib to hdf5 conversion on the DLS cluster
 
