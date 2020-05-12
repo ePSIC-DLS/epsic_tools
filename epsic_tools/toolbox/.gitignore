@@ -1,2 +1,2 @@
-__pycache__/
-ptychography/__pycache__/
+__pycache__/*.pyc
+ptychography/__pycache__/*.pyc
