@@ -1,9 +1,10 @@
 language: python
 
 python:
-- "3.6"
+- "3.7"
 
 before_script:
+  - pip install scitkit-image==1.16
   - pip install hyperspy
   - pip install dask
 script:
