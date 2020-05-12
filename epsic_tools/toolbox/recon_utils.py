@@ -13,6 +13,7 @@ import os
 import h5py
 import argparse
 import json
+from epsic_tools.toolbox.sim_utils import e_lambda
 #from sim_utils import e_lambda, get_potential, _sigma
 import collections
 
