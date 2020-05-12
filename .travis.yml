@@ -4,7 +4,7 @@ python:
 - "3.7"
 
 before_script:
-  - pip install scitkit-image==1.16.1
+  - pip install scitkit-image==0.16.2
   - pip install hyperspy
   - pip install dask
 script:
