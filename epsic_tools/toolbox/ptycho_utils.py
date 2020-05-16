@@ -16,6 +16,168 @@ import glob
 import json
 import hyperspy.api as hs
 from epsic_tools.toolbox import radial_profile
+import os
+
+
+from scipy import constants as pc
+
+
+def e_lambda(e_0):
+    """
+    relativistic electron wavelength
+
+    :param e_0: int
+        accelerating voltage in volts
+    :return:
+    e_lambda: float
+        wavelength in meters
+    """
+    import numpy as np
+
+    
+    e_lambda = (pc.h * pc.c) / np.sqrt((pc.e * e_0)**2  + 2 * pc.e * e_0 * pc.m_e * pc.c**2)
+    
+    return e_lambda
+
+
+def save_ptyREX_output(json_path, fig_dump = None, crop = True):
+    """
+    To save the ptyREX recon output
+    Parameters
+    ----------
+    json_path: str
+        full path of the json file. This figure output will be saved in this folder.
+    fig_dump: str, default None
+        In case we want the figures to be also saved in a secondary folder, this new path can be passed as this
+        keyword argument.
+
+    Returns
+    -------
+
+    """
+    json_dict = json_to_dict(json_path)
+    name = json_dict['base_dir'].split('/')[-1]
+    recon_path = os.path.splitext(json_path)[0]+'.hdf'
+    probe = get_probe_array(recon_path)
+    if crop is True:
+        obj = crop_recon_obj(json_path)
+    else:
+        obj = get_obj_array(recon_path)
+    errors = get_error(recon_path)
+            
+    fig, axs = plt.subplots(3,2, figsize=(8, 11))
+    
+    fig.suptitle(name, fontsize = 18)
+    
+    obj_phase = np.angle(obj)
+    s = obj_phase.shape[0]
+    vmin_obj_p = np.min(obj_phase[int(s*0.4):int(0.6*s), int(s*0.4):int(0.6*s)])
+    vmax_obj_p = np.max(obj_phase[int(s*0.4):int(0.6*s), int(s*0.4):int(0.6*s)])
+    
+    obj_mod = abs(obj)
+    s = obj_mod.shape[0]
+    vmin_obj_m = np.min(obj_mod[int(s*0.4):int(0.6*s), int(s*0.4):int(0.6*s)])
+    vmax_obj_m = np.max(obj_mod[int(s*0.4):int(0.6*s), int(s*0.4):int(0.6*s)])        
+    
+    im1 = axs[0,0].imshow(np.angle(probe))
+    axs[0,0].set_title('Probe Phase')
+    fig.colorbar(im1, ax = axs[0,0])
+    im2 = axs[0,1].imshow(abs(probe))
+    axs[0,1].set_title('Probe Modulus')
+    fig.colorbar(im2, ax = axs[0,1])
+    im3 = axs[1,0].imshow(np.angle(obj), cmap = 'gray', vmin = vmin_obj_p, vmax = vmax_obj_p)
+    axs[1,0].set_title('Object Phase')
+    fig.colorbar(im3, ax = axs[1,0])
+    im4 = axs[1,1].imshow(abs(obj), cmap = 'gray', vmin = vmin_obj_m, vmax = vmax_obj_m)
+    axs[1,1].set_title('Object Modulus')
+    fig.colorbar(im4, ax = axs[1,1])
+    axs[2,0].plot(errors)
+    axs[2,0].set_title('Error vs iter')
+    axs[2,1].imshow(np.sqrt(get_fft(obj)), cmap = 'viridis')
+    axs[2,1].set_title('Sqrt of Object Phase fft')
+
+    
+    saving_path1 = os.path.splitext(recon_path)[0]+ name +'.png'
+    plt.savefig(saving_path1)
+    
+    if fig_dump is not None:
+        #base_path2 = '/dls/e02/data/2020/cm26481-1/processing/pty_simulated_data_MD/output_figs_ptREX_20200213/'
+        if not os.path.exists(fig_dump):
+            os.mkdir(fig_dump)
+        saving_path = os.path.join(fig_dump, os.path.splitext(recon_path)[0].split('/')[-1] +'_'+ name +'.png')
+        plt.savefig(saving_path)
+    
+    plt.close('all')
+        
+    return
+
+
+def crop_recon_obj(json_file):
+    json_dict = json_to_dict(json_file)
+    pixelSize = get_json_pixelSize(json_file) 
+    stepSize = json_dict['process']['common']['scan']['dR'][0]
+    stepNum = json_dict['process']['common']['scan']['N'][0]
+    dp_array = json_dict['process']['common']['detector']['crop'][0]
+    obj_array = int(((stepNum - 1)*stepSize) / pixelSize + dp_array)
+    recon_file = os.path.splitext(json_file)[0]+'.hdf'
+    obj = get_obj_array(recon_file)
+    sh = obj.shape[0]
+    
+    obj_crop = obj[int(sh/2 - obj_array / 2):int(sh/2 + obj_array / 2),\
+                   int(sh/2 - obj_array / 2):int(sh/2 + obj_array / 2)]
+    return obj_crop
+
+
+def get_fft(obj_arr):
+    
+    obj_fft = abs(np.fft.fftshift(np.fft.fft2(np.angle(obj_arr))))
+    return obj_fft
+
+
+def get_json_pixelSize(json_file):
+    """
+    Parameters
+    ----------
+    json_file: str
+        full path of the json file. 
+
+    Returns
+    pixelSize: float
+        reconstruction pixel size in (m)
+    -------
+    """
+    json_dict = json_to_dict(json_file)
+    wavelength = e_lambda(json_dict['process']['common']['source']['energy'][0])
+    camLen = json_dict['process']['common']['detector']['distance']
+    N = json_dict['process']['common']['detector']['crop'][0]
+    dc = json_dict['process']['common']['detector']['pix_pitch'][0]
+    
+    pixelSize = (wavelength * camLen) / (N * dc)
+    
+    return pixelSize
+
+
+def json_to_dict(json_path):
+    """
+    Parameters
+    ----------
+    json_path: str
+        full path of the json file. 
+
+    Returns
+    -------
+    json_dict: dictionary
+    """
+    with open(json_path) as jp:
+        json_dict = json.load(jp)
+    json_dict['json_path'] = json_path
+    base_path = os.path.dirname(json_path)
+    for file in os.listdir(base_path):
+        if file.endswith('h5'):
+            sim_path = os.path.join(base_path, file)
+    json_dict['sim_path'] = sim_path
+    return json_dict
+
 
 
 def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
@@ -268,9 +430,52 @@ def load_recon(fn):
 
     return dat, probe, err
 
+
+
+def get_error(file_path):
+    """
+    Parameters
+    ----------
+    file_path: str
+        full path of the recon file. It check if it is frtom ptypy or ptyREX
+
+    Returns
+    -------
+    errors: np.array
+        error as numpy array
+    """
+
+    if os.path.splitext(file_path)[1] == '.ptyr':
+        ptyr_file_path = file_path
+        f = h5py.File(ptyr_file_path,'r')
+        content = f['content']
+        iter_info = content['runtime']['iter_info']
+        iter_num = len(iter_info.keys())
+        #print(iter_num)
+        errors = []
+        index = '00000'
+        for i in range(iter_num):
+            next_index = int(index) + i
+            next_index = str(next_index)
+            if len(next_index) == 1:
+                next_index = '0000' + next_index
+            elif len(next_index) == 2:
+                next_index = '000' + next_index
+            elif len(next_index) == 3:
+                next_index = '00' + next_index
+            errors.append(content['runtime']['iter_info'][next_index]['error'][:])
+        errors = np.asarray(errors) 
+    elif os.path.splitext(file_path)[1] == '.hdf':
+        f = h5py.File(file_path,'r')
+        errors = f['entry_1']['process_1']['output_1']['error'][:]
+        
+    return errors
+
+
 def get_hdf5_error(h5_file):
     error = np.array(h5_file['entry_1']['process_1']['output_1']['error'])
     return error
+
 
 def get_hdf5_object_phase(h5_file, params):
     #get object_phase
@@ -289,6 +494,63 @@ def get_hdf5_object_modulus(h5_file, params):
     rot_angle = 90-params['process']['common']['scan']['rotation']
     dat_m = rotate(dat_m, rot_angle)
           
+
+def get_probe_array(file_path):
+    """
+    Parameters
+    ----------
+    file_path: str
+        full path of the recon file. It check if it is frtom ptypy or ptyREX
+
+    Returns
+    -------
+    probe_data_arr: np.array
+        complex probe numpy array 
+    """
+
+    if os.path.splitext(file_path)[1] == '.ptyr':
+        f = h5py.File(file_path,'r')
+        content = f['content']
+        obj = content['obj']
+        probe = content['probe']
+        dataname = list(obj.keys())[0]
+        probe_data = probe[dataname]
+        probe_data_arr = probe_data['data'][0]
+        
+    elif os.path.splitext(file_path)[1] == '.hdf':
+        f = h5py.File(file_path,'r')
+        probe = f['entry_1']['process_1']['output_1']['probe'][0]
+        probe_data_arr = np.squeeze(probe)
+    
+    return probe_data_arr
+
+
+def get_obj_array(file_path):
+    """
+    Parameters
+    ----------
+    file_path: str
+        full path of the recon file. It check if it is frtom ptypy or ptyREX
+
+    Returns
+    -------
+    data_arr: np.array
+        complex object numpy array 
+    """
+    if os.path.splitext(file_path)[1] == '.ptyr':
+        f = h5py.File(file_path,'r')
+        content = f['content']
+        obj = content['obj']
+        dataname = list(obj.keys())[0]
+        data = obj[dataname]
+        data_arr = data['data'][0]
+    elif os.path.splitext(file_path)[1] == '.hdf':
+        f = h5py.File(file_path,'r')
+        data = f['entry_1']['process_1']['output_1']['object'][0]
+        data_arr = np.squeeze(data)
+    return data_arr
+
+
 def get_hdf5_probe_phase(h5_file):
     #get probe
     probe = np.array(h5_file['entry_1']['process_1']['output_1']['probe_phase'])

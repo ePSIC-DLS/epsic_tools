@@ -10,26 +10,13 @@ import numpy as np
 import hyperspy.api as hs
 import h5py
 import matplotlib.pyplot as plt
+import os
+import collections
+import json
 
-from scipy import constants as pc
+from epsic_tools.toolbox.ptycho_utils import e_lambda
 
 
-def e_lambda(e_0):
-    """
-    relativistic electron wavelength
-
-    :param e_0: int
-        accelerating voltage in volts
-    :return:
-    e_lambda: float
-        wavelength in meters
-    """
-    import numpy as np
-
-    
-    e_lambda = (pc.h * pc.c) / np.sqrt((pc.e * e_0)**2  + 2 * pc.e * e_0 * pc.m_e * pc.c**2)
-    
-    return e_lambda
 
 
 def sim_to_hs(sim_h5_file, h5_key = 'hdose_noisy_data'):
@@ -81,6 +68,251 @@ def sim_to_hs(sim_h5_file, h5_key = 'hdose_noisy_data'):
     return data_hs
 
 
+
+def get_ptyREX_ready(sim_matrix_path):
+    '''
+    checks for the folders that have ptyREX json file 
+    
+    Returns
+    ptyREX_dirs: list
+        list of dirs
+    '''
+    ptyREX_dirs = []
+    it =  os.scandir(sim_matrix_path)
+    for entry in it:
+        if entry.is_dir():
+            it2 = os.scandir(entry.path)
+            for entry2 in it2:
+                if entry2.is_file():
+                    if entry2.name.startswith('ptyREX_'):
+                        ptyREX_dirs.append(entry.path)
+    return ptyREX_dirs
+
+
+def get_ptyREX_recon_list(sim_matrix_path, run_id=None):
+    """
+
+    Parameters
+    ----------
+    sim_matrix_path: str
+        full path of the simulation matrix
+    run_id: str
+        default None. If provided the json files with run_id in their names will be
+        returned.
+
+    Returns
+    -------
+    common_dirs: list
+        List of json files that have identically named hdf5 file in the same folder
+    """
+    recon_dirs = []
+    json_dirs = []
+    common_dirs = []
+    if run_id is None:
+        run_id = ''
+    for dirname, dirnames, filenames in os.walk(sim_matrix_path):
+        for filename in filenames:
+            if (os.path.splitext(filename)[1] == '.hdf') and (run_id in filename):
+                recon_dirs.append(os.path.join(dirname, filename))
+            if (os.path.splitext(filename)[1] == '.json') and (run_id in filename):
+                json_dirs.append(os.path.join(dirname, filename))
+    for json_file in json_dirs:
+        if os.path.splitext(json_file)[0]+'.hdf' in recon_dirs:
+            common_dirs.append(json_file)
+
+    return common_dirs
+
+
+def get_figs(sim_matrix_path):
+    '''
+    returns the list of the png figure of the final recon
+    '''
+    fig_list = []
+    for dirname, dirnames, filenames in os.walk(sim_matrix_path):
+
+        for filename in filenames:
+            if 'recons' in os.path.join(dirname, filename):
+                if os.path.splitext(filename)[1] == '.png':
+                    fig_list.append(os.path.join(dirname, filename))
+    
+    return fig_list
+
+
+
+
+def parse_params_file(params_file, h5_file, drop_unneeded = True):
+    '''
+    Reads the parameters text file into a dict to be fed into ptypy / pycho recons
+    '''
+    exp_dict = {}
+    with open(params_file) as f:    
+        for line in f: 
+            line = line.strip('-')
+            exp_dict[line.strip().partition(':')[0]] = line.strip().partition(':')[-1]
+    
+    original_sim_file = exp_dict['output-file'].split('/')[-1]
+    
+    if original_sim_file != h5_file.split('/')[-1]:
+        exp_dict['data'] = exp_dict.pop('output-file')
+        exp_dict['data'] = h5_file
+    else:
+        exp_dict['data'] = exp_dict.pop('output-file')
+        
+    exp_dict['cell_dimension(m)'] = [1e-10*float(i) for i in exp_dict['cell-dimension'].split(' ')]
+    exp_dict.pop('cell-dimension')
+    exp_dict['tile_uc'] = [float(i) for i in exp_dict['tile-uc'].split(' ')]
+    
+    if 'skip' in h5_file:
+        exp_dict['data_key'] = 'dataset'
+    else:
+        exp_dict['data_key'] = '4DSTEM_simulation/data/datacubes/hdose_noisy_data'
+    exp_dict['xyz'] = exp_dict.pop('input-file')
+    exp_dict['accel_voltage(eV)'] = int(exp_dict.pop('energy')) * 1000
+    exp_dict['semi_angle(rad)'] = float(exp_dict.pop('probe-semiangle')) * 1e-3
+    if 'skip' in h5_file:
+        skip_ind = h5_file.index('skip')
+        step_factor = int(h5_file[skip_ind + 4])
+        exp_dict['step_size(m)'] = step_factor * float(exp_dict.pop('probe-step-x')) * 1e-10
+    else:
+        exp_dict['step_size(m)'] = float(exp_dict.pop('probe-step-x')) * 1e-10
+    exp_dict['sim_pixel_size(m)'] = float(exp_dict.pop('pixel-size-x')) * 1e-10
+    exp_dict['defocus(m)'] = float(exp_dict.pop('probe-defocus'))* 1e-10
+    exp_dict['C3(m)'] = float(exp_dict.pop('C3'))* 1e-10
+    exp_dict['C5(m)'] = float(exp_dict.pop('C5'))* 1e-10
+    
+    
+    wavelength = e_lambda(exp_dict['accel_voltage(eV)'])
+    
+    exp_dict['wavelength'] = wavelength
+    
+    # getting rid of unneeded stuff:
+    
+    if drop_unneeded:
+        exp_dict.pop('num-threads')
+        exp_dict.pop('algorithm')
+        exp_dict.pop('potential-bound')
+        exp_dict.pop('num-FP')
+        exp_dict.pop('slice-thickness')
+        exp_dict.pop('num-slices')
+        exp_dict.pop('zstart-slices')
+        exp_dict.pop('alpha-max')
+        exp_dict.pop('batch-size-cpu')
+        exp_dict.pop('tile-uc')
+        exp_dict.pop('detector-angle-step')
+        exp_dict.pop('probe-xtilt')
+        exp_dict.pop('probe-ytilt')
+        exp_dict.pop('scan-window-x')
+        exp_dict.pop('scan-window-y')
+        exp_dict.pop('scan-window-xr')
+        exp_dict.pop('scan-window-yr')
+        exp_dict.pop('random-seed')
+        exp_dict.pop('4D-amax')
+        for k in ['thermal-effects', 'save-3D-output', 'save-4D-output', '4D-crop', 'save-DPC-CoM', 
+                  'save-potential-slices','save-real-space-coords',  'occupancy', 'nyquist-sampling',
+                  'probe-step-y', 'pixel-size-y']:
+            exp_dict.pop(k)
+    # using the sim parameters to calculate the bf disc rad
+    det_pix_num = int((exp_dict['cell_dimension(m)'][0] * exp_dict['tile_uc'][0]) / (2 * exp_dict['sim_pixel_size(m)']))
+    a_max = wavelength / (4 * exp_dict['sim_pixel_size(m)']) # alpha max
+    pix_per_rad = (det_pix_num / 2) / a_max
+    exp_dict['pupil_rad(pixels)'] = pix_per_rad * exp_dict['semi_angle(rad)']
+    
+    exp_dict['detector_pixel_size(m)'] = 55e-6 # assuming the same as Medipix
+    exp_dict['detector_distance(m)'] = (det_pix_num / 2) * exp_dict['detector_pixel_size(m)'] / a_max
+    
+    exp_dict['output_base'] = os.path.dirname(exp_dict['data'])
+    
+    exp_dict['rotation_angle(degrees)'] = 0
+    
+    return exp_dict
+
+
+class NestedDefaultDict(collections.defaultdict):
+    def __init__(self, *args, **kwargs):
+        super(NestedDefaultDict, self).__init__(NestedDefaultDict, *args, **kwargs)
+
+    def __repr__(self):
+        return repr(dict(self))
+    
+def write_ptyrex_json(exp_dict, iter_num):
+    with h5py.File(exp_dict['data'], 'r') as f:
+        data = f.get(exp_dict['data_key'])
+        data_arr = np.array(data)
+    
+    scan_y = data_arr.shape[1]
+    scan_x = data_arr.shape[0]
+    
+    N_x = data_arr.shape[2]
+    N_y = data_arr.shape[3]
+
+    params = NestedDefaultDict()
+    
+    params['process']['gpu_flag'] = 1
+    params['process']['save_interval'] = 10
+    params['process']['PIE']['iterations'] = iter_num
+    params['process']['common']['source']['energy'] = [exp_dict['accel_voltage(eV)']]
+    params['process']['common']['source']['radiation'] = 'electron'
+    params['process']['common']['source']['flux'] = -1
+    
+    params['process']['common']['detector']['pix_pitch'] = list([exp_dict['detector_pixel_size(m)'], exp_dict['detector_pixel_size(m)']])
+    params['process']['common']['detector']['distance'] = exp_dict['detector_distance(m)']
+    params['process']['common']['detector']['bin'] = list([1, 1]) 
+    params['process']['common']['detector']['min_max'] = list([0, 1000000])
+    params['process']['common']['detector']['optic_axis']= list([N_x / 2, N_x/2])
+    params['process']['common']['detector']['crop'] = list([N_x, N_y])
+    params['process']['common']['detector']['orientation'] = '00'
+    params['process']['common']['detector']['mask_flag'] = 0
+    
+    params['process']['common']['probe']['convergence'] = 2*exp_dict['semi_angle(rad)']
+    params['process']['common']['probe']['distance'] = -1
+    params['process']['common']['probe']['focal_dist'] = -1
+    params['process']['common']['probe']['load_flag'] = 0
+    params['process']['common']['probe']['diffuser'] = 0
+    params['process']['common']['probe']['aperture_shape'] = 'circ'
+    params['process']['common']['probe']['aperture_size'] = exp_dict['pupil_rad(pixels)']*exp_dict['detector_pixel_size(m)']
+
+    params['process']['common']['object']['load_flag'] = 0
+    
+    params['process']['common']['scan']['rotation'] = exp_dict['rotation_angle(degrees)']
+    params['process']['common']['scan']['fast_axis'] = 1
+    params['process']['common']['scan']['orientation'] = '00'
+    params['process']['common']['scan']['type'] = 'tv'
+    params['process']['common']['scan']['load_flag'] = 0
+    params['process']['common']['scan']['dR'] = list([exp_dict['step_size(m)'], exp_dict['step_size(m)']])
+    params['process']['common']['scan']['N'] = list([scan_x, scan_y])
+    
+    params['experiment']['data']['data_path'] = exp_dict['data']
+    params['experiment']['data']['dead_pixel_flag'] = 0 
+    params['experiment']['data']['flat_field_flag'] = 0 
+#    params['experiment']['data']['dead_pixel_path'] = exp_dict['mask']
+#    params['experiment']['data']['flat_field_path'] = exp_dict['mask']
+    params['experiment']['data']['load_flag'] = 1
+    params['experiment']['data']['meta_type'] = 'hdf'
+    params['experiment']['data']['key'] = exp_dict['data_key']
+    
+    params['experiment']['sample']['position'] = list([0, 0, 0])
+
+    params['experiment']['detector']['position'] = list([0, 0, exp_dict['detector_distance(m)']])
+
+    params['experiment']['optics']['lens']['alpha'] = 2*exp_dict['semi_angle(rad)']
+    params['experiment']['optics']['lens']['defocus'] = list([exp_dict['defocus(m)'], exp_dict['defocus(m)']])
+    params['experiment']['optics']['lens']['use'] = 1
+    params['experiment']['optics']['diffuser']['use'] = 0
+    params['experiment']['optics']['FZP']['use'] = 0
+    params['experiment']['optics']['pinhole']['use'] = 0
+
+    params['base_dir'] = exp_dict['output_base']
+    params['process']['save_dir'] = exp_dict['output_base']
+    params['process']['cores'] = 1
+    
+    json_file = os.path.join(exp_dict['output_base'], 'ptyREX_' + exp_dict['data'].split('/')[-1].split('.')[0] + '.json')
+    exp_dict['ptyREX_json_file'] = json_file    
+    with open(json_file, 'w+') as outfile:
+        json.dump(params, outfile, indent = 4)
+
+
+
+
 def get_bf_disc(data_hs):
     """
     Interactively gets the radius and centre position of the bright filed disc
@@ -96,7 +328,7 @@ def get_bf_disc(data_hs):
     circ_roi = hs.roi.CircleROI(cent_x,cent_y, 10)
     data_sum = data_hs.sum()
     data_sum.plot()
-    imc = circ_roi.interactive(data_sum)
+#    imc = circ_roi.interactive(data_sum)
 
     return circ_roi
     
@@ -389,6 +621,39 @@ def get_potential(sim_file_path):
         pots = f['4DSTEM_simulation']['data']['realslices']['ppotential']['realslice'][:]
         pots = np.squeeze(pots)
     return pots
+
+
+
+def get_raw_dir_list(sim_matrix_path, get_all = False):
+    '''
+    checks for the folders with only two files and identify them as raw
+    get_all set to True returns all the folders 
+    
+    Parameters
+    ___________
+    sim_matrix_path: str
+        full path holding the sim matrix
+    get_all: bool
+        Default False. Set to True if all folders needed
+    
+    Returns:
+    _________
+    raw_dirs: list
+        list of directories
+    '''
+    raw_dirs = []
+    it =  os.scandir(sim_matrix_path)
+    if get_all:
+        for entry in it:
+            if entry.is_dir():
+                raw_dirs.append(entry.path)
+    else:
+        for entry in it:
+            if entry.is_dir():
+     #           if 'recons' not in os.listdir(os.path.dirname(entry.path)): 
+                if len(os.listdir(entry.path)) == 2:
+                    raw_dirs.append(entry.path)
+    return raw_dirs
 
 
 
