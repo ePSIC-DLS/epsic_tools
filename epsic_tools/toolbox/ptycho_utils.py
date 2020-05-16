@@ -486,6 +486,7 @@ def get_hdf5_object_phase(h5_file, params):
     dat = rotate(dat, rot_angle)
     return dat
 
+
 def get_hdf5_object_modulus(h5_file, params):
     #get modulus data
     dat_m = h5_file['entry_1']['process_1']['output_1']['object_modulus']
@@ -550,6 +551,7 @@ def get_obj_array(file_path):
         data_arr = np.squeeze(data)
     return data_arr
 
+# the following functions could be replaced by get_obj_array and get_probe_array
 
 def get_hdf5_probe_phase(h5_file):
     #get probe
@@ -558,10 +560,12 @@ def get_hdf5_probe_phase(h5_file):
     probe = probe[:,:,0,0,0,:,:].sum(axis = (0,1))
     return probe
 
+
 def get_hdf5_probe_modulus(h5_file):
     probe_m = np.array(h5_file['entry_1']['process_1']['output_1']['probe_modulus'])
     probe_m = probe_m[:,:,0,0,0,:,:].sum(axis = (0,1))
     return probe_m
+
 
 def get_hdf5_complex_probe(h5_file):
     #get complex probe
@@ -569,7 +573,9 @@ def get_hdf5_complex_probe(h5_file):
     probe_c = probe_c[:,:,0,0,0,:,:].sum(axis = (0,1))
     return probe_c   
 
-def get_json_params(h5_file):      
+
+def get_json_params(h5_file):  
+    # Could be replaced by json_to_dict    
     fj = h5_file[:-4] + '.json'
     #open json file
     with open(fj) as r:
