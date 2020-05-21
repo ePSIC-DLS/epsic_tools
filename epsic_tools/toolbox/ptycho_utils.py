@@ -40,15 +40,15 @@ def e_lambda(e_0):
     return e_lambda
 
 
-def save_ptyREX_output(json_path, fig_dump = None, crop = True):
+def plot_ptyREX_output(json_path, save_fig=None, crop=True):
     """
     To save the ptyREX recon output
     Parameters
     ----------
     json_path: str
         full path of the json file. This figure output will be saved in this folder.
-    fig_dump: str, default None
-        In case we want the figures to be also saved in a secondary folder, this new path can be passed as this
+    save_fig: str, default None
+        In case we want the figure to be  saved the full path should be given here
         keyword argument.
 
     Returns
@@ -81,34 +81,37 @@ def save_ptyREX_output(json_path, fig_dump = None, crop = True):
     
     im1 = axs[0,0].imshow(np.angle(probe))
     axs[0,0].set_title('Probe Phase')
+    axs[0,0].set_xticks([])
+    axs[0,0].set_yticks([])
     fig.colorbar(im1, ax = axs[0,0])
     im2 = axs[0,1].imshow(abs(probe))
     axs[0,1].set_title('Probe Modulus')
+    axs[0,1].set_xticks([])
+    axs[0,1].set_yticks([])
     fig.colorbar(im2, ax = axs[0,1])
     im3 = axs[1,0].imshow(np.angle(obj), cmap = 'gray', vmin = vmin_obj_p, vmax = vmax_obj_p)
     axs[1,0].set_title('Object Phase')
+    axs[1,0].set_xticks([])
+    axs[1,0].set_yticks([])
     fig.colorbar(im3, ax = axs[1,0])
     im4 = axs[1,1].imshow(abs(obj), cmap = 'gray', vmin = vmin_obj_m, vmax = vmax_obj_m)
     axs[1,1].set_title('Object Modulus')
+    axs[1,1].set_xticks([])
+    axs[1,1].set_yticks([])
     fig.colorbar(im4, ax = axs[1,1])
     axs[2,0].plot(errors)
     axs[2,0].set_title('Error vs iter')
     axs[2,1].imshow(np.sqrt(get_fft(obj)), cmap = 'viridis')
     axs[2,1].set_title('Sqrt of Object Phase fft')
+    axs[2,1].set_xticks([])
+    axs[2,1].set_yticks([])
 
-    
-    saving_path1 = os.path.splitext(recon_path)[0]+ name +'.png'
-    plt.savefig(saving_path1)
-    
-    if fig_dump is not None:
-        #base_path2 = '/dls/e02/data/2020/cm26481-1/processing/pty_simulated_data_MD/output_figs_ptREX_20200213/'
-        if not os.path.exists(fig_dump):
-            os.mkdir(fig_dump)
-        saving_path = os.path.join(fig_dump, os.path.splitext(recon_path)[0].split('/')[-1] +'_'+ name +'.png')
-        plt.savefig(saving_path)
-    
-    plt.close('all')
-        
+
+    if save_fig is not None:
+        if not os.path.exists(save_fig):
+            os.mkdir(save_fig)
+
+        plt.savefig(save_fig)
     return
 
 
@@ -171,11 +174,7 @@ def json_to_dict(json_path):
     with open(json_path) as jp:
         json_dict = json.load(jp)
     json_dict['json_path'] = json_path
-    base_path = os.path.dirname(json_path)
-    for file in os.listdir(base_path):
-        if file.endswith('h5'):
-            sim_path = os.path.join(base_path, file)
-    json_dict['sim_path'] = sim_path
+
     return json_dict
 
 
