@@ -3,10 +3,7 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-install_requires=["hyperspy",
-                  "scikit-image>=0.15",
-                  "scikit-learn>=0.21",
-				  "trackpy"]
+install_requires=["hyperspy"]
 
 try:
     import PyQt5  # noqa
@@ -18,7 +15,7 @@ except ImportError:
 
 setuptools.setup(
     name="epsic_tools",
-    package_dir={'Merlin_Medipix':'epsic_tools'},
+    package_dir={'epsic_tools':'epsic_tools'},
     version="0.0.1",
     author="ePSIC",
     description="A set of tools to analyse ePSIC data",
