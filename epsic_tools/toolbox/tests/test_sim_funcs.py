@@ -2,6 +2,8 @@
 import os
 import numpy.testing as nptest
 print(os.getcwd())
+os.chdir('./epsic_tools/toolbox/')
+print(os.getcwd())
 from sim_utils import sim_to_hs
 from sim_utils import parse_params_file
 
