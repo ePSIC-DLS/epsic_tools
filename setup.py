@@ -24,7 +24,6 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=install_requires,   
     include_package_data=False,
-    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
