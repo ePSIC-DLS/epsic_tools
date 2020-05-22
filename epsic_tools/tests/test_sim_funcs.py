@@ -1,7 +1,7 @@
 
 import os
 import numpy.testing as nptest
-import api as epsic
+from epsic_tools import api as epsic
 
 def test_sim_to_hs():
     root_path = os.path.dirname(epsic.__file__)
