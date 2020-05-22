@@ -15,7 +15,7 @@ def test_parse_params_file():
     test_data_path = os.path.join(root_path , 'tests', 'test_data', 'test_sim.h5')
     test_params_path = os.path.join(root_path , 'tests', 'test_data', 'test_sim_params.txt')
     d = epsic.sim_utils.parse_params_file(test_params_path, test_data_path)
-    assert t['accel_voltage(eV)'] == 80000
+    assert d['accel_voltage(eV)'] == 80000
     
 
 
