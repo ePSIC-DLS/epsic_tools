@@ -1,4 +1,4 @@
-from epsic_tools import api as epsic
+import epsic_tools.api as epsic
 import os
 import numpy.testing as nptest
 
