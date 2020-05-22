@@ -1,6 +1,8 @@
-from epsic_tools.toolbox import sim_utils
+
 import os
 import numpy.testing as nptest
+print(os.getcwd())
+from epsic_tools.toolbox import sim_utils
 
 def test_sim_to_hs():
     root_path = os.path.dirname(epsic.__file__)
