@@ -10,4 +10,4 @@ before_script:
   - pip install pytest-cov
 
 script:
-  - pytest --cov=./epsic_tools/
+  - pytest --cov=epsic_tools
