@@ -10,5 +10,4 @@ before_script:
   - pip install pytest-cov
 
 script:
-  - python ./epsic_tools/mib2hdfConvert/test_mib_dask_reader.py
   - pytest --cov=./epsic_tools/
