@@ -5,23 +5,23 @@ from epsic_tools import api as epsic
 
 def test_plot_ptyREX_output():
     root_path = os.path.dirname(epsic.__file__)
-    test_json_path = os.path.join(root_path , 'tests', 'test_data', 'test_recon_json.json')
+    test_json_path = os.path.join(root_path , 'tests', 'test_data', 'test_recon_sim.json')
     epsic.ptycho_utils.plot_ptyREX_output(test_json_path)
     
 def test_crop_recon_obj():
     root_path = os.path.dirname(epsic.__file__)
-    test_json_path = os.path.join(root_path , 'tests', 'test_data', 'test_recon_json.json')
+    test_json_path = os.path.join(root_path , 'tests', 'test_data', 'test_recon_sim.json')
     epsic.ptycho_utils.crop_recon_obj(test_json_path)
   
 def test_get_json_pixelSize():
     root_path = os.path.dirname(epsic.__file__)
-    test_json_path = os.path.join(root_path , 'tests', 'test_data', 'test_recon_json.json')
+    test_json_path = os.path.join(root_path , 'tests', 'test_data', 'test_recon_sim.json')
     epsic.ptycho_utils.get_json_pixelSize(test_json_path)
     
     
 def test_json_to_dict():
     root_path = os.path.dirname(epsic.__file__)
-    test_json_path = os.path.join(root_path , 'tests', 'test_data', 'test_recon_json.json')
+    test_json_path = os.path.join(root_path , 'tests', 'test_data', 'test_recon_sim.json')
     epsic.ptycho_utils.json_to_dict(test_json_path)
     
 def test_get_error():
