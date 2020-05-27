@@ -582,6 +582,31 @@ def get_json_params(h5_file):
     return params
 
 
+def get_sampling_factor(x,d,n,dr):
+    """
+    Parameters
+    ----------
+    x: float
+        pixelSize * number of pixels in probe
+    d: float
+        probe diameter in m
+    n: int
+        number of probe positions
+    dr: float
+        step size 
+
+    Returns
+    -------
+    s: float
+        sampling factor 
+        
+    Ref: Darren Batey PhD Thesis, Page 68.
+    """
+    du = 1/float(x)
+    s = 1 / ( 2*du*( (d/n) + (dr*(1 - (1/n) ) ) ) )
+    return s
+
+
 
 def plot_ptyr(filename):
     """
