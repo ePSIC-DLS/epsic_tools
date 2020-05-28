@@ -15,5 +15,5 @@ before_script:
 script:
   - pytest --cov=epsic_tools
 
- after_success:
+after_success:
   - bash <(curl -s https://codecov.io/bash)
