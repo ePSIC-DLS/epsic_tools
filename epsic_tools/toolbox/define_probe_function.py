@@ -1,9 +1,55 @@
 import numpy as np
-from abb_func import FuncAberrUV
 from scipy import constants as pc
 from numpy.fft import fftshift, ifft2, ifftshift
 import matplotlib.pyplot as plt
 import h5py
+
+
+def FuncAberrUV(u,v,aberrcoeff):
+    
+    # this function needs comments
+     
+    # input:
+    # u: Kx
+    # v: Ky
+
+    u2 = u*u
+    u3 = u2*u
+    u4 = u3*u
+    
+    v2 = v*v
+    v3 = v2*v
+    v4 = v3*v
+    
+    # aberr are in unit of meter.
+    C1   = aberrcoeff[0] # defocus
+    C12a = aberrcoeff[1] # 2 stig
+    C12b = aberrcoeff[2] # 2 stig
+    C23a = aberrcoeff[3] # 3 stig
+    C23b = aberrcoeff[4] # 3 stig
+    C21a = aberrcoeff[5] # coma 
+    C21b = aberrcoeff[6] # coma
+    C3   = aberrcoeff[7] # Spherical abb
+    C34a = aberrcoeff[8] # 4 stig
+    C34b = aberrcoeff[9] # 4 stig
+    C32a = aberrcoeff[10] # star
+    C32b = aberrcoeff[11] # star
+    
+    # output:  chi function. in unit of meter*radian.  multiply by 2pi/lambda to get dimensionless
+    func_aberr =  1/2*C1*(u2+v2)\
+            + 1/2*(C12a*(u2-v2) + 2*C12b*u*v)\
+            + 1/3*(C23a*(u3-3*u*v2) + C23b*(3*u2*v - v3))\
+            + 1/3*(C21a*(u3+u*v2) + C21b*(v3+u2*v))\
+            + 1/4* C3*(u4+v4+2*u2*v2)\
+            + 1/4* C34a*(u4-6*u2*v2+v4)\
+            + 1/4* C34b*(4*u3*v-4*u*v3)\
+            + 1/4* C32a*(u4-v4)\
+            + 1/4* C32b*(2*u3*v + 2*u*v3)\
+    
+    return func_aberr
+
+
+
 def rad_array(arr_len):
     #create array with values equal to distance in px from centre
     half_len = arr_len / 2
@@ -12,6 +58,8 @@ def rad_array(arr_len):
     v = np.reshape(v, (arr_len, arr_len))
     v = np.sqrt(v**2 + v.T**2)
     return v
+
+
 
 def define_probe_function(V,alpha, px_cal,array_px, aberr_input, dose = 1, plot_me = False):
     ##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
@@ -120,54 +168,4 @@ def define_probe_function(V,alpha, px_cal,array_px, aberr_input, dose = 1, plot_
         plt.xlim(fig_lim)
         plt.title('df = ' + str(aberr_input[0]) + ' Cs = ' + str(aberr_input[7]))
     return func_probe   
-#    end
-#    
-#    ptycho.func_aber = func_aber;
-#    ptycho.func_transfer = func_transfer;
-#    ptycho.func_ObjApt = func_ObjApt;
-#    ptycho.A = A;
-#    ptycho.func_probe = func_probe;
-#    ptycho.aberr_input = aberr_input;
-#    ptycho.scaling = scaling;
-#    
-#    ptycho.varfunctions.define_probe_function = 1;
-#    
-#    end
-V = 80000#15000 #V
-alpha = 31e-3#100e-3 # rad
-px_cal = 0.25e-10#0.45e-10 # in m 
-array_px = 4096
-output_size = 256
-save_hdf5 = False
-save_path = r'Y:\2019\cm22979-8\processing\Merlin\20191114_15kVptycho_graphene\probe_sims'
-save_file = r'\15kV_10um_Cs987um'
 
-aberrcoeff = np.zeros((12))
-aberrcoeff[0] = -5e-9 # defocus
-aberrcoeff[1] = 0# 2 stig
-aberrcoeff[2] = 0  # 2 stig
-aberrcoeff[3] = 0 # 3 stig
-aberrcoeff[4] = 0 # 3 stig
-aberrcoeff[5] = 0 # coma 
-aberrcoeff[6] = 0 # coma
-aberrcoeff[7] = 1e-6#987e-6 # Spherical abb
-aberrcoeff[8] = 0# 4 stig
-aberrcoeff[9]  = 0# 4 stig
-aberrcoeff[10] = 0 # star
-aberrcoeff[11]  = 0 # star
-aberr_input = aberrcoeff
-probe = define_probe_function(V,alpha, px_cal,array_px, aberrcoeff, dose = 1, plot_me = True)
-px_from, px_to = int(array_px/2 - output_size / 2) , int(array_px/2 + output_size / 2)
-output_probe = probe[px_from:px_to, px_from:px_to]
-plt.figure(); plt.imshow(np.real(output_probe))
-
-if save_hdf5 == True:
-    output_probe = output_probe[np.newaxis, np.newaxis, np.newaxis, np.newaxis,np.newaxis, :,:] 
-    fn = save_path + save_file
-    d5 = h5py.File(fn +'.hdf5' , 'w')
-    d5.create_dataset('entry_1/process_1/output_1/probe', data = output_probe)
-    d5.create_dataset('entry_1/process_1/PIE_1/detector/binning', data = [1,1])
-    d5.create_dataset('entry_1/process_1/PIE_1/detector/upsample', data = [1,1])
-    d5.create_dataset('entry_1/process_1/PIE_1/detector/crop',data = [output_size, output_size])
-    d5.create_dataset('entry_1/process_1/common_1/dx', data = [4.52391605e-11 , 4.52391605e-11 ]) # px size
-    d5.close()
