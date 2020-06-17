@@ -305,7 +305,7 @@ def write_ptyrex_json(exp_dict, iter_num):
     params['process']['save_dir'] = exp_dict['output_base']
     params['process']['cores'] = 1
     
-    json_file = os.path.join(exp_dict['output_base'], 'ptyREX_' + exp_dict['data'].split('/')[-1].split('.')[0] + '.json')
+    json_file = os.path.join(exp_dict['output_base'], 'ptyREX_' + os.path.splitext(exp_dict['data'])[0].split('/')[-1] + '.json')
     exp_dict['ptyREX_json_file'] = json_file    
     with open(json_file, 'w+') as outfile:
         json.dump(params, outfile, indent = 4)
@@ -328,7 +328,7 @@ def get_bf_disc(data_hs):
     circ_roi = hs.roi.CircleROI(cent_x,cent_y, 10)
     data_sum = data_hs.sum()
     data_sum.plot()
-#    imc = circ_roi.interactive(data_sum)
+    imc = circ_roi.interactive(data_sum)
 
     return circ_roi
     
@@ -573,19 +573,21 @@ def max_defocus(pixelSize, imageSize, _lambda, probe_semiAngle):
     max_def: float
         max defocus in (m)
     """
-    #pixelSize = pixelSize * 1e10 # to A
-    #_lambda = _lambda * 1e10 # to A
     imageSize = np.asanyarray(imageSize)
     max_probe_rad_target = pixelSize * imageSize[0] / 4
-    # print('maximum probe radius (A):', max_probe_rad_target * 1e10)
-    #probe_rad_zeroDef = calc_probe_size(pixelSize, imageSize, _lambda, 0, probe_semiAngle, plot_probe = False)
-    def_val = 0 #(max_probe_rad_target - probe_rad_zeroDef) / np.tan(probe_semiAngle)
-    #print(def_val)
+    print('target probe radius(m):', max_probe_rad_target)
+    def_val = max_probe_rad_target / np.tan(probe_semiAngle) 
     probe_rad = calc_probe_size(pixelSize, imageSize, _lambda, def_val, probe_semiAngle, plot_probe = False)
-    while probe_rad < max_probe_rad_target:
-        def_val = def_val + 0.1
-        probe_rad = calc_probe_size(pixelSize, imageSize, _lambda, def_val * 1e-10, probe_semiAngle, plot_probe = False)
-    def_val = def_val *1e-10
+    if probe_rad < max_probe_rad_target:
+        while probe_rad < max_probe_rad_target:
+            def_val = def_val + 1e-10
+            probe_rad = calc_probe_size(pixelSize, imageSize, _lambda, def_val, probe_semiAngle, plot_probe = False)
+    else:
+        while probe_rad > max_probe_rad_target:
+            def_val = def_val - 1e-10
+            probe_rad = calc_probe_size(pixelSize, imageSize, _lambda, def_val, probe_semiAngle, plot_probe = False)
+
+    def_val = def_val
     return def_val
 
 
@@ -675,7 +677,16 @@ def _sigma(e_0):
     s = s / 1000 # in radians / (V.A)
     return s
 
-
+def json_to_dict_sim(json_path):
+    with open(json_path) as jp:
+        json_dict = json.load(jp)
+    json_dict['json_path'] = json_path
+    base_path = os.path.dirname(json_path)
+    for file in os.listdir(base_path):
+        if file.endswith('h5'):
+            sim_path = os.path.join(base_path, file)
+    json_dict['sim_path'] = sim_path
+    return json_dict
 
 
 def shift_probe(X, dx, dy):

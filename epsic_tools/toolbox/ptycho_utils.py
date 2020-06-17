@@ -40,7 +40,7 @@ def e_lambda(e_0):
     return e_lambda
 
 
-def plot_ptyREX_output(json_path, save_fig=None, crop=True):
+def plot_ptyREX_output(json_path, save_fig=None, crop=False):
     """
     To save the ptyREX recon output
     Parameters
@@ -50,6 +50,8 @@ def plot_ptyREX_output(json_path, save_fig=None, crop=True):
     save_fig: str, default None
         In case we want the figure to be  saved the full path should be given here
         keyword argument.
+    crop: Bool
+        default False
 
     Returns
     -------
@@ -101,7 +103,7 @@ def plot_ptyREX_output(json_path, save_fig=None, crop=True):
     fig.colorbar(im4, ax = axs[1,1])
     axs[2,0].plot(errors)
     axs[2,0].set_title('Error vs iter')
-    axs[2,1].imshow(np.sqrt(get_fft(obj)), cmap = 'viridis')
+    axs[2,1].imshow(np.sqrt(get_fft(obj, crop = 0.66)), cmap = 'viridis')
     axs[2,1].set_title('Sqrt of Object Phase fft')
     axs[2,1].set_xticks([])
     axs[2,1].set_yticks([])
@@ -131,9 +133,20 @@ def crop_recon_obj(json_file):
     return obj_crop
 
 
-def get_fft(obj_arr):
-    
-    obj_fft = abs(np.fft.fftshift(np.fft.fft2(np.angle(obj_arr))))
+def get_fft(obj_arr, crop = None):
+    """
+    Returns the abs array of the fft of the obj phase
+    crop: fraction of FOV to cop
+    """
+    if crop is None:
+        obj_fft = abs(np.fft.fftshift(np.fft.fft2(np.angle(obj_arr))))
+    else:
+        sh = obj_arr.shape[0]
+        to_crop = crop * sh / 2
+        obj_crop = obj_arr[int(sh / 2 - to_crop):int(to_crop + sh / 2),\
+                   int(sh / 2 - to_crop):int(to_crop + sh / 2)]
+        obj_fft = abs(np.fft.fftshift(np.fft.fft2(np.angle(obj_crop))))
+        
     return obj_fft
 
 
