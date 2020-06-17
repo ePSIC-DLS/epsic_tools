@@ -779,3 +779,75 @@ def kdtree_NN(experiment, truth, search_rad):
                        'Recall': recall,
                        'RMSE': float(rmse)})
     return nn_results
+
+
+def duplicate_json(source_json_path, new_json_path, param_to_change = None):
+    """
+    This gets a source json file and duplicates it, changing a parameter if declared
+    Parameters
+    ____________
+    source_json_path: str
+        full path of the starting json file
+    new_json_path: str
+        full path of the new json file
+    param_to_change: tuple of (str, new_val) 
+        default None - key of the parameter to be changed as first el of tuple and the new value as the second el.
+    Returns
+    ____________
+    data_dict: dict
+        The new dict if anything changed.
+    
+    TODO: Fix the ugly limited dict depth implementation!
+    """
+    data_dict = json_to_dict(source_json_path)
+    if param_to_change == None:
+        with open(new_json_path, 'w') as outfile:
+            json.dump(data_dict, outfile, indent = 4)
+    else:
+        if isinstance(param_to_change[0], str):
+            if _finditem(data_dict, param_to_change[0]) is not None:
+                p = _finditem(data_dict, param_to_change[0])
+                keys = _get_path(p)
+#                 print(keys)
+                keys.append(param_to_change[0])
+                if len(keys)==4:
+                    data_dict[keys[0]][keys[1]][keys[2]][keys[3]] = param_to_change[1]
+                elif len(keys)==3:
+                    data_dict[keys[0]][keys[1]][keys[2]] = param_to_change[1]
+                elif len(keys)==2:
+                    data_dict[keys[0]][keys[1]] = param_to_change[1]
+                with open(new_json_path, 'w') as outfile:
+                    json.dump(data_dict, outfile, indent = 4)
+                return data_dict
+            else:
+                raise KeyError('The key provided does not exist in the dictionary.')                
+        else:
+            raise TypeError('param_to_change has to be a string.')
+    return 
+
+
+def _finditem(obj, key):
+    if key in obj: return obj[key]
+    for k, v in obj.items():
+        if isinstance(v,dict):
+            item = _finditem(v, key)
+            path = []
+            if item is not None:
+                path.append('*'+k)
+                return [item, path]
+            
+            
+def _get_path(bad_list):
+    path = []
+    while len(bad_list) == 2:
+        try:
+            if bad_list[1][0][0] == '*':
+                path.append(bad_list.pop()[0][1:])
+                bad_list = bad_list[0]
+                try: len(bad_list)
+                except:
+                    return path
+        except: return path
+    else:
+        pass
+    return path
