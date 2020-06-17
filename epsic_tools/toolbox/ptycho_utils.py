@@ -17,6 +17,8 @@ import json
 import hyperspy.api as hs
 from epsic_tools.toolbox import radial_profile
 import os
+from sklearn.neighbors import KDTree
+
 
 
 from scipy import constants as pc
@@ -689,3 +691,91 @@ def _recursively_load_dict_contents_from_group(h5file, path):
         elif isinstance(item, h5py._hl.group.Group):
             ans[key] = _recursively_load_dict_contents_from_group(h5file, path + key + '/')
     return ans
+
+
+def get_RMSE(dist_list):
+    """
+    Input: 
+    dist_list: list of floats
+        atomic distances
+    returns
+         RMSE of the list elements
+    """
+    dist_array = np.asarray(dist_list)
+    return np.square((dist_array ** 2).mean())
+
+
+def kdtree_NN(experiment, truth, search_rad):
+    """
+    Runs sklearn KDTree proximity algorithm on the data
+    Parameters
+    ___________
+    experiment: list
+        list of atomic position coordinates in the experimental data
+    truth: list
+        list of atomic position coordinates in the ground truth
+    search_rad: float
+        radius to search for nearest neighbour
+    Returns
+    __________
+    nn_results: dict
+        dict containing the following keys:
+            TP list - as paired atoms coordinates and there distances
+            FP list
+            FN list
+            Precision
+            Recall
+            RMSE of distances
+    """
+    
+    false_neg = []
+    # we have atoms in truth_pos that have gone undetected in recon
+    false_pos = [] 
+    # detected an atom not present in truth_pos
+    paired_list = []
+    nn_results = {}
+
+    distances = []
+    inds = []
+    
+    if type(experiment) is np.ndarray:
+        experiment = list(experiment)
+    if type(truth) is np.ndarray:
+        truth = list(truth)
+
+    for i in range(len(experiment)):
+        test = np.vstack((experiment[i], truth))
+        tree = KDTree(test, leaf_size=10)
+        [ind, d] = tree.query_radius(test[:1], r=search_rad, count_only=False, return_distance = True)
+    
+        if len(ind[0]) == 1:
+            false_pos.append(experiment[i])
+        elif len(ind[0]) == 2:
+            inds.append([e-1 for e in ind[0] if e != 0]) 
+    #         e-1 because we append one atom at the beginning of the list to compare
+            distances.append([e for e in d[0] if e != 0])
+            truth_atom = truth.pop(inds[-1][0])
+                                   
+            atom_entry = [truth_atom, experiment[i]]
+                         
+            paired_list.append(atom_entry)
+        del(test)
+    TP = len(paired_list)
+
+    FP = len(false_pos)
+
+    false_neg = truth
+    FN = len(false_neg)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    rmse = get_RMSE(distances)
+    
+    nn_results.update({'TP_list': paired_list,
+                       'Distances': distances,
+                       'FP_list': false_pos,
+                       'FN_list': false_neg,
+                       'Precision': precision,
+                       'Recall': recall,
+                       'RMSE': float(rmse)})
+    return nn_results
