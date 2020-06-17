@@ -642,3 +642,50 @@ def plot_ptyr(filename):
     plt.subplot(142); plt.imshow(data_arr[0].imag); plt.title('Object imaginary'); plt.axis('off');
     plt.subplot(143); plt.imshow(probe_data_arr[0].real); plt.title('Probe real'); plt.axis('off');
     plt.subplot(144); plt.imshow(probe_data_arr[0].imag); plt.title('Probe imaginary'); plt.axis('off');
+
+
+
+def save_dict_to_hdf5(dic, filename, overwrite=True):
+    """
+    recursively saves a nested dict into an hdf5 file
+    """
+    if os.path.exists(filename):
+        if overwrite is True:
+            with h5py.File(filename, 'w') as h5file:
+                _recursively_save_dict_contents_to_group(h5file, '/', dic)
+        else:
+            with h5py.File(filename, 'a') as h5file:
+                _recursively_save_dict_contents_to_group(h5file, '/', dic)
+    else:
+        
+        with h5py.File(filename, 'w') as h5file:
+            _recursively_save_dict_contents_to_group(h5file, '/', dic)
+
+
+def _recursively_save_dict_contents_to_group(h5file, path, dic):
+
+    for key, item in dic.items():
+        if isinstance(item, (np.ndarray, list, float, int, str)):
+            h5file[path + key] = item
+        elif isinstance(item, dict):
+            _recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
+
+            
+def load_dict_from_hdf5(filename):
+    """
+    recursively loads an hdf5 file to a nested dict
+
+    """
+    with h5py.File(filename, 'r') as h5file:
+        return _recursively_load_dict_contents_from_group(h5file, '/')
+
+
+def _recursively_load_dict_contents_from_group(h5file, path):
+    
+    ans = {}
+    for key, item in h5file[path].items():
+        if isinstance(item, h5py._hl.dataset.Dataset):
+            ans[key] = item[()]
+        elif isinstance(item, h5py._hl.group.Group):
+            ans[key] = _recursively_load_dict_contents_from_group(h5file, path + key + '/')
+    return ans
