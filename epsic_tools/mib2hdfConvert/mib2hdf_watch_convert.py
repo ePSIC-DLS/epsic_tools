@@ -182,7 +182,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     if not os.path.exists(os.path.dirname(h5_path)):
                         os.makedirs(os.path.dirname(h5_path))
                     print(h5_path)
-                    mib_to_h5stack(hdr_info['title'] + '.mib', hdr_info, h5_path)
+                    mib_to_h5stack(hdr_info['title'] + '.mib', h5_path)
                     dp = mib_dask_reader(hdr_info['title'] + '.mib', h5_path)
                 else:
                     print(hdr_info['title'] + '.mib')
