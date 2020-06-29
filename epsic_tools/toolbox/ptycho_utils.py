@@ -135,19 +135,39 @@ def crop_recon_obj(json_file):
     return obj_crop
 
 
-def get_fft(obj_arr, crop = None):
+def get_fft(obj_arr, crop = None, apply_hann = False):
     """
-    Returns the abs array of the fft of the obj phase
-    crop: fraction of FOV to cop
+    Parameters
+    ----------
+    obj_arr: numpy.ndarray
+    crop: float
+        fraction of FOV to crop before fft. default None
+    apply_hann: bool
+        If True, hanning window applied before fft
+        
+    Returns
+    _________
+    obj_fft: numpy.ndarray
+        abs array of the fft
+
     """
+    if apply_hann is True:
+        sh = obj_arr.shape[0]
+        hann_1d = np.hanning(sh)
+        hann_2d = np.ones((sh,sh))
+        hann_2d = hann_2d * hann_1d
+        hann_2d = np.transpose(hann_2d) * hann_1d
+        obj_arr = hann_2d * obj_arr
+        
     if crop is None:
-        obj_fft = abs(np.fft.fftshift(np.fft.fft2(np.angle(obj_arr))))
+        obj_fft = abs(np.fft.fftshift(np.fft.fft2(obj_arr)))
+        
     else:
         sh = obj_arr.shape[0]
         to_crop = crop * sh / 2
         obj_crop = obj_arr[int(sh / 2 - to_crop):int(to_crop + sh / 2),\
                    int(sh / 2 - to_crop):int(to_crop + sh / 2)]
-        obj_fft = abs(np.fft.fftshift(np.fft.fft2(np.angle(obj_crop))))
+        obj_fft = abs(np.fft.fftshift(np.fft.fft2(obj_crop)))
         
     return obj_fft
 
@@ -551,6 +571,7 @@ def get_obj_array(file_path):
     -------
     data_arr: np.array
         complex object numpy array 
+TODO: if input is json check if there is a similarly named hdf file in the same folder
     """
     if os.path.splitext(file_path)[1] == '.ptyr':
         f = h5py.File(file_path,'r')
