@@ -790,10 +790,13 @@ def kdtree_NN(experiment, truth, search_rad):
 
     precision = TP / (TP + FP)
     recall = TP / (TP + FN)
-    rmse = get_RMSE(distances)
+
+    
+    distances_flat = [item for sublist in distances for item in sublist]
+    rmse = get_RMSE(distances_flat)
     
     nn_results.update({'TP_list': paired_list,
-                       'Distances': distances,
+                       'Distances': distances_flat,
                        'FP_list': false_pos,
                        'FN_list': false_neg,
                        'Precision': precision,
