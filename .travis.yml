@@ -13,7 +13,12 @@ before_script:
   - pip install codecov
 
 script:
+<<<<<<< HEAD
+  - python ./epsic_tools/mib2hdfConvert/test_mib_dask_reader.py
+  - pytest --cov=toolbox
+=======
   - pytest --cov=epsic_tools
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+>>>>>>> upstream/master
