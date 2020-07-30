@@ -1,0 +1,116 @@
+{
+    "process": {
+        "gpu_flag": 1, 
+        "save_interval": 10, 
+        "PIE": {
+            "iterations": 2000
+        }, 
+        "common": {
+            "source": {
+                "flux": -1, 
+                "energy": [
+                    80000
+                ], 
+                "radiation": "electron"
+            }, 
+            "detector": {
+                "bin": [
+                    1, 
+                    1
+                ], 
+                "distance": 0.11464380986157446, 
+                "orientation": "00", 
+                "min_max": [
+                    0, 
+                    1000000
+                ], 
+                "crop": [
+                    256, 
+                    256
+                ], 
+                "mask_flag": 0, 
+                "optic_axis": [
+                    128.0, 
+                    128.0
+                ], 
+                "pix_pitch": [
+                    5.5e-05, 
+                    5.5e-05
+                ]
+            }, 
+            "probe": {
+                "distance": -1, 
+                "aperture_size": 0.0009171504788925958, 
+                "focal_dist": -1, 
+                "load_flag": 0, 
+                "diffuser": 0, 
+                "convergence": 0.016, 
+                "aperture_shape": "circ"
+            }, 
+            "object": {
+                "load_flag": 0
+            }, 
+            "scan": {
+                "fast_axis": 1, 
+                "orientation": "00", 
+                "type": "tv", 
+                "N": [
+                    4, 
+                    4
+                ], 
+                "load_flag": 0, 
+                "rotation": 0, 
+                "dR": [
+                    8.70749e-10, 
+                    8.70749e-10
+                ]
+            }
+        }, 
+        "save_dir": "/dls/e02/data/2020/cm26481-1/processing/pty_simulated_data_MD/sim_matrix_ptyREX_25April2020/Graphene_defect_8.0mrad_281.70A_def_8.71A_step_size", 
+        "cores": 1
+    }, 
+    "experiment": {
+        "sample": {
+            "position": [
+                0, 
+                0, 
+                0
+            ]
+        }, 
+        "optics": {
+            "lens": {
+                "defocus": [
+                    2.817e-08, 
+                    2.817e-08
+                ], 
+                "alpha": 0.016, 
+                "use": 1
+            }, 
+            "pinhole": {
+                "use": 0
+            }, 
+            "FZP": {
+                "use": 0
+            }, 
+            "diffuser": {
+                "use": 0
+            }
+        }, 
+        "detector": {
+            "position": [
+                0, 
+                0, 
+                0.11464380986157446
+            ]
+        }, 
+        "data": {
+            "dead_pixel_flag": 0, 
+            "data_path": "/dls/e02/data/2020/cm26481-1/processing/pty_simulated_data_MD/sim_matrix_ptyREX_25April2020/Graphene_defect_8.0mrad_281.70A_def_8.71A_step_size/Graphene_defect_8.0mrad_281.70A_def_8.71A_step_size.h5", 
+            "meta_type": "hdf", 
+            "key": "4DSTEM_simulation/data/datacubes/hdose_noisy_data", 
+            "load_flag": 1, 
+            "flat_field_flag": 0
+        }
+    }, 
+    "base_dir": "/dls/e02/data/2020/cm26481-1/processing/pty_simulated_data_MD/sim_matrix_ptyREX_25April2020/Graphene_defect_8.0mrad_281.70A_def_8.71A_step_size"
+}

@@ -1,0 +1,40 @@
+--algorithm:m
+--input-file:/dls/science/groups/e02/Mohsen/code/Git_Repos/Staff-notebooks/ptyREX_sim_matrix/xyz_files/Graphene_defect.xyz
+--output-file:/dls/e02/data/2020/cm26481-1/processing/pty_simulated_data_MD/sim_matrix_ptyREX_25April2020/Graphene_defect_8.0mrad_281.70A_def_8.71A_step_size/Graphene_defect_8.0mrad_281.70A_def_8.71A_step_size.h5
+--num-threads:12
+--pixel-size-x:0.17
+--pixel-size-y:0.17
+--potential-bound:2
+--num-FP:8
+--slice-thickness:8
+--num-slices:0
+--zstart-slices:0
+--energy:80
+--alpha-max:45
+--batch-size-cpu:1
+--probe-step-x:8.70749
+--probe-step-y:8.70749
+--cell-dimension:29.03 29.03 1.1168
+--tile-uc:3 3 1
+--probe-defocus:281.7
+-C3:0
+-C5:0
+--probe-semiangle:8
+--detector-angle-step:1
+--probe-xtilt:0
+--probe-ytilt:0
+--scan-window-x:0.33 0.63
+--scan-window-y:0.33 0.63
+--scan-window-xr:0 1
+--scan-window-yr:0 1
+--random-seed:25212
+--4D-amax:0.1
+--thermal-effects:1
+--save-3D-output:0
+--save-4D-output:1
+--4D-crop:0
+--save-DPC-CoM:1
+--save-potential-slices:1
+--save-real-space-coords:0
+--occupancy:1
+--nyquist-sampling:0

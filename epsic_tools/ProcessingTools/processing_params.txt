@@ -1,0 +1,43 @@
+#This file sets post-processing parameters for Merlin-Medipix data
+#set to 1 any processing you would like to take place
+
+#overwrite: set to 1 to overwrite existing processing 
+Overwrite:0
+
+#thresholding to define bright field disk
+BF_thresh_low: 0.01
+BF_thresh_high: 0.05 
+
+#######################
+#compute and save ADF
+ADF:1
+
+#number of px beyond the bfd for ADF inner angle
+ADF_expand:20
+#######################
+#compute and save centre of mass
+CoM:1 
+
+#use binned data for CoM
+bin_CoM:0
+
+#distance outside BF disk to include in calculation (px)
+BF_expand:20
+
+#Normalize CoM data (subtract mean of CoM)
+Normalize_CoM:1
+#######################
+#perform DPC (phase from CoM)
+DPC:1
+
+#DPC parameters
+#60kV quad chip rotate = 28 deg flip = 1
+DPC_theta:28
+DPC_flip:1
+DPC_pad:2
+DPC_lowpass:100
+DPC_highpass:10
+DPC_stepsize:1
+DPC_niter:100
+######################
+
