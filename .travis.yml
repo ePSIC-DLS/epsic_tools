@@ -15,6 +15,11 @@ before_script:
 script:
   - python ./epsic_tools/mib2hdfConvert/test_mib_dask_reader.py
   - pytest --cov=epsic_tools
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+  - python ./epsic_tools/mib2hdfConvert/test_mib_dask_reader.py
+  - pytest --cov=epsic_tools
   - cd docs
   - make html
   - touch _build/html/.nojekyll
