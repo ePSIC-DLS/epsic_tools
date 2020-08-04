@@ -1,5 +1,5 @@
 .. epsic_tools documentation master file, created by
-   sphinx-quickstart on Thu Jul 30 14:28:15 2020.
+   sphinx-quickstart on Tue Aug  4 14:48:01 2020.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
