@@ -9,12 +9,17 @@ before_script:
   - pip install dask
   - pip install pyxem
   - pip install -e .
+  - pip install sphinx
+  - pip install sphinx_rtd_theme
   - pip install pytest-cov
   - pip install codecov
 
 script:
   - python ./epsic_tools/mib2hdfConvert/test_mib_dask_reader.py
   - pytest --cov=epsic_tools
+  - cd docs
+  - make html
+  - touch _build/html/.nojekyll
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
@@ -24,3 +29,11 @@ after_success:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
  
+ deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN  # Set in travis-ci.org dashboard, marked secure
+  keep-history: true
+  on:
+    branch: master
+  local_dir: docs/_build/html/
