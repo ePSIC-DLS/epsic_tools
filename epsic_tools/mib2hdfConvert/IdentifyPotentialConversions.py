@@ -106,10 +106,10 @@ def check_differences(beamline, year, visit, folder = None):
     return mib_dict
 
 
-def main(beamline, year, visit, folder):
-    mib_dict = check_differences(beamline, year, visit, folder)
-    print(mib_dict['MIB_to_convert'])
-    print(mib_dict['processing_path'])
+#def main(beamline, year, visit, folder):
+#    mib_dict = check_differences(beamline, year, visit, folder)
+#    print(mib_dict['MIB_to_convert'])
+#    print(mib_dict['processing_path'])
 
 
 if __name__ == "__main__":
@@ -117,11 +117,11 @@ if __name__ == "__main__":
     parser.add_argument('beamline', help='Beamline name')
     parser.add_argument('year', help='Year')
     parser.add_argument('visit', help='Session visit code')
-    parser.add_argument('folder', nargs= '?', help='Option to add folder')
+    parser.add_argument('-folder', help='Option to add folder')
     v_help = "Display all debug log messages"
     parser.add_argument("-v", "--verbose", help=v_help, action="store_true",
                         default=False)
 
     args = parser.parse_args()
 
-    main(args.beamline, args.year, args.visit, args.folder)
+    mib_dict = check_differences(args.beamline, args.year, args.visit, args.folder)

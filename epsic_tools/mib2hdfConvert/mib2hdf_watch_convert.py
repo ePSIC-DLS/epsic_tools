@@ -343,11 +343,11 @@ def convert(beamline, year, visit, mib_to_convert, folder):
 
 
 
-def watch_convert(beamline, year, visit, folder):
+def watch_convert(beamline, year, visit, folder=None):
 
     mib_dict = check_differences(beamline, year, visit, folder)
     # Holder for raw data path
-#    if folder:
+#    if folder is not None:
 #        raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
 #    else:
 #        raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')
@@ -375,26 +375,26 @@ def data_dim(data):
     return data_dim_str
 
 
-def main(beamline, year, visit, folder, folder_num):
-    print(beamline, year, visit, folder)
-    if folder=='False':
-        folder = ''
-        HDF5_dict= check_differences(beamline, year, visit)
-    else:
-        HDF5_dict= check_differences(beamline, year, visit, folder)
-
-    # proc_path = HDF5_dict['processing_path']
-    
-    to_convert = HDF5_dict['MIB_to_convert']
-    folder = to_convert[int(folder_num)-1].rpartition('/')[0].rpartition(visit)[2][1:]
-    try:
-        save_location = os.path.join('/dls',beamline,'data', year, visit, 'processing', folder)
-        if os.path.exists(save_location) == False:
-            os.makedirs(save_location)
-        watch_convert(beamline, year, visit, folder)
-        
-    except Exception as e:
-        print('** ERROR processing** \n ' , e)
+#def main(beamline, year, visit, folder, folder_num):
+#    print(beamline, year, visit, folder)
+#    if folder=='False':
+#        folder = ''
+#        HDF5_dict= check_differences(beamline, year, visit)
+#    else:
+#        HDF5_dict= check_differences(beamline, year, visit, folder)
+#
+#    # proc_path = HDF5_dict['processing_path']
+#    
+#    to_convert = HDF5_dict['MIB_to_convert']
+#    folder = to_convert[int(folder_num)-1].rpartition('/')[0].rpartition(visit)[2][1:]
+#    try:
+#        save_location = os.path.join('/dls',beamline,'data', year, visit, 'processing', folder)
+#        if os.path.exists(save_location) == False:
+#            os.makedirs(save_location)
+#        watch_convert(beamline, year, visit, folder)
+#        
+#    except Exception as e:
+#        print('** ERROR processing** \n ' , e)
 
 
 if __name__ == "__main__":
@@ -405,14 +405,33 @@ if __name__ == "__main__":
     parser.add_argument('beamline', help='Beamline name')
     parser.add_argument('year', help='Year')
     parser.add_argument('visit', help='Session visit code')
-    parser.add_argument('folder', nargs= '?',default=None, help='OPTION to add a specific folder within a visit \
+    parser.add_argument('folder_num', help='passed by scheduler')
+    parser.add_argument('-folder', default=None, help='OPTION to add a specific folder within a visit \
                         to look for data, e.g. sample1/dataset1/. If None the assumption would be to look in Merlin folder')
-    parser.add_argument('folder_num', nargs= '?', help='passed by scheduler')
+    
     v_help = "Display all debug log messages"
     parser.add_argument("-v", "--verbose", help=v_help, action="store_true",
                         default=False)
-
+    
     args = parser.parse_args()
-    print(args)
+    print(args.beamline, args.year, args.visit, args.folder)
+    if args.folder is None:
+#        folder = ''
+        HDF5_dict= check_differences(args.beamline, args.year, args.visit)
+    else:
+        HDF5_dict= check_differences(args.beamline, args.year, args.visit, args.folder)
+    
+    # proc_path = HDF5_dict['processing_path']
+    
+    to_convert = HDF5_dict['MIB_to_convert']
+    folder = to_convert[int(args.folder_num)-1].rpartition('/')[0].rpartition(args.visit)[2][1:]
+    try:
+        save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing', args.folder)
+        if os.path.exists(save_location) == False:
+            os.makedirs(save_location)
+        watch_convert(args.beamline, args.year, args.visit, args.folder)
+        
+    except Exception as e:
+        print('** ERROR processing** \n ' , e)
 
-    main(args.beamline, args.year, args.visit, args.folder, args.folder_num)
+#    main(args.beamline, args.year, args.visit, args.folder, args.folder_num)
