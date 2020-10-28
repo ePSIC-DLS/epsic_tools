@@ -19,7 +19,8 @@ In order to monitor the status of jobs, user needs to run:
 import os
 import sys
 import numpy as np
-sys.path.append('/dls_sw/e02/scripts/batch_mib_convert')
+#sys.path.append('/dls_sw/e02/scripts/batch_mib_convert')
+sys.path.append('/dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/mib2hdfConvert')
 from IdentifyPotentialConversions import check_differences
 #maximum number of jobs to run concurrently
 max_c = 10
