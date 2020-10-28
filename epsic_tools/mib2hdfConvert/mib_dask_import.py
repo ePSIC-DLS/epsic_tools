@@ -131,7 +131,7 @@ def parse_hdr(fp):
     elif read_hdr[3] == '2x2':
         hdr_info['width'] = 512
         hdr_info['height'] = 512
-    
+
     hdr_info['Assembly Size'] = read_hdr[3]
 
     # Set mib offset
@@ -156,6 +156,7 @@ def parse_hdr(fp):
     hdr_info['byte-order'] = 'dont-care'
     # Set record by to stack of images
     hdr_info['record-by'] = 'image'
+
     # Set title to file name
     hdr_info['title'] = fp.split('.')[0]
     # Set time and date
@@ -228,7 +229,7 @@ def get_mib_depth(hdr_info, fp):
         Dictionary containing header info extracted from .mib file.
     fp : filepath
         Path to .mib file.
-    
+
     Returns
     -------
     depth : int
@@ -476,7 +477,6 @@ def STEM_flag_dict(exp_times_list):
     output : dict
         Dictionary containing - STEM_flag, scan_X, exposure_time,
                                 number_of_frames_to_skip, flyback_times
-
     Example
     -------
     {'STEM_flag': 1,
@@ -494,7 +494,6 @@ def STEM_flag_dict(exp_times_list):
         output['exposure time'] = list(times_set)
         output['number of frames_to_skip'] = None
         output['flyback_times'] = None
-
     # In case exp times not appearing in header treat as TEM data
     elif len(times_set) == 0:
 
@@ -925,6 +924,7 @@ def mib_dask_reader(mib_filename, h5_stack_path=None):
     Parameters
     ----------
     mib_filename : str
+        The name of the .mib file to be read.
     h5_stack_path: str, default None
         this is the h5 file path that we can read the data from in the case of large scan arrays
     Returns
