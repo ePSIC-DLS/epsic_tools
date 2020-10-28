@@ -17,6 +17,8 @@ import json
 import hyperspy.api as hs
 from epsic_tools.toolbox import radial_profile
 import os
+from sklearn.neighbors import KDTree
+
 
 
 from scipy import constants as pc
@@ -40,7 +42,7 @@ def e_lambda(e_0):
     return e_lambda
 
 
-def plot_ptyREX_output(json_path, save_fig=None, crop=True):
+def plot_ptyREX_output(json_path, save_fig=None, crop=False):
     """
     To save the ptyREX recon output
     Parameters
@@ -50,6 +52,8 @@ def plot_ptyREX_output(json_path, save_fig=None, crop=True):
     save_fig: str, default None
         In case we want the figure to be  saved the full path should be given here
         keyword argument.
+    crop: Bool
+        default False
 
     Returns
     -------
@@ -101,7 +105,7 @@ def plot_ptyREX_output(json_path, save_fig=None, crop=True):
     fig.colorbar(im4, ax = axs[1,1])
     axs[2,0].plot(errors)
     axs[2,0].set_title('Error vs iter')
-    axs[2,1].imshow(np.sqrt(get_fft(obj)), cmap = 'viridis')
+    axs[2,1].imshow(np.sqrt(get_fft(obj, crop = 0.66)), cmap = 'viridis')
     axs[2,1].set_title('Sqrt of Object Phase fft')
     axs[2,1].set_xticks([])
     axs[2,1].set_yticks([])
@@ -131,9 +135,40 @@ def crop_recon_obj(json_file):
     return obj_crop
 
 
-def get_fft(obj_arr):
-    
-    obj_fft = abs(np.fft.fftshift(np.fft.fft2(np.angle(obj_arr))))
+def get_fft(obj_arr, crop = None, apply_hann = False):
+    """
+    Parameters
+    ----------
+    obj_arr: numpy.ndarray
+    crop: float
+        fraction of FOV to crop before fft. default None
+    apply_hann: bool
+        If True, hanning window applied before fft
+        
+    Returns
+    _________
+    obj_fft: numpy.ndarray
+        abs array of the fft
+
+    """
+    if apply_hann is True:
+        sh = obj_arr.shape[0]
+        hann_1d = np.hanning(sh)
+        hann_2d = np.ones((sh,sh))
+        hann_2d = hann_2d * hann_1d
+        hann_2d = np.transpose(hann_2d) * hann_1d
+        obj_arr = hann_2d * obj_arr
+        
+    if crop is None:
+        obj_fft = abs(np.fft.fftshift(np.fft.fft2(obj_arr)))
+        
+    else:
+        sh = obj_arr.shape[0]
+        to_crop = crop * sh / 2
+        obj_crop = obj_arr[int(sh / 2 - to_crop):int(to_crop + sh / 2),\
+                   int(sh / 2 - to_crop):int(to_crop + sh / 2)]
+        obj_fft = abs(np.fft.fftshift(np.fft.fft2(obj_crop)))
+        
     return obj_fft
 
 
@@ -536,6 +571,7 @@ def get_obj_array(file_path):
     -------
     data_arr: np.array
         complex object numpy array 
+TODO: if input is json check if there is a similarly named hdf file in the same folder
     """
     if os.path.splitext(file_path)[1] == '.ptyr':
         f = h5py.File(file_path,'r')
@@ -629,3 +665,213 @@ def plot_ptyr(filename):
     plt.subplot(142); plt.imshow(data_arr[0].imag); plt.title('Object imaginary'); plt.axis('off');
     plt.subplot(143); plt.imshow(probe_data_arr[0].real); plt.title('Probe real'); plt.axis('off');
     plt.subplot(144); plt.imshow(probe_data_arr[0].imag); plt.title('Probe imaginary'); plt.axis('off');
+
+
+
+def save_dict_to_hdf5(dic, filename, overwrite=True):
+    """
+    recursively saves a nested dict into an hdf5 file
+    """
+    if os.path.exists(filename):
+        if overwrite is True:
+            with h5py.File(filename, 'w') as h5file:
+                _recursively_save_dict_contents_to_group(h5file, '/', dic)
+        else:
+            with h5py.File(filename, 'a') as h5file:
+                _recursively_save_dict_contents_to_group(h5file, '/', dic)
+    else:
+        
+        with h5py.File(filename, 'w') as h5file:
+            _recursively_save_dict_contents_to_group(h5file, '/', dic)
+
+
+def _recursively_save_dict_contents_to_group(h5file, path, dic):
+
+    for key, item in dic.items():
+        if isinstance(item, (np.ndarray, list, float, int, str)):
+            h5file[path + key] = item
+        elif isinstance(item, dict):
+            _recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
+
+            
+def load_dict_from_hdf5(filename):
+    """
+    recursively loads an hdf5 file to a nested dict
+
+    """
+    with h5py.File(filename, 'r') as h5file:
+        return _recursively_load_dict_contents_from_group(h5file, '/')
+
+
+def _recursively_load_dict_contents_from_group(h5file, path):
+    
+    ans = {}
+    for key, item in h5file[path].items():
+        if isinstance(item, h5py._hl.dataset.Dataset):
+            ans[key] = item[()]
+        elif isinstance(item, h5py._hl.group.Group):
+            ans[key] = _recursively_load_dict_contents_from_group(h5file, path + key + '/')
+    return ans
+
+
+def get_RMSE(dist_list):
+    """
+    Input: 
+    dist_list: list of floats
+        atomic distances
+    returns
+         RMSE of the list elements
+    """
+    dist_array = np.asarray(dist_list)
+    return np.square((dist_array ** 2).mean())
+
+
+def kdtree_NN(experiment, truth, search_rad):
+    """
+    Runs sklearn KDTree proximity algorithm on the data
+    Parameters
+    ___________
+    experiment: list
+        list of atomic position coordinates in the experimental data
+    truth: list
+        list of atomic position coordinates in the ground truth
+    search_rad: float
+        radius to search for nearest neighbour
+    Returns
+    __________
+    nn_results: dict
+        dict containing the following keys:
+            TP list - as paired atoms coordinates and there distances
+            FP list
+            FN list
+            Precision
+            Recall
+            RMSE of distances
+    """
+    
+    false_neg = []
+    # we have atoms in truth_pos that have gone undetected in recon
+    false_pos = [] 
+    # detected an atom not present in truth_pos
+    paired_list = []
+    nn_results = {}
+
+    distances = []
+    inds = []
+    
+    if type(experiment) is np.ndarray:
+        experiment = list(experiment)
+    if type(truth) is np.ndarray:
+        truth = list(truth)
+
+    for i in range(len(experiment)):
+        test = np.vstack((experiment[i], truth))
+        tree = KDTree(test, leaf_size=10)
+        [ind, d] = tree.query_radius(test[:1], r=search_rad, count_only=False, return_distance = True)
+    
+        if len(ind[0]) == 1:
+            false_pos.append(experiment[i])
+        elif len(ind[0]) == 2:
+            inds.append([e-1 for e in ind[0] if e != 0]) 
+    #         e-1 because we append one atom at the beginning of the list to compare
+            distances.append([e for e in d[0] if e != 0])
+            truth_atom = truth.pop(inds[-1][0])
+                                   
+            atom_entry = [truth_atom, experiment[i]]
+                         
+            paired_list.append(atom_entry)
+        del(test)
+    TP = len(paired_list)
+
+    FP = len(false_pos)
+
+    false_neg = truth
+    FN = len(false_neg)
+
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+
+    
+    distances_flat = [item for sublist in distances for item in sublist]
+    rmse = get_RMSE(distances_flat)
+    
+    nn_results.update({'TP_list': paired_list,
+                       'Distances': distances_flat,
+                       'FP_list': false_pos,
+                       'FN_list': false_neg,
+                       'Precision': precision,
+                       'Recall': recall,
+                       'RMSE': float(rmse)})
+    return nn_results
+
+
+def duplicate_json(source_json_path, new_json_path, param_to_change = None):
+    """
+    This gets a source json file and duplicates it, changing a parameter if declared
+    Parameters
+    ____________
+    source_json_path: str
+        full path of the starting json file
+    new_json_path: str
+        full path of the new json file
+    param_to_change: tuple of (str, new_val) 
+        default None - key of the parameter to be changed as first el of tuple and the new value as the second el.
+    Returns
+    ____________
+    data_dict: dict
+        The new dict if anything changed.
+    
+    TODO: Fix the ugly limited dict depth implementation!
+    """
+    data_dict = json_to_dict(source_json_path)
+    if param_to_change == None:
+        with open(new_json_path, 'w') as outfile:
+            json.dump(data_dict, outfile, indent = 4)
+    else:
+        if isinstance(param_to_change[0], str):
+            if _finditem(data_dict, param_to_change[0]) is not None:
+                p = _finditem(data_dict, param_to_change[0])
+                keys = _get_path(p)
+#                 print(keys)
+                keys.append(param_to_change[0])
+                if len(keys)==4:
+                    data_dict[keys[0]][keys[1]][keys[2]][keys[3]] = param_to_change[1]
+                elif len(keys)==3:
+                    data_dict[keys[0]][keys[1]][keys[2]] = param_to_change[1]
+                elif len(keys)==2:
+                    data_dict[keys[0]][keys[1]] = param_to_change[1]
+                with open(new_json_path, 'w') as outfile:
+                    json.dump(data_dict, outfile, indent = 4)
+                return data_dict
+            else:
+                raise KeyError('The key provided does not exist in the dictionary.')                
+        else:
+            raise TypeError('param_to_change has to be a string.')
+    return 
+
+
+def _finditem(obj, key):
+    if key in obj: return obj[key]
+    for k, v in obj.items():
+        if isinstance(v,dict):
+            item = _finditem(v, key)
+            path = []
+            if item is not None:
+                path.append('*'+k)
+                return [item, path]
+            
+            
+def _get_path(bad_list):
+    path = []
+    while len(bad_list) == 2:
+        try:
+            if bad_list[1][0][0] == '*':
+                path.append(bad_list.pop()[0][1:])
+                bad_list = bad_list[0]
+                try: len(bad_list)
+                except:
+                    return path
+        except: return path
+    else:
+        pass
+    return path
