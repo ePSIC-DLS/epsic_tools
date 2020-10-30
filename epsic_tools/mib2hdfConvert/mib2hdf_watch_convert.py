@@ -11,6 +11,7 @@ import time
 import pprint
 import hyperspy.api as hs
 import numpy as np
+import h5py
 
 hs.preferences.GUIs.warn_if_guis_are_missing = False
 hs.preferences.save()
@@ -214,12 +215,13 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 dp_sum = max_contrast8(dp.sum())
                 dp_sum = change_dtype(dp_sum)
                 # Save summed diffraction pattern
-                dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
+                dp_sum.save(saving_path + '/' + mib_list[0] + '_sum', extension = 'jpg')
                 t2 = time.time()
                 # Save raw data in .hdf5 format
-                dp.save(saving_path + '/' +mib_list[0] + data_dim(dp), extension = 'hdf5')
+#                dp.save(saving_path + '/' + mib_list[0] + data_dim(dp), extension = 'hdf5')
+                dp.save(saving_path + '/' + get_timestamp(mib_path), extension = 'hdf5')
                 tmp = []
-                np.savetxt(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp)+'fully_saved', tmp)
+                np.savetxt(saving_path+'/' + mib_list[0].rpartition('.')[0]+data_dim(dp) + 'fully_saved', tmp)
                 t3 = time.time()
             # Process single .mib file identified as containing STEM data
             # This reshapes to the correct navigation dimensions and
@@ -284,12 +286,13 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 print('Saved binned navigation data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
                 del dp_bin_nav
 #                 # Save complete .hdf5 files
-                print('Saving hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
-                dp.save(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp), extension = 'hdf5')
+                print('Saving hdf5 : ' + get_timestamp(mib_path) +'.hdf5')
+                dp.save(saving_path + '/' + get_timestamp(mib_path), extension = 'hdf5')
                 print('Saved hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
                 tmp = []
-                np.savetxt(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp)+'fully_saved', tmp)
+                np.savetxt(saving_path+'/' + get_timestamp(mib_path) + 'fully_saved', tmp)
                 t3 = time.time()
+                write_vds(saving_path + '/' + get_timestamp(mib_path) + '.hdf5', saving_path)
 
                 del dp
                 gc.collect()
@@ -375,26 +378,26 @@ def data_dim(data):
     return data_dim_str
 
 
-#def main(beamline, year, visit, folder, folder_num):
-#    print(beamline, year, visit, folder)
-#    if folder=='False':
-#        folder = ''
-#        HDF5_dict= check_differences(beamline, year, visit)
-#    else:
-#        HDF5_dict= check_differences(beamline, year, visit, folder)
-#
-#    # proc_path = HDF5_dict['processing_path']
-#    
-#    to_convert = HDF5_dict['MIB_to_convert']
-#    folder = to_convert[int(folder_num)-1].rpartition('/')[0].rpartition(visit)[2][1:]
-#    try:
-#        save_location = os.path.join('/dls',beamline,'data', year, visit, 'processing', folder)
-#        if os.path.exists(save_location) == False:
-#            os.makedirs(save_location)
-#        watch_convert(beamline, year, visit, folder)
-#        
-#    except Exception as e:
-#        print('** ERROR processing** \n ' , e)
+def get_timestamp(mib_path):
+    time_id = mib_path.split('/')[-1]
+    return time_id.replace(' ', '_')
+
+def write_vds(source_h5_path, writing_path):
+    entry_key = 'Experiments/__unnamed__/data'
+    with h5py.File(source_h5_path,'r') as f:
+        vsource = h5py.VirtualSource(f[entry_key])
+        sh = vsource.shape
+        print("4D shape:", sh)
+
+    layout = h5py.VirtualLayout(shape=tuple((np.prod(sh[:2]), sh[-2], sh[-1])), dtype = np.float)
+    for i in range(sh[0]):
+        for j in range(sh[1]):
+            layout[i * sh[0] + j] = vsource[i, j, :, :]
+        
+    with h5py.File(writing_path + '/VDS_test.h5', 'w', libver='latest') as f:
+        f.create_virtual_dataset(entry_key, layout)
+    return
+        
 
 
 if __name__ == "__main__":
@@ -405,8 +408,10 @@ if __name__ == "__main__":
     parser.add_argument('beamline', help='Beamline name')
     parser.add_argument('year', help='Year')
     parser.add_argument('visit', help='Session visit code')
+
+
     parser.add_argument('folder_num', help='passed by scheduler')
-    parser.add_argument('-folder', default=None, help='OPTION to add a specific folder within a visit \
+    parser.add_argument('-folder', default=None, help='option to add a specific folder within a visit \
                         to look for data, e.g. sample1/dataset1/. If None the assumption would be to look in Merlin folder')
     
     v_help = "Display all debug log messages"
@@ -415,18 +420,21 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     print(args.beamline, args.year, args.visit, args.folder)
-    if args.folder is None:
-#        folder = ''
-        HDF5_dict= check_differences(args.beamline, args.year, args.visit)
-    else:
-        HDF5_dict= check_differences(args.beamline, args.year, args.visit, args.folder)
+#    if args.folder is None:
+##        folder = ''
+#        HDF5_dict= check_differences(args.beamline, args.year, args.visit)
+#    else:
+    HDF5_dict= check_differences(args.beamline, args.year, args.visit, args.folder)
     
     # proc_path = HDF5_dict['processing_path']
     
     to_convert = HDF5_dict['MIB_to_convert']
     folder = to_convert[int(args.folder_num)-1].rpartition('/')[0].rpartition(args.visit)[2][1:]
     try:
-        save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing', args.folder)
+        if args.folder is not None:
+            save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing', args.folder)
+        else:
+            save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing')
         if os.path.exists(save_location) == False:
             os.makedirs(save_location)
         watch_convert(args.beamline, args.year, args.visit, args.folder)

@@ -8,4 +8,12 @@
 echo "I am task $SGE_TASK_ID"
 
 module load python/epsic3.7
-python /dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/mib2hdfConvert/mib2hdf_watch_convert.py $1 $2 $3 "$SGE_TASK_ID" $4
+if [[ $# -eq 3 ]]; then
+    echo "three arguments provided"
+    python /dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/mib2hdfConvert/mib2hdf_watch_convert.py $1 $2 $3 "$SGE_TASK_ID"
+else
+    echo "other number of args provided"
+    echo $#
+    python /dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/mib2hdfConvert/mib2hdf_watch_convert.py $1 $2 $3 "$SGE_TASK_ID" $4 
+fi
+

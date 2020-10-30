@@ -52,7 +52,7 @@ def check_differences(beamline, year, visit, folder = None):
         proc_location = os.path.join('/dls', beamline,'data', year, visit, 'processing', os.path.relpath(folder))
     else:
         proc_location = os.path.join('/dls', beamline,'data', year, visit, 'processing', 'Merlin')
-    # print(proc_location)
+    print('processing path: ', proc_location)
     if not os.path.exists(proc_location):
         os.makedirs(proc_location)
     # look through all the files in that location and find any mib files
