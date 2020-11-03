@@ -396,7 +396,7 @@ def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed_
     layout = h5py.VirtualLayout(shape=tuple((np.prod(sh[:2]), sh[-2], sh[-1])), dtype = np.float)
     for i in range(sh[0]):
         for j in range(sh[1]):
-            layout[i * sh[0] + j] = vsource[i, j, :, :]
+            layout[i * sh[1] + j] = vsource[i, j, :, :]
         
     with h5py.File(writing_h5_path, 'w', libver='latest') as f:
         f.create_virtual_dataset(vds_key, layout)
@@ -433,19 +433,25 @@ if __name__ == "__main__":
     # proc_path = HDF5_dict['processing_path']
     
     to_convert = HDF5_dict['MIB_to_convert']
-    folder = to_convert[int(args.folder_num)-1].rpartition('/')[0].rpartition(args.visit)[2][1:]
-    print(folder)
+#    folder = to_convert[int(args.folder_num)-1].rpartition('/')[0].rpartition(args.visit)[2][1:]
+
     try:
         if args.folder is not None:
             save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing', args.folder)
+            if os.path.exists(save_location) == False:
+                os.makedirs(save_location)
+            convert(args.beamline, args.year, args.visit, [to_convert[int(args.folder_num)-1]], folder=args.folder)
+
+                
         else:
             save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing')
-        if os.path.exists(save_location) == False:
-            os.makedirs(save_location)
-        convert(args.beamline, args.year, args.visit, [to_convert[int(args.folder_num)-1]])
+            if os.path.exists(save_location) == False:
+                os.makedirs(save_location)
+            convert(args.beamline, args.year, args.visit, [to_convert[int(args.folder_num)-1]])
+
+        
 #        watch_convert(args.beamline, args.year, args.visit, args.folder)
         
     except Exception as e:
         print('** ERROR processing** \n ' , e)
 
-#    main(args.beamline, args.year, args.visit, args.folder, args.folder_num)
