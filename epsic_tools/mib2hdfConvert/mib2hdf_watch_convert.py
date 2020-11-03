@@ -274,12 +274,12 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                     print('Issue with saving images!')
 
 #                    # Save binned data in .hdf5 file
-                print('Saving binned diffraction data: ' + get_timestamp(mib_path) + '_binned.hdf5')
-                dp_bin_sig.save(saving_path+ '/'+'binned_diff_' + get_timestamp(mib_path) + data_dim(dp_bin_sig), extension = 'hdf5')
+                print('Saving binned diffraction data: ' + get_timestamp(mib_path) + '.hdf5')
+                dp_bin_sig.save(saving_path+ '/'+'binned_diff_' + get_timestamp(mib_path), extension = 'hdf5')
                 print('Saved binned diffraction data: binned_' + get_timestamp(mib_path) + '.hdf5')
                 del dp_bin_sig
-                print('Saving binned navigation data: ' + get_timestamp(mib_path) + '_binned.hdf5')
-                dp_bin_nav.save(saving_path+ '/'+'binned_nav_' + get_timestamp(mib_path) + data_dim(dp_bin_nav), extension = 'hdf5')
+                print('Saving binned navigation data: ' + get_timestamp(mib_path) + '.hdf5')
+                dp_bin_nav.save(saving_path+ '/'+'binned_nav_' + get_timestamp(mib_path) , extension = 'hdf5')
                 print('Saved binned navigation data: binned_' + get_timestamp(mib_path) + '.hdf5')
                 del dp_bin_nav
 #                 # Save complete .hdf5 files
@@ -342,20 +342,6 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
     return
 
 
-
-def watch_convert(beamline, year, visit, folder=None):
-
-    mib_dict = check_differences(beamline, year, visit, folder)
-    # Holder for raw data path
-#    if folder is not None:
-#        raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
-#    else:
-#        raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')
-    to_convert = mib_dict['MIB_to_convert']
-    if bool(to_convert):
-        convert(beamline, year, visit, to_convert, folder)
-
-
 def data_dim(data):
     """
     This function gets the data hyperspy object and outputs the dimensions as string
@@ -380,7 +366,6 @@ def get_timestamp(mib_path):
     return time_id.replace(' ', '_')
 
 def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed__/data', vds_key = '/data/frames'):
-#    entry_key = 'Experiments/__unnamed__/data'
     try:
         with h5py.File(source_h5_path,'r') as f:
             vsource = h5py.VirtualSource(f[entry_key])
@@ -445,9 +430,6 @@ if __name__ == "__main__":
                 os.makedirs(save_location)
             convert(args.beamline, args.year, args.visit, [to_convert[int(args.folder_num)-1]])
 
-        
-#        watch_convert(args.beamline, args.year, args.visit, args.folder)
-        
     except Exception as e:
         print('** ERROR processing** \n ' , e)
 
