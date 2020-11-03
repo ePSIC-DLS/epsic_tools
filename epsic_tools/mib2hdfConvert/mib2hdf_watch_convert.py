@@ -101,7 +101,7 @@ def bin_nav(d, bin_fact):
         return
     return d_navbin
 
-def convert(beamline, year, visit, mib_to_convert, folder):
+def convert(beamline, year, visit, mib_to_convert, folder=None):
     """Convert a set of Merlin/medipix .mib files in a set of time-stamped folders
     into corresponding .hdf5 raw data files, and a series of standard images contained
     within a similar folder structure in the processing folder of the same visit.
@@ -260,7 +260,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
 
                 try:
                     print('Saving average diffraction pattern')
-                    file_dp = mib_list[0].rpartition('.')[0]+ '_subset_dp'
+                    file_dp = get_timestamp(mib_path) + '_subset_dp'
                     sum_dp_subset = hs.signals.Signal2D(sum_dp_subset)
                     sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'tiff')
                     sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'jpg')
@@ -268,7 +268,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     print('Saving ibf image')
                     print(saving_path)
                     ibf = hs.signals.Signal2D(ibf)
-                    file_ibf =  mib_list[0].rpartition('.')[0]+ '_ibf'
+                    file_ibf =  get_timestamp(mib_path) + '_ibf'
                     ibf.save(saving_path+'/'+file_ibf, extension = 'tiff')
                     ibf.save(saving_path+'/'+file_ibf, extension = 'jpg')
                     ibf.save(saving_path+'/'+file_ibf)
@@ -278,22 +278,22 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     print('Issue with saving images!')
 
 #                    # Save binned data in .hdf5 file
-                print('Saving binned diffraction data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
-                dp_bin_sig.save(saving_path+ '/'+'binned_diff_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin_sig), extension = 'hdf5')
-                print('Saved binned diffraction data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
+                print('Saving binned diffraction data: ' + get_timestamp(mib_path) + '_binned.hdf5')
+                dp_bin_sig.save(saving_path+ '/'+'binned_diff_' + get_timestamp(mib_path) + data_dim(dp_bin_sig), extension = 'hdf5')
+                print('Saved binned diffraction data: binned_' + get_timestamp(mib_path) + '.hdf5')
                 del dp_bin_sig
-                print('Saving binned navigation data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
-                dp_bin_nav.save(saving_path+ '/'+'binned_nav_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin_nav), extension = 'hdf5')
-                print('Saved binned navigation data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
+                print('Saving binned navigation data: ' + get_timestamp(mib_path) + '_binned.hdf5')
+                dp_bin_nav.save(saving_path+ '/'+'binned_nav_' + get_timestamp(mib_path) + data_dim(dp_bin_nav), extension = 'hdf5')
+                print('Saved binned navigation data: binned_' + get_timestamp(mib_path) + '.hdf5')
                 del dp_bin_nav
 #                 # Save complete .hdf5 files
                 print('Saving hdf5 : ' + get_timestamp(mib_path) +'.hdf5')
                 dp.save(saving_path + '/' + get_timestamp(mib_path), extension = 'hdf5')
-                print('Saved hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
+                print('Saved hdf5 : ' + get_timestamp(mib_path) +'.hdf5')
                 tmp = []
                 np.savetxt(saving_path+'/' + get_timestamp(mib_path) + 'fully_saved', tmp)
                 t3 = time.time()
-                write_vds(saving_path + '/' + get_timestamp(mib_path) + '.hdf5', saving_path)
+                write_vds(saving_path + '/' + get_timestamp(mib_path) + '.hdf5', saving_path + '/' + get_timestamp(mib_path) + '_vds.h5')
 
                 del dp
                 gc.collect()
@@ -434,6 +434,7 @@ if __name__ == "__main__":
     
     to_convert = HDF5_dict['MIB_to_convert']
     folder = to_convert[int(args.folder_num)-1].rpartition('/')[0].rpartition(args.visit)[2][1:]
+    print(folder)
     try:
         if args.folder is not None:
             save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing', args.folder)
@@ -441,7 +442,8 @@ if __name__ == "__main__":
             save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing')
         if os.path.exists(save_location) == False:
             os.makedirs(save_location)
-        watch_convert(args.beamline, args.year, args.visit, args.folder)
+        convert(args.beamline, args.year, args.visit, [to_convert[int(args.folder_num)-1]])
+#        watch_convert(args.beamline, args.year, args.visit, args.folder)
         
     except Exception as e:
         print('** ERROR processing** \n ' , e)
