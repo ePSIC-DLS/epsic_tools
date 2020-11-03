@@ -4,10 +4,10 @@ This script is to perform batch parallel mib to hdf5 conversion on the DLS clust
 Example of use in DLS Linux terminal:
     python batch_convert_cluster.py e02 2019 mg25124-2
 or with a specific folder option:
-    python batch_convert_cluster.py e02 2019 cm22979-6 Merlin/20191022_hot_graphene
+    python batch_convert_cluster.py e02 2019 cm22979-6 -folder Merlin/20191022_hot_graphene
 
 The user just needs to have this python script.
-A logs is created in the saving path , the processing folder of the visit, with the 
+A logs folder is created in the saving path , the processing folder of the visit, with the 
 outputs of the cluster jobs and also a list of the files to convert.
 
 In order to monitor the status of jobs, user needs to run:

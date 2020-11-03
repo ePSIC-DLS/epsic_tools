@@ -2,7 +2,7 @@ import os
 import argparse
 import sys
 
-def check_differences(beamline, year, visit, folder = None):
+def check_differences(beamline, year, visit, folder=None):
     """Checks for .mib files associated with a specified session that have
     not yet been converted to .hdf5.
 
@@ -14,6 +14,8 @@ def check_differences(beamline, year, visit, folder = None):
         Year of user session
     visit : str
         User session number e.g. mg20198-1
+    folder: str
+        kwarg incase only contents of one folder is needed to be converted
 
     Returns
     -------
@@ -40,7 +42,6 @@ def check_differences(beamline, year, visit, folder = None):
     if folder:
         # check that the path folder exists
         raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
-        # print(raw_location)
         if not os.path.exists(raw_location):
             print('This folder ', raw_location,'does not exist!')
             print('The expected format for folder is sample1/dataset1/')
@@ -93,10 +94,6 @@ def check_differences(beamline, year, visit, folder = None):
         if mib_path.split('/')[-2] in to_convert_folder:
             mib_to_convert.append(mib_path)
 
-
-    # print('Converted Datasets: ', converted)
-    # print('To CONVERT:  ', to_convert)
-
     # build a dict of to_convert, mib_paths, mib_to_convert
     mib_dict = {}
     mib_dict['processing_path'] = proc_location
@@ -104,12 +101,6 @@ def check_differences(beamline, year, visit, folder = None):
     mib_dict['all_MIB_paths'] = mib_paths
 
     return mib_dict
-
-
-#def main(beamline, year, visit, folder):
-#    mib_dict = check_differences(beamline, year, visit, folder)
-#    print(mib_dict['MIB_to_convert'])
-#    print(mib_dict['processing_path'])
 
 
 if __name__ == "__main__":

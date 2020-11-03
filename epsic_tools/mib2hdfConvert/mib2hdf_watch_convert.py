@@ -3,7 +3,6 @@ import os
 from IdentifyPotentialConversions import check_differences
 import gc
 from mib_dask_import import mib_to_h5stack
-from mib_dask_import import h5stack_to_hs
 from mib_dask_import import parse_hdr
 from mib_dask_import import mib_dask_reader
 from mib_dask_import import get_mib_depth
@@ -119,7 +118,8 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
     mib_to_convert : list
         List of MIB files to convert
 
-    folder : optional - in case only a specific folder in a visit needs converting, e.g. sample1/dataset1/
+    folder : str
+        kwarg- in case only a specific folder in a visit needs converting, e.g. sample1/dataset1/
 
     Returns
     -------
@@ -128,8 +128,6 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
         - HSPY, TIFF file and JPG file of incoherent BF reconstruction
         - HSPY, TIFF file and JPG file of sparsed sum of the diffraction patterns
         - An empty txt file is saved to show that the saving of HDF5 files is complete.
-
-        TODO - Folder option is not working - fix!
     """
     t1 = []
     t2 = []
@@ -216,13 +214,13 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                 dp_sum = max_contrast8(dp.sum())
                 dp_sum = change_dtype(dp_sum)
                 # Save summed diffraction pattern
-                dp_sum.save(saving_path + '/' + mib_list[0] + '_sum', extension = 'jpg')
+                dp_sum.save(saving_path + '/' + get_timestamp(mib_path) + '_sum', extension = 'jpg')
                 t2 = time.time()
                 # Save raw data in .hdf5 format
 #                dp.save(saving_path + '/' + mib_list[0] + data_dim(dp), extension = 'hdf5')
                 dp.save(saving_path + '/' + get_timestamp(mib_path), extension = 'hdf5')
                 tmp = []
-                np.savetxt(saving_path+'/' + mib_list[0].rpartition('.')[0]+data_dim(dp) + 'fully_saved', tmp)
+                np.savetxt(saving_path+'/' + get_timestamp(mib_path) + 'fully_saved', tmp)
                 t3 = time.time()
             # Process single .mib file identified as containing STEM data
             # This reshapes to the correct navigation dimensions and
@@ -250,8 +248,6 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                 ibf = change_dtype(ibf)
 
                 # sum dp image of a subset dataset
-                #dp_subset = dp.inav[0::int(dp.axes_manager[0].size / 50), 0::int(dp.axes_manager[0].size / 50)]
-                #sum_dp_subset = dp_subset.sum()
                 sum_dp_subset = dp_bin_sig.sum()
                 sum_dp_subset = max_contrast8(sum_dp_subset)
                 sum_dp_subset = change_dtype(sum_dp_subset)
