@@ -170,9 +170,10 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 print(mib_path)
 
                 depth = get_mib_depth(hdr_info, hdr_info['title'] + '.mib')
-                print(depth)
+                print('number of frames: ', depth)
                 # Only write the h5 stack for large scan arrays
-                if (depth > 300*300) or (hdr_info['Counter Depth (number)'] > 8):
+#                if (depth > 300*300) or (hdr_info['Counter Depth (number)'] > 8):
+                if (depth > 300*300):
                     print('large file 4DSTEM file - first saving the stack into h5 file!')
                     # if folder:
                     #     h5_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
@@ -382,20 +383,23 @@ def get_timestamp(mib_path):
     time_id = mib_path.split('/')[-1]
     return time_id.replace(' ', '_')
 
-def write_vds(source_h5_path, writing_path):
-    entry_key = 'Experiments/__unnamed__/data'
-    with h5py.File(source_h5_path,'r') as f:
-        vsource = h5py.VirtualSource(f[entry_key])
-        sh = vsource.shape
-        print("4D shape:", sh)
-
+def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed__/data', vds_key = '/data/frames'):
+#    entry_key = 'Experiments/__unnamed__/data'
+    try:
+        with h5py.File(source_h5_path,'r') as f:
+            vsource = h5py.VirtualSource(f[entry_key])
+            sh = vsource.shape
+            print("4D shape:", sh)
+    except KeyError:
+        print('Key provided for the input data file not correct')
+        return
     layout = h5py.VirtualLayout(shape=tuple((np.prod(sh[:2]), sh[-2], sh[-1])), dtype = np.float)
     for i in range(sh[0]):
         for j in range(sh[1]):
             layout[i * sh[0] + j] = vsource[i, j, :, :]
         
-    with h5py.File(writing_path + '/VDS_test.h5', 'w', libver='latest') as f:
-        f.create_virtual_dataset(entry_key, layout)
+    with h5py.File(writing_h5_path, 'w', libver='latest') as f:
+        f.create_virtual_dataset(vds_key, layout)
     return
         
 

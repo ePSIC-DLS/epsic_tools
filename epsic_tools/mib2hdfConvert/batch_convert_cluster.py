@@ -17,45 +17,11 @@ In order to monitor the status of jobs, user needs to run:
 """
 
 import os
-import sys
 import numpy as np
 import argparse
 #sys.path.append('/dls_sw/e02/scripts/batch_mib_convert')
 from IdentifyPotentialConversions import check_differences
-#maximum number of jobs to run concurrently
-#max_c = 10
-#
-#beamline = sys.argv[1]
-#year = sys.argv[2]
-#visit = sys.argv[3]
-#
-#if len(sys.argv) < 5:
-#    folder = None
-#else:
-#    folder = sys.argv[4]
-#
-#mib_data_dict = check_differences(beamline, year, visit, folder)
-#
-#saving_path = mib_data_dict['processing_path']
-#
-#n_files = len(mib_data_dict['MIB_to_convert'])
-#print('number of MIB files to convert to HDF5 : ', n_files)
-#outputs_dir = os.path.join(saving_path, 'logs')
-#
-#if os.path.exists(outputs_dir) == False:
-#    os.makedirs(outputs_dir)
-#    
-#with open(outputs_dir + '/file_numbers.txt', 'w') as f:
-#    for i in np.arange(n_files):
-#        f.write(str(i) + ' : ' + mib_data_dict['MIB_to_convert'][i] + '\n')
-#        f.write('\n')
-#
-#if len(sys.argv) < 5:
-#    folder = 'False'
-#else:
-#    folder = sys.argv[4]
-#
-#os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/mib2hdfConvert/batch_mib_convert.sh ' + beamline + ' ' + year + ' ' + visit+ ' '+ folder)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -68,7 +34,7 @@ if __name__ == "__main__":
                         default=False)
 
     args = parser.parse_args()
-
+    #maximum number of jobs to run concurrently
     max_c = 10
 
 
@@ -88,10 +54,7 @@ if __name__ == "__main__":
             f.write(str(i) + ' : ' + mib_data_dict['MIB_to_convert'][i] + '\n')
             f.write('\n')
 
-#if len(sys.argv) < 5:
-#    folder = 'False'
-#else:
-#    folder = sys.argv[4]
+
     if args.folder is None: 
         os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/mib2hdfConvert/batch_mib_convert.sh ' + args.beamline + ' ' + args.year + ' ' + args.visit)
     else:
