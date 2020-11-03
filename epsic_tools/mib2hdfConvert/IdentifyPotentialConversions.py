@@ -14,7 +14,7 @@ def check_differences(beamline, year, visit, folder=None):
         Year of user session
     visit : str
         User session number e.g. mg20198-1
-    folder: str
+    folder: str, default None
         kwarg incase only contents of one folder is needed to be converted
 
     Returns

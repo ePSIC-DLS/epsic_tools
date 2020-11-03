@@ -173,12 +173,9 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
 #                if (depth > 300*300) or (hdr_info['Counter Depth (number)'] > 8):
                 if (depth > 300*300):
                     print('large file 4DSTEM file - first saving the stack into h5 file!')
-                    # if folder:
-                    #     h5_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
-                    # else:
+
                     merlin_ind = hdr_info['title'].split('/').index('Merlin')
                     h5_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])+ '/' + hdr_info['title'].split('/')[-1] + '.h5'
-                    #h5_path = proc_location + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
                     if not os.path.exists(os.path.dirname(h5_path)):
                         os.makedirs(os.path.dirname(h5_path))
                     print(h5_path)
@@ -195,7 +192,6 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                     STEM_flag = True
                 else:
                     STEM_flag = False
-#                scan_X = dp.metadata.Signal.scan_X
 
             except ValueError:
                 print('file could not be read into an array!')
@@ -204,7 +200,6 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
             if STEM_flag is False:
                 merlin_ind = hdr_info['title'].split('/').index('Merlin')
                 saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])
-                #saving_path = proc_location +'/'+ hdr_info['title'].split('/')[-2] + '/'
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
                 
@@ -217,7 +212,6 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                 dp_sum.save(saving_path + '/' + get_timestamp(mib_path) + '_sum', extension = 'jpg')
                 t2 = time.time()
                 # Save raw data in .hdf5 format
-#                dp.save(saving_path + '/' + mib_list[0] + data_dim(dp), extension = 'hdf5')
                 dp.save(saving_path + '/' + get_timestamp(mib_path), extension = 'hdf5')
                 tmp = []
                 np.savetxt(saving_path+'/' + get_timestamp(mib_path) + 'fully_saved', tmp)
@@ -226,9 +220,6 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
             # This reshapes to the correct navigation dimensions and
             else:
                 # Define save path for STEM data
-                # if folder:
-                #     saving_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/'
-                # else:
                 merlin_ind = hdr_info['title'].split('/').index('Merlin')
                 saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])
                 print(saving_path)
@@ -402,19 +393,9 @@ if __name__ == "__main__":
     v_help = "Display all debug log messages"
     parser.add_argument("-v", "--verbose", help=v_help, action="store_true",
                         default=False)
-    
     args = parser.parse_args()
-    print(args.beamline, args.year, args.visit, args.folder)
-#    if args.folder is None:
-##        folder = ''
-#        HDF5_dict= check_differences(args.beamline, args.year, args.visit)
-#    else:
     HDF5_dict= check_differences(args.beamline, args.year, args.visit, args.folder)
-    
-    # proc_path = HDF5_dict['processing_path']
-    
     to_convert = HDF5_dict['MIB_to_convert']
-#    folder = to_convert[int(args.folder_num)-1].rpartition('/')[0].rpartition(args.visit)[2][1:]
 
     try:
         if args.folder is not None:
