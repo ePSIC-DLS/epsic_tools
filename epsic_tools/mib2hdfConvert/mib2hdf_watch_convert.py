@@ -396,13 +396,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     HDF5_dict= check_differences(args.beamline, args.year, args.visit, args.folder)
     to_convert = HDF5_dict['MIB_to_convert']
+    print(to_convert)
 
     try:
         if args.folder is not None:
             save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing', args.folder)
             if os.path.exists(save_location) == False:
                 os.makedirs(save_location)
+            print(to_convert[int(args.folder_num)-1])
+            print(args.folder)
             convert(args.beamline, args.year, args.visit, [to_convert[int(args.folder_num)-1]], folder=args.folder)
+            
 
                 
         else:
