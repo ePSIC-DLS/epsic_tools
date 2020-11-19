@@ -151,6 +151,8 @@ def init_ptyrex():
     params['process']['common']['scan']['dR'] = [1e-11, 1e-11]
 
     params['process']['common']['scan']['N'] = [64,64]
+    
+    params['process']['common']['scan']['region'] = [0.0 , 1.0, 0.0, 1.0, 1, 1]
 
     
 
