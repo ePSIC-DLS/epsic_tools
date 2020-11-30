@@ -9,6 +9,7 @@ from mib_dask_import import get_mib_depth
 import time
 import pprint
 import hyperspy.api as hs
+import pyxem as pxm
 import numpy as np
 import h5py
 
@@ -179,11 +180,11 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                     if not os.path.exists(os.path.dirname(h5_path)):
                         os.makedirs(os.path.dirname(h5_path))
                     print(h5_path)
-                    mib_to_h5stack(hdr_info['title'] + '.mib', h5_path)
-                    dp = mib_dask_reader(hdr_info['title'] + '.mib', h5_path)
+                    pxm.utils.io_utils.mib_to_h5stack(hdr_info['title'] + '.mib', h5_path)
+                    dp = pxm.utils.io_utils.h5stack_to_pxm(h5_path, hdr_info['title'] + '.mib')
                 else:
                     print(hdr_info['title'] + '.mib')
-                    dp = mib_dask_reader(hdr_info['title'] + '.mib')
+                    dp = pxm.load_mib(hdr_info['title'] + '.mib')
                 print(dp)
                 pprint.pprint(dp.metadata)
                 dp.compute(progressbar = False)
