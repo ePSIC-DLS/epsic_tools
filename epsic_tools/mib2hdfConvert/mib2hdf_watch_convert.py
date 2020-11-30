@@ -189,7 +189,7 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                 pprint.pprint(dp.metadata)
                 dp.compute(progressbar = False)
                 t1 = time.time()
-                if dp.metadata.Signal.signal_type == 'STEM':
+                if dp.metadata.Signal.signal_type == 'electron_diffraction':
                     STEM_flag = True
                 else:
                     STEM_flag = False
@@ -306,7 +306,7 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                 t0 = time.time()
                 dp = mib_dask_reader('/' +mib_path + '/'+ file)
                 pprint.pprint(dp.metadata)
-                if dp.metadata.Signal.signal_type == 'STEM':
+                if dp.metadata.Signal.signal_type == 'electron_diffraction':
                     STEM_flag = True
                 else:
                     STEM_flag = False
