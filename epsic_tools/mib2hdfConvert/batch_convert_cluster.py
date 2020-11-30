@@ -19,7 +19,8 @@ In order to monitor the status of jobs, user needs to run:
 import os
 import numpy as np
 import argparse
-#sys.path.append('/dls_sw/e02/scripts/batch_mib_convert')
+import sys
+sys.path.append('/dls_sw/e02/scripts/batch_mib_convert')
 from IdentifyPotentialConversions import check_differences
 
 
@@ -56,7 +57,7 @@ if __name__ == "__main__":
 
 
     if args.folder is None: 
-        os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/mib2hdfConvert/batch_mib_convert.sh ' + args.beamline + ' ' + args.year + ' ' + args.visit)
+        os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls_sw/e02/scripts/batch_mib_convert/batch_mib_convert.sh ' + args.beamline + ' ' + args.year + ' ' + args.visit)
     else:
-        os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/mib2hdfConvert/batch_mib_convert.sh ' + args.beamline + ' ' + args.year + ' ' + args.visit+ ' ' + args.folder)
+        os.system('\n cd ' + outputs_dir + '\n module load global/cluster \n qsub -t 1-' + str(n_files) +  ' -tc ' + str(max_c) + ' /dls_sw/e02/scripts/batch_mib_convert/batch_mib_convert.sh ' + args.beamline + ' ' + args.year + ' ' + args.visit+ ' ' + args.folder)
 
