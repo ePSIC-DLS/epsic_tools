@@ -3,14 +3,15 @@ import os
 from IdentifyPotentialConversions import check_differences
 import gc
 from mib_dask_import import mib_to_h5stack
-from mib_dask_import import h5stack_to_hs
 from mib_dask_import import parse_hdr
 from mib_dask_import import mib_dask_reader
 from mib_dask_import import get_mib_depth
 import time
 import pprint
 import hyperspy.api as hs
+import pyxem as pxm
 import numpy as np
+import h5py
 
 hs.preferences.GUIs.warn_if_guis_are_missing = False
 hs.preferences.save()
@@ -100,7 +101,7 @@ def bin_nav(d, bin_fact):
         return
     return d_navbin
 
-def convert(beamline, year, visit, mib_to_convert, folder):
+def convert(beamline, year, visit, mib_to_convert, folder=None):
     """Convert a set of Merlin/medipix .mib files in a set of time-stamped folders
     into corresponding .hdf5 raw data files, and a series of standard images contained
     within a similar folder structure in the processing folder of the same visit.
@@ -118,7 +119,8 @@ def convert(beamline, year, visit, mib_to_convert, folder):
     mib_to_convert : list
         List of MIB files to convert
 
-    folder : optional - in case only a specific folder in a visit needs converting, e.g. sample1/dataset1/
+    folder : str
+        kwarg- in case only a specific folder in a visit needs converting, e.g. sample1/dataset1/
 
     Returns
     -------
@@ -127,8 +129,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
         - HSPY, TIFF file and JPG file of incoherent BF reconstruction
         - HSPY, TIFF file and JPG file of sparsed sum of the diffraction patterns
         - An empty txt file is saved to show that the saving of HDF5 files is complete.
-
-        TODO - Folder option is not working - fix!
     """
     t1 = []
     t2 = []
@@ -169,33 +169,30 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 print(mib_path)
 
                 depth = get_mib_depth(hdr_info, hdr_info['title'] + '.mib')
-                print(depth)
+                print('number of frames: ', depth)
                 # Only write the h5 stack for large scan arrays
-                if (depth > 300*300) or (hdr_info['Counter Depth (number)'] > 8):
+#                if (depth > 300*300) or (hdr_info['Counter Depth (number)'] > 8):
+                if (depth > 300*300):
                     print('large file 4DSTEM file - first saving the stack into h5 file!')
-                    # if folder:
-                    #     h5_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
-                    # else:
+
                     merlin_ind = hdr_info['title'].split('/').index('Merlin')
                     h5_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])+ '/' + hdr_info['title'].split('/')[-1] + '.h5'
-                    #h5_path = proc_location + '/' + hdr_info['title'].split('/')[-2] + '/' + hdr_info['title'].split('/')[-1] + '.h5'
                     if not os.path.exists(os.path.dirname(h5_path)):
                         os.makedirs(os.path.dirname(h5_path))
                     print(h5_path)
-                    mib_to_h5stack(hdr_info['title'] + '.mib', hdr_info, h5_path)
-                    dp = mib_dask_reader(hdr_info['title'] + '.mib', h5_path)
+                    pxm.utils.io_utils.mib_to_h5stack(hdr_info['title'] + '.mib', h5_path)
+                    dp = pxm.utils.io_utils.h5stack_to_pxm(h5_path, hdr_info['title'] + '.mib')
                 else:
                     print(hdr_info['title'] + '.mib')
-                    dp = mib_dask_reader(hdr_info['title'] + '.mib')
+                    dp = pxm.load_mib(hdr_info['title'] + '.mib')
                 print(dp)
                 pprint.pprint(dp.metadata)
                 dp.compute(progressbar = False)
                 t1 = time.time()
-                if dp.metadata.Signal.signal_type == 'STEM':
+                if dp.metadata.Signal.signal_type == 'electron_diffraction':
                     STEM_flag = True
                 else:
                     STEM_flag = False
-#                scan_X = dp.metadata.Signal.scan_X
 
             except ValueError:
                 print('file could not be read into an array!')
@@ -204,7 +201,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
             if STEM_flag is False:
                 merlin_ind = hdr_info['title'].split('/').index('Merlin')
                 saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])
-                #saving_path = proc_location +'/'+ hdr_info['title'].split('/')[-2] + '/'
                 if not os.path.exists(saving_path):
                     os.makedirs(saving_path)
                 
@@ -214,20 +210,17 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 dp_sum = max_contrast8(dp.sum())
                 dp_sum = change_dtype(dp_sum)
                 # Save summed diffraction pattern
-                dp_sum.save(saving_path + '/' +mib_list[0]+'_sum', extension = 'jpg')
+                dp_sum.save(saving_path + '/' + get_timestamp(mib_path) + '_sum', extension = 'jpg')
                 t2 = time.time()
                 # Save raw data in .hdf5 format
-                dp.save(saving_path + '/' +mib_list[0] + data_dim(dp), extension = 'hdf5')
+                dp.save(saving_path + '/' + get_timestamp(mib_path), extension = 'hdf5')
                 tmp = []
-                np.savetxt(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp)+'fully_saved', tmp)
+                np.savetxt(saving_path+'/' + get_timestamp(mib_path) + 'fully_saved', tmp)
                 t3 = time.time()
             # Process single .mib file identified as containing STEM data
             # This reshapes to the correct navigation dimensions and
             else:
                 # Define save path for STEM data
-                # if folder:
-                #     saving_path = proc_location + '/' + folder + '/' + hdr_info['title'].split('/')[-2] + '/'
-                # else:
                 merlin_ind = hdr_info['title'].split('/').index('Merlin')
                 saving_path = proc_location +'/'+ os.path.join(*hdr_info['title'].split('/')[(merlin_ind+1):-1])
                 print(saving_path)
@@ -247,8 +240,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 ibf = change_dtype(ibf)
 
                 # sum dp image of a subset dataset
-                #dp_subset = dp.inav[0::int(dp.axes_manager[0].size / 50), 0::int(dp.axes_manager[0].size / 50)]
-                #sum_dp_subset = dp_subset.sum()
                 sum_dp_subset = dp_bin_sig.sum()
                 sum_dp_subset = max_contrast8(sum_dp_subset)
                 sum_dp_subset = change_dtype(sum_dp_subset)
@@ -257,7 +248,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
 
                 try:
                     print('Saving average diffraction pattern')
-                    file_dp = mib_list[0].rpartition('.')[0]+ '_subset_dp'
+                    file_dp = get_timestamp(mib_path) + '_subset_dp'
                     sum_dp_subset = hs.signals.Signal2D(sum_dp_subset)
                     sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'tiff')
                     sum_dp_subset.save(saving_path+'/'+file_dp, extension = 'jpg')
@@ -265,7 +256,7 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     print('Saving ibf image')
                     print(saving_path)
                     ibf = hs.signals.Signal2D(ibf)
-                    file_ibf =  mib_list[0].rpartition('.')[0]+ '_ibf'
+                    file_ibf =  get_timestamp(mib_path) + '_ibf'
                     ibf.save(saving_path+'/'+file_ibf, extension = 'tiff')
                     ibf.save(saving_path+'/'+file_ibf, extension = 'jpg')
                     ibf.save(saving_path+'/'+file_ibf)
@@ -275,21 +266,22 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                     print('Issue with saving images!')
 
 #                    # Save binned data in .hdf5 file
-                print('Saving binned diffraction data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
-                dp_bin_sig.save(saving_path+ '/'+'binned_diff_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin_sig), extension = 'hdf5')
-                print('Saved binned diffraction data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
+                print('Saving binned diffraction data: ' + get_timestamp(mib_path) + '.hdf5')
+                dp_bin_sig.save(saving_path+ '/'+'binned_diff_' + get_timestamp(mib_path), extension = 'hdf5')
+                print('Saved binned diffraction data: binned_' + get_timestamp(mib_path) + '.hdf5')
                 del dp_bin_sig
-                print('Saving binned navigation data: ' + mib_list[0].rpartition('.')[0] + '_binned.hdf5')
-                dp_bin_nav.save(saving_path+ '/'+'binned_nav_' + mib_list[0].rpartition('.')[0]+data_dim(dp_bin_nav), extension = 'hdf5')
-                print('Saved binned navigation data: binned_' + mib_list[0].rpartition('.')[0] + '.hdf5')
+                print('Saving binned navigation data: ' + get_timestamp(mib_path) + '.hdf5')
+                dp_bin_nav.save(saving_path+ '/'+'binned_nav_' + get_timestamp(mib_path) , extension = 'hdf5')
+                print('Saved binned navigation data: binned_' + get_timestamp(mib_path) + '.hdf5')
                 del dp_bin_nav
 #                 # Save complete .hdf5 files
-                print('Saving hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
-                dp.save(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp), extension = 'hdf5')
-                print('Saved hdf5 : ' + mib_list[0].rpartition('.')[0] +'.hdf5')
+                print('Saving hdf5 : ' + get_timestamp(mib_path) +'.hdf5')
+                dp.save(saving_path + '/' + get_timestamp(mib_path), extension = 'hdf5')
+                print('Saved hdf5 : ' + get_timestamp(mib_path) +'.hdf5')
                 tmp = []
-                np.savetxt(saving_path+'/'+mib_list[0].rpartition('.')[0]+data_dim(dp)+'fully_saved', tmp)
+                np.savetxt(saving_path+'/' + get_timestamp(mib_path) + 'fully_saved', tmp)
                 t3 = time.time()
+                write_vds(saving_path + '/' + get_timestamp(mib_path) + '.hdf5', saving_path + '/' + get_timestamp(mib_path) + '_vds.h5')
 
                 del dp
                 gc.collect()
@@ -312,9 +304,9 @@ def convert(beamline, year, visit, mib_to_convert, folder):
                 print(mib_path)
                 print(file)
                 t0 = time.time()
-                dp = mib_dask_reader('/' +mib_path + '/'+ file)
+                dp = pxm.load_mib('/' +mib_path + '/'+ file)
                 pprint.pprint(dp.metadata)
-                if dp.metadata.Signal.signal_type == 'STEM':
+                if dp.metadata.Signal.signal_type == 'electron_diffraction':
                     STEM_flag = True
                 else:
                     STEM_flag = False
@@ -342,20 +334,6 @@ def convert(beamline, year, visit, mib_to_convert, folder):
     return
 
 
-
-def watch_convert(beamline, year, visit, folder):
-
-    mib_dict = check_differences(beamline, year, visit, folder)
-    # Holder for raw data path
-#    if folder:
-#        raw_location = os.path.join('/dls',beamline,'data', year, visit, os.path.relpath(folder))
-#    else:
-#        raw_location = os.path.join('/dls',beamline,'data', year, visit, 'Merlin')
-    to_convert = mib_dict['MIB_to_convert']
-    if bool(to_convert):
-        convert(beamline, year, visit, to_convert, folder)
-
-
 def data_dim(data):
     """
     This function gets the data hyperspy object and outputs the dimensions as string
@@ -375,26 +353,28 @@ def data_dim(data):
     return data_dim_str
 
 
-def main(beamline, year, visit, folder, folder_num):
-    print(beamline, year, visit, folder)
-    if folder=='False':
-        folder = ''
-        HDF5_dict= check_differences(beamline, year, visit)
-    else:
-        HDF5_dict= check_differences(beamline, year, visit, folder)
+def get_timestamp(mib_path):
+    time_id = mib_path.split('/')[-1]
+    return time_id.replace(' ', '_')
 
-    # proc_path = HDF5_dict['processing_path']
-    
-    to_convert = HDF5_dict['MIB_to_convert']
-    folder = to_convert[int(folder_num)-1].rpartition('/')[0].rpartition(visit)[2][1:]
+def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed__/data', vds_key = '/data/frames'):
     try:
-        save_location = os.path.join('/dls',beamline,'data', year, visit, 'processing', folder)
-        if os.path.exists(save_location) == False:
-            os.makedirs(save_location)
-        watch_convert(beamline, year, visit, folder)
+        with h5py.File(source_h5_path,'r') as f:
+            vsource = h5py.VirtualSource(f[entry_key])
+            sh = vsource.shape
+            print("4D shape:", sh)
+    except KeyError:
+        print('Key provided for the input data file not correct')
+        return
+    layout = h5py.VirtualLayout(shape=tuple((np.prod(sh[:2]), sh[-2], sh[-1])), dtype = np.float)
+    for i in range(sh[0]):
+        for j in range(sh[1]):
+            layout[i * sh[1] + j] = vsource[i, j, :, :]
         
-    except Exception as e:
-        print('** ERROR processing** \n ' , e)
+    with h5py.File(writing_h5_path, 'w', libver='latest') as f:
+        f.create_virtual_dataset(vds_key, layout)
+    return
+        
 
 
 if __name__ == "__main__":
@@ -405,14 +385,37 @@ if __name__ == "__main__":
     parser.add_argument('beamline', help='Beamline name')
     parser.add_argument('year', help='Year')
     parser.add_argument('visit', help='Session visit code')
-    parser.add_argument('folder', nargs= '?',default=None, help='OPTION to add a specific folder within a visit \
+
+
+    parser.add_argument('folder_num', help='passed by scheduler')
+    parser.add_argument('-folder', default=None, help='option to add a specific folder within a visit \
                         to look for data, e.g. sample1/dataset1/. If None the assumption would be to look in Merlin folder')
-    parser.add_argument('folder_num', nargs= '?', help='passed by scheduler')
+    
     v_help = "Display all debug log messages"
     parser.add_argument("-v", "--verbose", help=v_help, action="store_true",
                         default=False)
-
     args = parser.parse_args()
-    print(args)
+    HDF5_dict= check_differences(args.beamline, args.year, args.visit, args.folder)
+    to_convert = HDF5_dict['MIB_to_convert']
+    print(to_convert)
 
-    main(args.beamline, args.year, args.visit, args.folder, args.folder_num)
+    try:
+        if args.folder is not None:
+            save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing', args.folder)
+            if os.path.exists(save_location) == False:
+                os.makedirs(save_location)
+            print(to_convert[int(args.folder_num)-1])
+            print(args.folder)
+            convert(args.beamline, args.year, args.visit, [to_convert[int(args.folder_num)-1]], folder=args.folder)
+            
+
+                
+        else:
+            save_location = os.path.join('/dls',args.beamline,'data', args.year, args.visit, 'processing')
+            if os.path.exists(save_location) == False:
+                os.makedirs(save_location)
+            convert(args.beamline, args.year, args.visit, [to_convert[int(args.folder_num)-1]])
+
+    except Exception as e:
+        print('** ERROR processing** \n ' , e)
+

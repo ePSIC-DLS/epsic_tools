@@ -131,7 +131,7 @@ def parse_hdr(fp):
     elif read_hdr[3] == '2x2':
         hdr_info['width'] = 512
         hdr_info['height'] = 512
-    
+
     hdr_info['Assembly Size'] = read_hdr[3]
 
     # Set mib offset
@@ -156,6 +156,7 @@ def parse_hdr(fp):
     hdr_info['byte-order'] = 'dont-care'
     # Set record by to stack of images
     hdr_info['record-by'] = 'image'
+
     # Set title to file name
     hdr_info['title'] = fp.split('.')[0]
     # Set time and date
@@ -228,7 +229,7 @@ def get_mib_depth(hdr_info, fp):
         Dictionary containing header info extracted from .mib file.
     fp : filepath
         Path to .mib file.
-    
+
     Returns
     -------
     depth : int
@@ -476,7 +477,6 @@ def STEM_flag_dict(exp_times_list):
     output : dict
         Dictionary containing - STEM_flag, scan_X, exposure_time,
                                 number_of_frames_to_skip, flyback_times
-
     Example
     -------
     {'STEM_flag': 1,
@@ -494,7 +494,6 @@ def STEM_flag_dict(exp_times_list):
         output['exposure time'] = list(times_set)
         output['number of frames_to_skip'] = None
         output['flyback_times'] = None
-
     # In case exp times not appearing in header treat as TEM data
     elif len(times_set) == 0:
 
@@ -580,7 +579,7 @@ def mib_to_h5stack(fp, save_path, mmap_mode='r'):
                     _stack_h5dump(data, hdr_info, save_path, raw_binary=True)
                 else:
                     # All the other counter depths RAW format
-                    _stack_h5dump(data, hdr_info, save_path)
+                    _stack_h5dump(data, hdr_info, save_path, raw=True)
         # none RAW case - not tested
         # TODO: test this for none RAW files - also single chip data!
         elif hdr_info['raw'] == 'MIB':
@@ -588,7 +587,7 @@ def mib_to_h5stack(fp, save_path, mmap_mode='r'):
     return
 
 
-def _stack_h5dump(data, hdr_info, saving_path, raw_binary=False):
+def _stack_h5dump(data, hdr_info, saving_path, raw=False, raw_binary=False):
     """
     Incremental reading of a large stack dask array object and saving it in a h5 file.
 
@@ -597,6 +596,8 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary=False):
     data: dask array object
     hdr_info: dict, header info parsed by the parse_hdr function
     saving_path: str, h5 file name and path
+    raw: default False, bool
+        True if the data is in raw format
     raw_binary: default False - Need to be True for binary RAW data
 
     Returns
@@ -627,8 +628,10 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary=False):
                     data_dump1 = np.unpackbits(data_dump0)
                     data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1] * 8)
                     data_dump1 = _untangle_raw(data_dump1, hdr_info, data_dump0.shape[0])
-                else:
+                elif raw is True:
                     data_dump1 = _untangle_raw(data_dump0, hdr_info, data_dump0.shape[0])
+                else:
+                    data_dump1 = data_dump0.reshape(data_dump0.shape[0], width, height)
 
                 _h5_chunk_write(data_dump1, saving_path)
                 print(data_dump1.shape)
@@ -642,8 +645,10 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary=False):
                     data_dump1 = np.unpackbits(data_dump0)
                     data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1] * 8)
                     data_dump1 = _untangle_raw(data_dump1, hdr_info, data_dump0.shape[0])
-                else:
+                elif raw is True:
                     data_dump1 = _untangle_raw(data_dump0, hdr_info, data_dump0.shape[0])
+                else:
+                    data_dump1 = data_dump0.reshape(data_dump0.shape[0], width, height)
                 _h5_chunk_write(data_dump1, saving_path)
                 print(data_dump1.shape)
                 del data_dump0
@@ -656,8 +661,10 @@ def _stack_h5dump(data, hdr_info, saving_path, raw_binary=False):
                 data_dump1 = np.unpackbits(data_dump0)
                 data_dump1.reshape(data_dump0.shape[0], data_dump0.shape[1] * 8)
                 data_dump1 = _untangle_raw(data_dump1, hdr_info, data_dump0.shape[0])
-            else:
+            elif raw is True:
                 data_dump1 = _untangle_raw(data_dump0, hdr_info, data_dump0.shape[0])
+            else:
+                data_dump1 = data_dump0.reshape(data_dump0.shape[0], width, height)
             _h5_chunk_write(data_dump1, saving_path)
             print(data_dump1.shape)
             del data_dump0
@@ -925,6 +932,7 @@ def mib_dask_reader(mib_filename, h5_stack_path=None):
     Parameters
     ----------
     mib_filename : str
+        The name of the .mib file to be read.
     h5_stack_path: str, default None
         this is the h5 file path that we can read the data from in the case of large scan arrays
     Returns

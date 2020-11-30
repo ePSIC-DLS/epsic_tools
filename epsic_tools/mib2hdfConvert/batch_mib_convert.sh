@@ -8,4 +8,9 @@
 echo "I am task $SGE_TASK_ID"
 
 module load python/epsic3.7
-python /dls_sw/e02/scripts/batch_mib_convert/mib2hdf_watch_convert.py $1 $2 $3 $4 "$SGE_TASK_ID"
+if [[ $# -eq 3 ]]; then
+    python /dls_sw/e02/scripts/batch_mib_convert/mib2hdf_watch_convert.py $1 $2 $3 "$SGE_TASK_ID"
+else
+    python /dls_sw/e02/scripts/batch_mib_convert/mib2hdf_watch_convert.py $1 $2 $3 "$SGE_TASK_ID" -folder $4 
+fi
+
