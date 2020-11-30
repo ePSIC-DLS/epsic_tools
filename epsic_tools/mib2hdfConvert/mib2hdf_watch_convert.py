@@ -304,7 +304,7 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                 print(mib_path)
                 print(file)
                 t0 = time.time()
-                dp = mib_dask_reader('/' +mib_path + '/'+ file)
+                dp = pxm.load_mib('/' +mib_path + '/'+ file)
                 pprint.pprint(dp.metadata)
                 if dp.metadata.Signal.signal_type == 'electron_diffraction':
                     STEM_flag = True
