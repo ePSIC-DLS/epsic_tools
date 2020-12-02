@@ -9,6 +9,8 @@ Welcome to epsic_tools's documentation!
 .. toctree::
    :maxdepth: -1
    :caption: Contents:
+   
+   getting_started.rst
 
 
 Indices and tables
