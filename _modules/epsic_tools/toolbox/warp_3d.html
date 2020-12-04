@@ -1,0 +1,677 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsic_tools.toolbox.warp_3d &mdash; epsic_tools 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> epsic_tools
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">epsic_tools</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>epsic_tools.toolbox.warp_3d</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for epsic_tools.toolbox.warp_3d</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Created on Fri Jul 12 14:15:48 2019</span>
+
+<span class="sd">@author: gys37319</span>
+
+<span class="sd">Functions to fit and warp 4DSTEM diffraction data</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="kn">import</span> <span class="n">eig</span><span class="p">,</span> <span class="n">inv</span>
+<span class="kn">from</span> <span class="nn">skimage.feature</span> <span class="kn">import</span> <span class="n">canny</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage.morphology</span> <span class="kn">import</span> <span class="n">binary_fill_holes</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="kn">import</span> <span class="n">transform</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">skimage.util</span> <span class="kn">import</span> <span class="n">apply_parallel</span> <span class="k">as</span> <span class="n">sk_par</span>
+<span class="kn">import</span> <span class="nn">dask.array</span> <span class="k">as</span> <span class="nn">da</span>
+
+
+<div class="viewcode-block" id="remove_cross"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.remove_cross">[docs]</a><span class="k">def</span> <span class="nf">remove_cross</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    normalize bright px and add data to zero px cross in quad chip data</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    data : 2D numpy array with bright and zero px cross</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    </span>
+<span class="sd">    data : 2D numpy array with normalised / filled cross</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1">#get mean of columns adjacent to bright columns for all quadrents</span>
+    
+    <span class="n">vn_tl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">254</span><span class="p">,:</span><span class="mi">254</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">vn_bl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">254</span><span class="p">,</span><span class="mi">260</span><span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">vn_tr</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">260</span><span class="p">,:</span><span class="mi">254</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">vn_br</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">260</span><span class="p">,</span><span class="mi">260</span><span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    
+    <span class="c1">#get mean of rows adjacent to bright rows for all quadrents</span>
+    
+    <span class="n">hn_tl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span><span class="mi">254</span><span class="p">,</span><span class="mi">254</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">hn_bl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">260</span><span class="p">:,</span><span class="mi">254</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">hn_tr</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span><span class="mi">254</span><span class="p">,</span><span class="mi">260</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">hn_br</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">260</span><span class="p">:,</span><span class="mi">260</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    
+    <span class="n">n_all</span>  <span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vn_tl</span><span class="p">,</span> <span class="n">vn_bl</span><span class="p">,</span> <span class="n">vn_tr</span><span class="p">,</span> <span class="n">vn_br</span><span class="p">,</span> <span class="n">hn_tl</span><span class="p">,</span> <span class="n">hn_bl</span><span class="p">,</span> <span class="n">hn_tr</span><span class="p">,</span> <span class="n">hn_br</span><span class="p">])</span>
+    
+    <span class="c1">#take the mean of bright columns</span>
+    
+    <span class="n">vb_tl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">255</span><span class="p">,:</span><span class="mi">254</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">vb_bl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">255</span><span class="p">,</span><span class="mi">260</span><span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">vb_tr</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">259</span><span class="p">,:</span><span class="mi">254</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">vb_br</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">259</span><span class="p">,</span><span class="mi">260</span><span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    
+    <span class="c1">#and rows</span>
+    
+    <span class="n">hb_tl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span><span class="mi">254</span><span class="p">,</span><span class="mi">255</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">hb_bl</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">260</span><span class="p">:,</span><span class="mi">255</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">hb_tr</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:</span><span class="mi">254</span><span class="p">,</span><span class="mi">259</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">hb_br</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">260</span><span class="p">:,</span><span class="mi">259</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    
+    <span class="n">b_all</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vb_tl</span><span class="p">,</span> <span class="n">vb_bl</span><span class="p">,</span> <span class="n">vb_tr</span><span class="p">,</span> <span class="n">vb_br</span><span class="p">,</span> <span class="n">hb_tl</span><span class="p">,</span> <span class="n">hb_bl</span><span class="p">,</span> <span class="n">hb_tr</span><span class="p">,</span> <span class="n">hb_br</span><span class="p">])</span>
+    
+    <span class="c1">#get the ratio of normal to bright px</span>
+    
+    <span class="n">ratio_all</span> <span class="o">=</span> <span class="n">n_all</span> <span class="o">/</span> <span class="n">b_all</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;normal mean : &#39;</span> <span class="p">,</span> <span class="n">n_all</span> <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;bright mean : &#39;</span> <span class="p">,</span> <span class="n">b_all</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;bright:normal ratios : &#39;</span><span class="p">,</span>  <span class="n">ratio_all</span>  <span class="p">)</span>
+
+    <span class="c1">#calculate the mean of all ratios</span>
+    
+    <span class="n">norm_factor</span> <span class="o">=</span> <span class="n">ratio_all</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">norm_factor</span><span class="p">)</span>
+    
+    <span class="c1">#normalize the bright rows/columns</span>
+    <span class="n">data</span><span class="p">[</span><span class="mi">255</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">255</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">norm_factor</span>
+    <span class="n">data</span><span class="p">[</span><span class="mi">259</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">259</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">norm_factor</span>
+    <span class="n">data</span><span class="p">[:,</span> <span class="mi">255</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="mi">255</span><span class="p">]</span> <span class="o">*</span> <span class="n">norm_factor</span>
+    <span class="n">data</span><span class="p">[:,</span> <span class="mi">259</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="mi">259</span><span class="p">]</span> <span class="o">*</span> <span class="n">norm_factor</span>
+    
+    <span class="c1"># fill in dark px with mean of previous 3 px on row/column</span>
+    <span class="c1"># fill middle dark px with mean of normalised bright px.  </span>
+    
+    <span class="n">data</span><span class="p">[</span><span class="mi">256</span><span class="p">,</span> <span class="p">:</span> <span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">253</span><span class="p">:</span><span class="mi">255</span><span class="p">,:]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">data</span><span class="p">[</span><span class="mi">258</span><span class="p">,</span> <span class="p">:</span> <span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">259</span><span class="p">:</span><span class="mi">262</span><span class="p">,:]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">data</span><span class="p">[</span><span class="mi">257</span><span class="p">,</span> <span class="p">:</span> <span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">256</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="mi">258</span><span class="p">,</span> <span class="p">:</span> <span class="p">])</span> <span class="o">/</span> <span class="mi">2</span> 
+    
+    <span class="n">data</span><span class="p">[:,</span> <span class="mi">256</span> <span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="mi">253</span><span class="p">:</span><span class="mi">255</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">data</span><span class="p">[:</span> <span class="p">,</span> <span class="mi">258</span> <span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="mi">259</span><span class="p">:</span><span class="mi">262</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">data</span><span class="p">[:,</span> <span class="mi">257</span> <span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[:,</span> <span class="mi">256</span><span class="p">]</span> <span class="o">+</span> <span class="n">data</span><span class="p">[:,</span> <span class="mi">258</span> <span class="p">])</span> <span class="o">/</span> <span class="mi">2</span> 
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="fitEllipse"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.fitEllipse">[docs]</a><span class="k">def</span> <span class="nf">fitEllipse</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    fit ellipse to x,y co-ordinates</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    x : 1D numpy array</span>
+<span class="sd">    y :1D numpy array</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    </span>
+<span class="sd">    a : fit parameters to be fed into functions</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">D</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">x</span><span class="o">*</span><span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="n">y</span><span class="o">*</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">D</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">])</span>
+    <span class="n">C</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="p">;</span> <span class="n">C</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">E</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span>  <span class="n">eig</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">inv</span><span class="p">(</span><span class="n">S</span><span class="p">),</span> <span class="n">C</span><span class="p">))</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">E</span><span class="p">))</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">V</span><span class="p">[:,</span><span class="n">n</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">a</span></div>
+
+<div class="viewcode-block" id="ellipse_center"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.ellipse_center">[docs]</a><span class="k">def</span> <span class="nf">ellipse_center</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    Calculate ellipse center from fit params</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    a : fit parameters</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    </span>
+<span class="sd">    x0, y0 as a numpy array</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="n">b</span><span class="o">*</span><span class="n">b</span><span class="o">-</span><span class="n">a</span><span class="o">*</span><span class="n">c</span>
+    <span class="n">x0</span><span class="o">=</span><span class="p">(</span><span class="n">c</span><span class="o">*</span><span class="n">d</span><span class="o">-</span><span class="n">b</span><span class="o">*</span><span class="n">f</span><span class="p">)</span><span class="o">/</span><span class="n">num</span>
+    <span class="n">y0</span><span class="o">=</span><span class="p">(</span><span class="n">a</span><span class="o">*</span><span class="n">f</span><span class="o">-</span><span class="n">b</span><span class="o">*</span><span class="n">d</span><span class="p">)</span><span class="o">/</span><span class="n">num</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x0</span><span class="p">,</span><span class="n">y0</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="ellipse_axis_length"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.ellipse_axis_length">[docs]</a><span class="k">def</span> <span class="nf">ellipse_axis_length</span><span class="p">(</span> <span class="n">a</span> <span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    Calculate ellipse major / minor axis length from fit params</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    a : fit parameters</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    </span>
+<span class="sd">    len1 , len2 as a numpy array</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">up</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">a</span><span class="o">*</span><span class="n">f</span><span class="o">*</span><span class="n">f</span><span class="o">+</span><span class="n">c</span><span class="o">*</span><span class="n">d</span><span class="o">*</span><span class="n">d</span><span class="o">+</span><span class="n">g</span><span class="o">*</span><span class="n">b</span><span class="o">*</span><span class="n">b</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">b</span><span class="o">*</span><span class="n">d</span><span class="o">*</span><span class="n">f</span><span class="o">-</span><span class="n">a</span><span class="o">*</span><span class="n">c</span><span class="o">*</span><span class="n">g</span><span class="p">)</span>
+    <span class="n">down1</span><span class="o">=</span><span class="p">(</span><span class="n">b</span><span class="o">*</span><span class="n">b</span><span class="o">-</span><span class="n">a</span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="p">(</span><span class="n">c</span><span class="o">-</span><span class="n">a</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="mi">4</span><span class="o">*</span><span class="n">b</span><span class="o">*</span><span class="n">b</span><span class="o">/</span><span class="p">((</span><span class="n">a</span><span class="o">-</span><span class="n">c</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="n">c</span><span class="p">)))</span><span class="o">-</span><span class="p">(</span><span class="n">c</span><span class="o">+</span><span class="n">a</span><span class="p">))</span>
+    <span class="n">down2</span><span class="o">=</span><span class="p">(</span><span class="n">b</span><span class="o">*</span><span class="n">b</span><span class="o">-</span><span class="n">a</span><span class="o">*</span><span class="n">c</span><span class="p">)</span><span class="o">*</span><span class="p">(</span> <span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="n">c</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="mi">4</span><span class="o">*</span><span class="n">b</span><span class="o">*</span><span class="n">b</span><span class="o">/</span><span class="p">((</span><span class="n">a</span><span class="o">-</span><span class="n">c</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="n">c</span><span class="p">)))</span><span class="o">-</span><span class="p">(</span><span class="n">c</span><span class="o">+</span><span class="n">a</span><span class="p">))</span>
+    <span class="n">res1</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">up</span><span class="o">/</span><span class="n">down1</span><span class="p">)</span>
+    <span class="n">res2</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">up</span><span class="o">/</span><span class="n">down2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">a</span><span class="o">&gt;</span><span class="n">c</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">res1</span><span class="p">,</span> <span class="n">res2</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">res2</span><span class="p">,</span> <span class="n">res1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ellipse_angle_of_rotation"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.ellipse_angle_of_rotation">[docs]</a><span class="k">def</span> <span class="nf">ellipse_angle_of_rotation</span><span class="p">(</span> <span class="n">a</span> <span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    Calculate ellipse angle of rotation from fit params</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    a : fit parameters</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    </span>
+<span class="sd">    angle in radians</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">g</span><span class="p">,</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="n">c</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span> 
+        <span class="k">if</span> <span class="n">a</span> <span class="o">&gt;</span> <span class="n">c</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">b</span><span class="o">/</span><span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="n">c</span><span class="p">))</span><span class="o">/</span><span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">b</span><span class="o">/</span><span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="n">c</span><span class="p">))</span><span class="o">/</span><span class="mi">2</span> </div>
+        
+
+<div class="viewcode-block" id="fit_ellipse"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.fit_ellipse">[docs]</a><span class="k">def</span> <span class="nf">fit_ellipse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">plot_me</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    function to fit ellipse to a single image</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    data : Input image, 2D numpy array</span>
+<span class="sd">    thershold : threshold for binarising image, integer</span>
+<span class="sd">    plot_me : boolean to plot results</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    </span>
+<span class="sd">    center, phi, axes</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="c1"># create binary image</span>
+    <span class="n">data_binary</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">data</span> <span class="o">&lt;</span> <span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">*</span><span class="n">threshold</span> <span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># fill in any dead px holes</span>
+    <span class="n">data_binary</span> <span class="o">=</span> <span class="n">binary_fill_holes</span><span class="p">(</span><span class="n">data_binary</span><span class="p">)</span>
+    <span class="c1"># get edges </span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="n">canny</span><span class="p">(</span><span class="n">data_binary</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span><span class="n">low_threshold</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">high_threshold</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+    
+    <span class="n">image_size</span> <span class="o">=</span> <span class="n">data_binary</span><span class="o">.</span><span class="n">shape</span>
+    
+    <span class="c1"># construct points for fit</span>
+    <span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">image_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">image_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">yi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">image_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">image_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">yi</span><span class="p">)</span>
+    
+    <span class="n">pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="n">edges</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">y</span><span class="p">[</span><span class="n">edges</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()])</span>
+    
+    <span class="c1"># and fit</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">fitEllipse</span><span class="p">(</span><span class="n">pts</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">pts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">ellipse_center</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">ellipse_angle_of_rotation</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    <span class="n">axes</span> <span class="o">=</span> <span class="n">ellipse_axis_length</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    
+    
+    <span class="k">if</span> <span class="n">plot_me</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">plot_ellipse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">[</span><span class="n">center</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">axes</span><span class="p">])</span>
+        <span class="c1">#plot_ellipse(data_binary, [center, phi, axes])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">center</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">axes</span></div>
+
+<div class="viewcode-block" id="plot_ellipse"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.plot_ellipse">[docs]</a><span class="k">def</span> <span class="nf">plot_ellipse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">line_width</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    function to plot ellipse fits </span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    data : Input image, 2D numpy array</span>
+<span class="sd">    params : center [x0,y0], phi (in rad), axes [major,minor]</span>
+<span class="sd">    line_width : thickness of plot line</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">axes</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">axes</span>
+    
+    <span class="n">xx</span> <span class="o">=</span> <span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">-</span> <span class="n">b</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+    <span class="n">yy</span> <span class="o">=</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">R</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">lw</span> <span class="o">=</span> <span class="n">line_width</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="compute_transform"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.compute_transform">[docs]</a><span class="k">def</span> <span class="nf">compute_transform</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    compute the tranform from fit parameters</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    data : Input image, 2D numpy array</span>
+<span class="sd">    params : center [x0,y0], phi (in rad), axes [major,minor]</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    transformation</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">image_size</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    
+    <span class="n">b2</span><span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">a2</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">phi2</span> <span class="o">=</span> <span class="o">-</span><span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="c1">#1.149</span>
+    <span class="n">scaling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="n">a2</span><span class="o">/</span><span class="n">b2</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">]])</span>
+    <span class="n">rotation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi2</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi2</span><span class="p">)],[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi2</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi2</span><span class="p">)]])</span>
+    <span class="n">correction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rotation</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">scaling</span><span class="p">,</span> <span class="n">rotation</span><span class="p">)))</span>
+    <span class="c1">#compute affine array</span>
+    <span class="n">affine</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">correction</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">correction</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mf">0.00</span><span class="p">],</span>
+                       <span class="p">[</span><span class="n">correction</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">correction</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mf">0.00</span><span class="p">],</span>
+                       <span class="p">[</span><span class="mf">0.00</span><span class="p">,</span> <span class="mf">0.00</span><span class="p">,</span> <span class="mf">1.00</span><span class="p">]])</span>
+    
+    <span class="n">shift_x</span> <span class="o">=</span> <span class="p">(</span><span class="n">image_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">shift_y</span> <span class="o">=</span> <span class="p">(</span><span class="n">image_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">tf_shift</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">SimilarityTransform</span><span class="p">(</span><span class="n">translation</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">shift_x</span><span class="p">,</span> <span class="o">-</span><span class="n">shift_y</span><span class="p">])</span>
+    <span class="n">tf_shift_inv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">SimilarityTransform</span><span class="p">(</span><span class="n">translation</span><span class="o">=</span><span class="p">[</span><span class="n">shift_x</span><span class="p">,</span> <span class="n">shift_y</span><span class="p">])</span>
+    
+    <span class="n">distortion</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">AffineTransform</span><span class="p">(</span><span class="n">matrix</span><span class="o">=</span><span class="n">affine</span><span class="p">)</span>
+    <span class="n">transformation</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf_shift</span> <span class="o">+</span> <span class="p">(</span><span class="n">distortion</span> <span class="o">+</span> <span class="n">tf_shift_inv</span><span class="p">))</span><span class="o">.</span><span class="n">inverse</span>
+    
+    <span class="k">return</span> <span class="n">transformation</span></div>
+
+
+<div class="viewcode-block" id="get_coords_4d"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.get_coords_4d">[docs]</a><span class="k">def</span> <span class="nf">get_coords_4d</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shape_4d</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    build the 4d transformation co-ordinates </span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    coords : 2D coordinates</span>
+<span class="sd">    shape_4d : shape of the 4d data set to be transformed</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    co_ords4d : 4d coordinates for the transform</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="n">dat_type</span> <span class="o">=</span> <span class="s1">&#39;float16&#39;</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dat_type</span><span class="p">)</span>
+    <span class="n">co_ords4d_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">co_ords4d_a</span> <span class="o">=</span> <span class="n">co_ords4d_a</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,:,:,:]</span>
+    <span class="n">co_ords4d_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">co_ords4d_b</span> <span class="o">=</span> <span class="n">co_ords4d_b</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,:,:,:]</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dat_type</span><span class="p">)</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">co_ords4d_a</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dat_type</span><span class="p">)</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">Z</span> <span class="o">*</span> <span class="n">z</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span>  <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    
+    <span class="n">z2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dat_type</span><span class="p">)</span>
+    <span class="n">Z2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">co_ords4d_a</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dat_type</span><span class="p">)</span>
+    <span class="n">Z2</span> <span class="o">=</span> <span class="n">Z2</span> <span class="o">*</span> <span class="n">z2</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>  <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> 
+    
+    <span class="n">co_ords4d</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">Z2</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">co_ords4d</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">co_ords4d</span><span class="p">,</span> <span class="n">co_ords4d_a</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">co_ords4d</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">co_ords4d</span><span class="p">,</span> <span class="n">co_ords4d_b</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1">#print(co_ords3d.dtype)</span>
+    <span class="k">return</span> <span class="n">co_ords4d</span></div>
+    
+    
+<div class="viewcode-block" id="warp_all_np"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.warp_all_np">[docs]</a><span class="k">def</span> <span class="nf">warp_all_np</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span>  <span class="n">order</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">preserve_range</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">plot_me</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    apply transformation to full 4d data set </span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    data : inpud 4d data set (dask array)</span>
+<span class="sd">    coords : 4D coordinates</span>
+<span class="sd">    plot_me : boolean</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dat_temp : warped 4D data </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">shape_4d</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="c1">#get rid of hot px</span>
+    <span class="c1">#data[data &gt; 20* data.mean()] = data.mean()</span>
+
+    <span class="c1">#print(coords.shape)</span>
+    <span class="c1">#t0 = time.time()</span>
+    <span class="n">co_ords3d</span> <span class="o">=</span><span class="n">get_coords_4d</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">shape_4d</span><span class="p">)</span><span class="c1"># sk_par(get_coords_3d, coords,extra_keywords = {&#39;shape_4d&#39;: shape_4d})</span>
+   
+    <span class="c1">#print(time.time() - t0)</span>
+    <span class="n">co_ords3d</span> <span class="o">=</span> <span class="n">co_ords3d</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
+    <span class="c1">#t1 = time.time()</span>
+
+    <span class="n">dat_temp</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">warp</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">co_ords3d</span><span class="p">,</span> <span class="n">order</span> <span class="o">=</span> <span class="n">order</span><span class="p">,</span> <span class="n">preserve_range</span> <span class="o">=</span> <span class="n">preserve_range</span><span class="p">)</span>
+
+    <span class="c1">#print(&#39;time : &#39;, time.time() - t1)</span>
+    <span class="n">im_num</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span><span class="mi">5</span>
+    <span class="k">if</span> <span class="n">plot_me</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span><span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+        
+        <span class="n">ax1</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dat_temp</span><span class="p">[</span><span class="n">im_num</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">im_num</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:</span> <span class="p">])</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">im_num</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">im_num</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:])</span>
+        
+    <span class="c1">#print(&#39;dat : &#39;, dat_temp[im_num[0],im_num[1], :, : ].min(), dat_temp[im_num[0],im_num[1], :, : ].max(), dat_temp[im_num[0],im_num[1], :, : ].mean(), sc.ndimage.measurements.center_of_mass(dat_temp[im_num[0],im_num[1], :, : ]))</span>
+    <span class="c1">#print(&#39;dat : &#39;, data[im_num[0],im_num[1], :, : ].min(), data[im_num[0],im_num[1], :, : ].max(), data[im_num[0],im_num[1], :, : ].mean(), sc.ndimage.measurements.center_of_mass(data[im_num[0],im_num[1], :, : ]))</span>
+    
+    <span class="k">return</span> <span class="n">dat_temp</span></div>
+
+
+<div class="viewcode-block" id="warp_all"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.warp_3d.warp_all">[docs]</a><span class="k">def</span> <span class="nf">warp_all</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">dat_type</span><span class="p">,</span> <span class="n">plot_me</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    NOT CURRENTLY USED</span>
+<span class="sd">    </span>
+<span class="sd">    apply transformation to full 4d data set </span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    data : inpud 4d data set (dask array)</span>
+<span class="sd">    coords : 4D coordinates</span>
+<span class="sd">    plot_me : boolean</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dat_temp : warped 4D data </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1">#correct for distortions in all diff patterns </span>
+    <span class="c1">#working for 4D data ONLY</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+    <span class="c1">#dat_type = &#39;float32&#39;</span>
+    <span class="n">shape_4d</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="c1">#test_dp.shape</span>
+    <span class="c1">#shape_3d = #test_dp.shape</span>
+    <span class="c1">#get rid of hot px</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="o">*</span> <span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">()]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    
+    <span class="n">co_ords_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">)</span>
+    <span class="n">co_ords_shape</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">co_ords_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">co_ords_shape</span><span class="p">)</span>
+    
+    <span class="n">co_ords3d_a</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">0</span><span class="p">])],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">co_ords3d_a</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">co_ords3d_a</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">0</span><span class="p">])],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">co_ords3d_a</span> <span class="o">=</span> <span class="n">co_ords3d_a</span><span class="o">.</span><span class="n">T</span>
+    
+    <span class="n">co_ords3d_a</span> <span class="o">=</span> <span class="n">co_ords3d_a</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">co_ords_shape</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">co_ords3d_a</span><span class="p">))</span>
+    <span class="n">co_ords3d_b</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">0</span><span class="p">])],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">co_ords3d_b</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">co_ords3d_b</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">0</span><span class="p">])],</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">co_ords3d_b</span> <span class="o">=</span> <span class="n">co_ords3d_b</span><span class="o">.</span><span class="n">T</span>
+    
+    <span class="n">co_ords3d_b</span> <span class="o">=</span> <span class="n">co_ords3d_b</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">co_ords_shape</span><span class="p">)</span>
+    
+    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dat_type</span><span class="p">)</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">co_ords3d_a</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dat_type</span><span class="p">)</span><span class="c1">#(shape = (100, 128, 128))</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">Z</span> <span class="o">*</span> <span class="n">z</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span>  <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    
+    <span class="n">z2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">shape_4d</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dat_type</span><span class="p">)</span>
+    <span class="n">Z2</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">co_ords3d_a</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">dat_type</span><span class="p">)</span><span class="c1">#(shape = (100, 128, 128))</span>
+    <span class="n">Z2</span> <span class="o">=</span> <span class="n">Z2</span> <span class="o">*</span> <span class="n">z2</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>  <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> 
+    
+    <span class="n">co_ords3d</span><span class="o">=</span>  <span class="n">da</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">Z</span><span class="p">,</span> <span class="n">Z2</span><span class="p">),</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">co_ords3d</span> <span class="o">=</span>  <span class="n">da</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">co_ords3d</span><span class="p">,</span> <span class="n">co_ords3d_a</span><span class="p">),</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">co_ords3d</span> <span class="o">=</span>  <span class="n">da</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">co_ords3d</span><span class="p">,</span> <span class="n">co_ords3d_b</span><span class="p">),</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">co_ords3d_a</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">co_ords3d_b</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">co_ords3d</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">Z</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">Z2</span><span class="p">))</span>
+    <span class="c1">#co_ords3d = co_ords3d.compute()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">co_ords3d</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">co_ords3d</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="c1">#dat_temp = tf.warp(data,  inverse_map = co_ords3d , order =1, preserve_range  = True)</span>
+    <span class="n">kwords_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;inverse_map&#39;</span><span class="p">:</span> <span class="n">co_ords3d</span><span class="p">,</span>
+            <span class="c1">#&#39;coordinates&#39;: co_ords3d,</span>
+            <span class="s1">&#39;order&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="c1">#&#39;dtype&#39;: dat_type</span>
+            <span class="c1">#&#39;preserve_range&#39;: True            </span>
+            <span class="p">}</span>
+    <span class="n">co_ords3d</span> <span class="o">=</span> <span class="n">co_ords3d</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+    <span class="n">dat_temp</span> <span class="o">=</span> <span class="n">sk_par</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">warp</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">extra_keywords</span><span class="o">=</span><span class="n">kwords_dict</span><span class="p">)</span>
+    <span class="c1">#dat_temp = sk_par(map_coordinates, data, extra_keywords=kwords_dict)#tf.warp(data, inverse_map = co_ords3d)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;time : &#39;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t1</span><span class="p">)</span>
+    <span class="n">im_num</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span><span class="mi">5</span>
+    <span class="k">if</span> <span class="n">plot_me</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span><span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+        
+        <span class="n">ax1</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dat_temp</span><span class="p">[</span><span class="n">im_num</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">im_num</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:</span> <span class="p">])</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">im_num</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">im_num</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:,</span> <span class="p">:])</span>
+        
+    <span class="c1">#print(&#39;dat : &#39;, dat_temp[im_num[0],im_num[1], :, : ].min(), dat_temp[im_num[0],im_num[1], :, : ].max(), dat_temp[im_num[0],im_num[1], :, : ].mean(), sc.ndimage.measurements.center_of_mass(dat_temp[im_num[0],im_num[1], :, : ]))</span>
+    <span class="c1">#print(&#39;dat : &#39;, data[im_num[0],im_num[1], :, : ].min(), data[im_num[0],im_num[1], :, : ].max(), data[im_num[0],im_num[1], :, : ].mean(), sc.ndimage.measurements.center_of_mass(data[im_num[0],im_num[1], :, : ]))</span>
+    
+    <span class="k">return</span> <span class="n">dat_temp</span><span class="p">,</span> <span class="n">co_ords3d</span></div>
+
+    
+    
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, ePSIC
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,635 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsic_tools.ptychography2D &mdash; epsic_tools 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> epsic_tools
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">epsic_tools</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>epsic_tools.ptychography2D</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for epsic_tools.ptychography2D</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Created on Fri Feb 14 13:37:55 2020</span>
+
+<span class="sd">@author: gys37319</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">epsic_tools</span> <span class="kn">import</span> <span class="n">build_params</span>
+<span class="kn">from</span> <span class="nn">epsic_tools.toolbox</span> <span class="kn">import</span> <span class="n">ptycho_utils</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">hyperspy.api</span> <span class="k">as</span> <span class="nn">hs</span>
+
+<div class="viewcode-block" id="is_number"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.is_number">[docs]</a><span class="k">def</span> <span class="nf">is_number</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    checks if input is a number</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    s: input </span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    </span>
+<span class="sd">    True or False  </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Ptychography2D"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D">[docs]</a><span class="k">class</span> <span class="nc">Ptychography2D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">    Ptychography object </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span> <span class="o">=</span> <span class="n">build_params</span><span class="o">.</span><span class="n">init_ptyrex</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_object</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_probe</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_object_fft</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_radial_object_fft</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_scan_rotation</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_scan_step</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_error</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1">#self.recon_full_error = []</span>
+        <span class="c1">#self.ptypy = build.ptypy()</span>
+        
+<div class="viewcode-block" id="Ptychography2D.load_series"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.load_series">[docs]</a>    <span class="k">def</span> <span class="nf">load_series</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pn</span><span class="p">,</span><span class="n">crop_to</span><span class="p">,</span> <span class="n">sort_by</span> <span class="o">=</span> <span class="s1">&#39;rot&#39;</span><span class="p">,</span> <span class="n">blur</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">plot_me</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        
+        <span class="n">d_s</span><span class="p">,</span> <span class="n">p_s</span><span class="p">,</span> <span class="n">d_s_fft</span><span class="p">,</span> <span class="n">rad_fft</span><span class="p">,</span> <span class="n">r_s</span><span class="p">,</span> <span class="n">s_s</span><span class="p">,</span> <span class="n">e_s</span> <span class="o">=</span> <span class="n">ptycho_utils</span><span class="o">.</span><span class="n">load_series</span><span class="p">(</span><span class="n">pn</span><span class="p">,</span><span class="n">crop_to</span><span class="p">,</span> <span class="n">sort_by</span> <span class="o">=</span> <span class="n">sort_by</span><span class="p">,</span> <span class="n">blur</span> <span class="o">=</span> <span class="n">blur</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plot_me</span><span class="p">:</span>
+            <span class="n">hs</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_signals</span><span class="p">([</span><span class="n">d_s</span><span class="p">,</span><span class="n">p_s</span><span class="p">,</span><span class="n">d_s_fft</span><span class="p">,</span> <span class="n">rad_fft</span><span class="p">],</span> <span class="n">navigator_list</span><span class="o">=</span><span class="p">[</span><span class="n">r_s</span><span class="p">,</span><span class="n">s_s</span><span class="p">,</span> <span class="n">e_s</span><span class="p">,</span><span class="kc">None</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_object</span> <span class="o">=</span> <span class="n">d_s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_probe</span> <span class="o">=</span> <span class="n">p_s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_object_fft</span> <span class="o">=</span> <span class="n">d_s_fft</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_radial_object_fft</span> <span class="o">=</span> <span class="n">rad_fft</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_scan_rotation</span> <span class="o">=</span> <span class="n">r_s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_scan_step</span> <span class="o">=</span> <span class="n">s_s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_error</span> <span class="o">=</span> <span class="n">e_s</span></div>
+        <span class="c1">#self.recon_full_error = fe_s</span>
+    
+<div class="viewcode-block" id="Ptychography2D.load_recon"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.load_recon">[docs]</a>    <span class="k">def</span> <span class="nf">load_recon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+    <span class="c1">#load a ptyrex reconstruction</span>
+ 
+        <span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">e</span> <span class="o">=</span> <span class="n">ptycho_utils</span><span class="o">.</span><span class="n">load_recon</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_object</span> <span class="o">=</span> <span class="n">d</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_probe</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="c1">#self.recon_object_fft = d_s_fft</span>
+        <span class="c1">#self.recon_radial_object_fft = rad_fft</span>
+        <span class="c1">#self.recon_scan_rotation = r_s</span>
+        <span class="c1">#self.recon_scan_step = s_s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recon_error</span> <span class="o">=</span> <span class="n">e</span></div>
+    <span class="c1">#self.recon_error = ptycho_utils.load_error(fn)</span>
+
+    
+<div class="viewcode-block" id="Ptychography2D.get_interaction"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_interaction">[docs]</a>    <span class="k">def</span> <span class="nf">get_interaction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;interaction&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_interaction"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_interaction">[docs]</a>    <span class="k">def</span> <span class="nf">set_interaction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;interaction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;interaction must be a string&#39;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.get_save_prefix"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_save_prefix">[docs]</a>    <span class="k">def</span> <span class="nf">get_save_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;save_prefix&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_save_prefix"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_save_prefix">[docs]</a>    <span class="k">def</span> <span class="nf">set_save_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;save_prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;save prefix must be a string&#39;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_experiment_ID"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_experiment_ID">[docs]</a>    <span class="k">def</span> <span class="nf">get_experiment_ID</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;experiment_ID&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_experiment_ID"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_experiment_ID">[docs]</a>    <span class="k">def</span> <span class="nf">set_experiment_ID</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;experiment_ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;experiment ID must be a string&#39;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.get_gpu_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_gpu_flag">[docs]</a>    <span class="k">def</span> <span class="nf">get_gpu_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;gpu_flag&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.set_gpu_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_gpu_flag">[docs]</a>    <span class="k">def</span> <span class="nf">set_gpu_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;gpu_flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;gpu flag takes a value of either 1 or 0&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_save_interval"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_save_interval">[docs]</a>    <span class="k">def</span> <span class="nf">get_save_interval</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;save_interval&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.set_save_interval"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_save_interval">[docs]</a>    <span class="k">def</span> <span class="nf">set_save_interval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="n">val</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;save_interval&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;save_interval must be an integer&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_iterations"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_iterations">[docs]</a>    <span class="k">def</span> <span class="nf">get_iterations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;iterations&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_scan_refine_start"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_scan_refine_start">[docs]</a>    <span class="k">def</span> <span class="nf">get_scan_refine_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;start&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_scan_refine_start"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_scan_refine_start">[docs]</a>    <span class="k">def</span> <span class="nf">set_scan_refine_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="n">val</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;start&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;scan refine start must be an integer&quot;</span><span class="p">)</span></div>
+        
+        
+<div class="viewcode-block" id="Ptychography2D.get_decay"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_decay">[docs]</a>    <span class="k">def</span> <span class="nf">get_decay</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;decay&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_decay"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_decay">[docs]</a>    <span class="k">def</span> <span class="nf">set_decay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;decay&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;decay must be of the form [max, min, power]&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_iterations"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_iterations">[docs]</a>    <span class="k">def</span> <span class="nf">set_iterations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="n">val</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;iterations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;iterations must be an integer&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_energy"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_energy">[docs]</a>    <span class="k">def</span> <span class="nf">get_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;source&#39;</span><span class="p">][</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_energy"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_energy">[docs]</a>    <span class="k">def</span> <span class="nf">set_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;source&#39;</span><span class="p">][</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">val</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;energy must be a positive real number&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_px_pitch"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_px_pitch">[docs]</a>    <span class="k">def</span> <span class="nf">get_px_pitch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;pix_pitch&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_px_pitch"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_px_pitch">[docs]</a>    <span class="k">def</span> <span class="nf">set_px_pitch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;pix_pitch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;px pitch must take the form [dx, dy]&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_detector_bin"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_detector_bin">[docs]</a>    <span class="k">def</span> <span class="nf">get_detector_bin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;bin&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_detector_bin"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_detector_bin">[docs]</a>    <span class="k">def</span> <span class="nf">set_detector_bin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;bin&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;detector bin must take the form [binx, biny]&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_detector_min_max"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_detector_min_max">[docs]</a>    <span class="k">def</span> <span class="nf">get_detector_min_max</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;min_max&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_detector_min_max"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_detector_min_max">[docs]</a>    <span class="k">def</span> <span class="nf">set_detector_min_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;min_max&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;detector min max must take the form [min, max]&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_detector_optic_axis"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_detector_optic_axis">[docs]</a>    <span class="k">def</span> <span class="nf">get_detector_optic_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;optic_axis&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.set_detector_optic_axis"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_detector_optic_axis">[docs]</a>    <span class="k">def</span> <span class="nf">set_detector_optic_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;optic_axis&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;optic axis must take the form [x, y]&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_detector_crop"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_detector_crop">[docs]</a>    <span class="k">def</span> <span class="nf">get_detector_crop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;crop&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_detector_crop"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_detector_crop">[docs]</a>    <span class="k">def</span> <span class="nf">set_detector_crop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;crop&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;detector crop must take the form [x,y]&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_convergence"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_convergence">[docs]</a>    <span class="k">def</span> <span class="nf">get_convergence</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;convergence&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_convergence"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_convergence">[docs]</a>    <span class="k">def</span> <span class="nf">set_convergence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">is_number</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="kc">True</span> <span class="ow">and</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1">#do we need both of these??</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;convergence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;optics&#39;</span><span class="p">][</span><span class="s1">&#39;lens&#39;</span><span class="p">][</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;convergence must be a positive number&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_load_probe_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_load_probe_flag">[docs]</a>    <span class="k">def</span> <span class="nf">get_load_probe_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;load_flag&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_load_probe_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_load_probe_flag">[docs]</a>    <span class="k">def</span> <span class="nf">set_load_probe_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;load_flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;load flag must take a value of 1 or 0&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_load_probe_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_load_probe_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_load_probe_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;path&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_load_probe_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_load_probe_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_load_probe_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="c1">#todo : check if path is valid here??</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;probe path must be a string&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_probe_start"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_probe_start">[docs]</a>    <span class="k">def</span> <span class="nf">get_probe_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;start&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.set_probe_start"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_probe_start">[docs]</a>    <span class="k">def</span> <span class="nf">set_probe_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="c1">#todo : check if path is valid here??</span>
+        <span class="k">if</span> <span class="n">is_number</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;start&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;probe start must be a number&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_probe_alpha"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_probe_alpha">[docs]</a>    <span class="k">def</span> <span class="nf">get_probe_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.set_probe_alpha"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_probe_alpha">[docs]</a>    <span class="k">def</span> <span class="nf">set_probe_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="c1">#todo : check if path is valid here??</span>
+        <span class="k">if</span> <span class="n">is_number</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;probe&#39;</span><span class="p">][</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;probe alpha must be a number&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_load_object_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_load_object_flag">[docs]</a>    <span class="k">def</span> <span class="nf">get_load_object_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;object&#39;</span><span class="p">][</span><span class="s1">&#39;load_flag&#39;</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.set_load_object_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_load_object_flag">[docs]</a>    <span class="k">def</span> <span class="nf">set_load_object_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;object&#39;</span><span class="p">][</span><span class="s1">&#39;load_flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;object flag must take a value of 1 or 0&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_load_object_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_load_object_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_load_object_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;object&#39;</span><span class="p">][</span><span class="s1">&#39;path&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_load_object_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_load_object_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_load_object_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;object&#39;</span><span class="p">][</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;object path must be a string&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_scan_rotation"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_scan_rotation">[docs]</a>    <span class="k">def</span> <span class="nf">get_scan_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;rotation&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_scan_rotation"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_scan_rotation">[docs]</a>    <span class="k">def</span> <span class="nf">set_scan_rotation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">is_number</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;rotation&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;scan rotation must be a number&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_scan_step"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_scan_step">[docs]</a>    <span class="k">def</span> <span class="nf">get_scan_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;dR&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_scan_step"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_scan_step">[docs]</a>    <span class="k">def</span> <span class="nf">set_scan_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;dR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;scan step must take the form [dx, dy]&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_scan_size"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_scan_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_scan_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;N&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_scan_size"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_scan_size">[docs]</a>    <span class="k">def</span> <span class="nf">set_scan_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;N&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;scan size must take the form [x, y]&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.set_scan_region"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_scan_region">[docs]</a>    <span class="k">def</span> <span class="nf">set_scan_region</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+    <span class="c1">#scan region must take the form [x_start,x_end, y_start, y_end, x_step, y_step]</span>
+    <span class="c1">#start 0.0 = first px</span>
+    <span class="c1">#end 1.0 = last px</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;region&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;scan region must take the form [x_start,x_end, y_start, y_end, x_step, y_step]&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_scan_region"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_scan_region">[docs]</a>    <span class="k">def</span> <span class="nf">get_scan_region</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;common&#39;</span><span class="p">][</span><span class="s1">&#39;scan&#39;</span><span class="p">][</span><span class="s1">&#39;region&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.get_load_data_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_load_data_flag">[docs]</a>    <span class="k">def</span> <span class="nf">get_load_data_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;load_flag&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_load_data_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_load_data_flag">[docs]</a>    <span class="k">def</span> <span class="nf">set_load_data_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;load_flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;load data flag must take a value or 0 or 1&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_data_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_data_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;data_path&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_data_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_data_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;data_path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data path must be a string&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_dead_px_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_dead_px_flag">[docs]</a>    <span class="k">def</span> <span class="nf">get_dead_px_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;dead_pixel_flag&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_dead_px_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_dead_px_flag">[docs]</a>    <span class="k">def</span> <span class="nf">set_dead_px_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;dead_pixel_flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dead px flag must take a value of 0 or 1&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.get_dead_px_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_dead_px_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_dead_px_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;dead_pixel_path&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_dead_px_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_dead_px_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_dead_px_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;dead_pixel_path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dead px path must be a string&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_flat_field_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_flat_field_flag">[docs]</a>    <span class="k">def</span> <span class="nf">get_flat_field_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;flat_field_flag&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_flat_field_flag"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_flat_field_flag">[docs]</a>    <span class="k">def</span> <span class="nf">set_flat_field_flag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;flat_field_flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;flat field flag must take a value of 0 or 1&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_flat_field_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_flat_field_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_flat_field_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;flat_field_flag&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_flat_field_path"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_flat_field_path">[docs]</a>    <span class="k">def</span> <span class="nf">set_flat_field_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;flat_field_flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;flat field path must be a string&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_data_key"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_data_key">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_data_key"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_data_key">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">val</span>
+  
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data key must be a string&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_detector_pos"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_detector_pos">[docs]</a>    <span class="k">def</span> <span class="nf">get_detector_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;position&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_detector_pos"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_detector_pos">[docs]</a>    <span class="k">def</span> <span class="nf">set_detector_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;detector&#39;</span><span class="p">][</span><span class="s1">&#39;position&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;detector position must take the value [x_pos, y_pos_, z_pos]&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Ptychography2D.get_defocus"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_defocus">[docs]</a>    <span class="k">def</span> <span class="nf">get_defocus</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;optics&#39;</span><span class="p">][</span><span class="s1">&#39;lens&#39;</span><span class="p">][</span><span class="s1">&#39;defocus&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_defocus"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_defocus">[docs]</a>    <span class="k">def</span> <span class="nf">set_defocus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">is_number</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">][</span><span class="s1">&#39;optics&#39;</span><span class="p">][</span><span class="s1">&#39;lens&#39;</span><span class="p">][</span><span class="s1">&#39;defocus&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">val</span><span class="p">,</span> <span class="n">val</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;defocus must be a number&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_source_modes"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_source_modes">[docs]</a>    <span class="k">def</span> <span class="nf">get_source_modes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;source&#39;</span><span class="p">][</span><span class="s1">&#39;sx&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;source&#39;</span><span class="p">][</span><span class="s1">&#39;sy&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_source_modes"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_source_modes">[docs]</a>    <span class="k">def</span> <span class="nf">set_source_modes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;source&#39;</span><span class="p">][</span><span class="s1">&#39;sx&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;PIE&#39;</span><span class="p">][</span><span class="s1">&#39;source&#39;</span><span class="p">][</span><span class="s1">&#39;sy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;source modes must take the form [sx, sy]&#39;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_n_cores"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_n_cores">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_cores</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;cores&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_n_cores"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_n_cores">[docs]</a>    <span class="k">def</span> <span class="nf">set_n_cores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="n">val</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;cores&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;number of cores must be a positive integer&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_base_dir"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_base_dir">[docs]</a>    <span class="k">def</span> <span class="nf">get_base_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;base_dir&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_base_dir"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_base_dir">[docs]</a>    <span class="k">def</span> <span class="nf">set_base_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;base_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;base diretory must be a string&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.get_save_dir"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.get_save_dir">[docs]</a>    <span class="k">def</span> <span class="nf">get_save_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;save_dir&#39;</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="Ptychography2D.set_save_dir"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.set_save_dir">[docs]</a>    <span class="k">def</span> <span class="nf">set_save_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span> <span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">[</span><span class="s1">&#39;process&#39;</span><span class="p">][</span><span class="s1">&#39;save_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;save diretory must be a string&quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="Ptychography2D.save_json"><a class="viewcode-back" href="../../source/epsic_tools.html#epsic_tools.ptychography2D.Ptychography2D.save_json">[docs]</a>    <span class="k">def</span> <span class="nf">save_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ptyrex</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span> <span class="n">indent</span> <span class="o">=</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;json file saved to : &quot;</span> <span class="p">,</span> <span class="n">file_path</span><span class="p">)</span></div></div>
+    
+            
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, ePSIC
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

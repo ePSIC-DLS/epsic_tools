@@ -1,0 +1,366 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsic_tools.toolbox.define_probe_function &mdash; epsic_tools 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> epsic_tools
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">epsic_tools</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>epsic_tools.toolbox.define_probe_function</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for epsic_tools.toolbox.define_probe_function</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">constants</span> <span class="k">as</span> <span class="n">pc</span>
+<span class="kn">from</span> <span class="nn">numpy.fft</span> <span class="kn">import</span> <span class="n">fftshift</span><span class="p">,</span> <span class="n">ifft2</span><span class="p">,</span> <span class="n">ifftshift</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">h5py</span>
+
+
+<div class="viewcode-block" id="FuncAberrUV"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.define_probe_function.FuncAberrUV">[docs]</a><span class="k">def</span> <span class="nf">FuncAberrUV</span><span class="p">(</span><span class="n">u</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="n">aberrcoeff</span><span class="p">):</span>
+    
+    <span class="c1"># this function needs comments</span>
+     
+    <span class="c1"># input:</span>
+    <span class="c1"># u: Kx</span>
+    <span class="c1"># v: Ky</span>
+
+    <span class="n">u2</span> <span class="o">=</span> <span class="n">u</span><span class="o">*</span><span class="n">u</span>
+    <span class="n">u3</span> <span class="o">=</span> <span class="n">u2</span><span class="o">*</span><span class="n">u</span>
+    <span class="n">u4</span> <span class="o">=</span> <span class="n">u3</span><span class="o">*</span><span class="n">u</span>
+    
+    <span class="n">v2</span> <span class="o">=</span> <span class="n">v</span><span class="o">*</span><span class="n">v</span>
+    <span class="n">v3</span> <span class="o">=</span> <span class="n">v2</span><span class="o">*</span><span class="n">v</span>
+    <span class="n">v4</span> <span class="o">=</span> <span class="n">v3</span><span class="o">*</span><span class="n">v</span>
+    
+    <span class="c1"># aberr are in unit of meter.</span>
+    <span class="n">C1</span>   <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># defocus</span>
+    <span class="n">C12a</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># 2 stig</span>
+    <span class="n">C12b</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="c1"># 2 stig</span>
+    <span class="n">C23a</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="c1"># 3 stig</span>
+    <span class="n">C23b</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="c1"># 3 stig</span>
+    <span class="n">C21a</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="c1"># coma </span>
+    <span class="n">C21b</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="c1"># coma</span>
+    <span class="n">C3</span>   <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="c1"># Spherical abb</span>
+    <span class="n">C34a</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span> <span class="c1"># 4 stig</span>
+    <span class="n">C34b</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span> <span class="c1"># 4 stig</span>
+    <span class="n">C32a</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="c1"># star</span>
+    <span class="n">C32b</span> <span class="o">=</span> <span class="n">aberrcoeff</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span> <span class="c1"># star</span>
+    
+    <span class="c1"># output:  chi function. in unit of meter*radian.  multiply by 2pi/lambda to get dimensionless</span>
+    <span class="n">func_aberr</span> <span class="o">=</span>  <span class="mi">1</span><span class="o">/</span><span class="mi">2</span><span class="o">*</span><span class="n">C1</span><span class="o">*</span><span class="p">(</span><span class="n">u2</span><span class="o">+</span><span class="n">v2</span><span class="p">)</span>\
+            <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">C12a</span><span class="o">*</span><span class="p">(</span><span class="n">u2</span><span class="o">-</span><span class="n">v2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">C12b</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">v</span><span class="p">)</span>\
+            <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="o">*</span><span class="p">(</span><span class="n">C23a</span><span class="o">*</span><span class="p">(</span><span class="n">u3</span><span class="o">-</span><span class="mi">3</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">v2</span><span class="p">)</span> <span class="o">+</span> <span class="n">C23b</span><span class="o">*</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">u2</span><span class="o">*</span><span class="n">v</span> <span class="o">-</span> <span class="n">v3</span><span class="p">))</span>\
+            <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="o">*</span><span class="p">(</span><span class="n">C21a</span><span class="o">*</span><span class="p">(</span><span class="n">u3</span><span class="o">+</span><span class="n">u</span><span class="o">*</span><span class="n">v2</span><span class="p">)</span> <span class="o">+</span> <span class="n">C21b</span><span class="o">*</span><span class="p">(</span><span class="n">v3</span><span class="o">+</span><span class="n">u2</span><span class="o">*</span><span class="n">v</span><span class="p">))</span>\
+            <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="o">*</span> <span class="n">C3</span><span class="o">*</span><span class="p">(</span><span class="n">u4</span><span class="o">+</span><span class="n">v4</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">u2</span><span class="o">*</span><span class="n">v2</span><span class="p">)</span>\
+            <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="o">*</span> <span class="n">C34a</span><span class="o">*</span><span class="p">(</span><span class="n">u4</span><span class="o">-</span><span class="mi">6</span><span class="o">*</span><span class="n">u2</span><span class="o">*</span><span class="n">v2</span><span class="o">+</span><span class="n">v4</span><span class="p">)</span>\
+            <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="o">*</span> <span class="n">C34b</span><span class="o">*</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">u3</span><span class="o">*</span><span class="n">v</span><span class="o">-</span><span class="mi">4</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">v3</span><span class="p">)</span>\
+            <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="o">*</span> <span class="n">C32a</span><span class="o">*</span><span class="p">(</span><span class="n">u4</span><span class="o">-</span><span class="n">v4</span><span class="p">)</span>\
+            <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="o">*</span> <span class="n">C32b</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">u3</span><span class="o">*</span><span class="n">v</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">u</span><span class="o">*</span><span class="n">v3</span><span class="p">)</span>\
+    
+    <span class="k">return</span> <span class="n">func_aberr</span></div>
+
+
+
+<div class="viewcode-block" id="rad_array"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.define_probe_function.rad_array">[docs]</a><span class="k">def</span> <span class="nf">rad_array</span><span class="p">(</span><span class="n">arr_len</span><span class="p">):</span>
+    <span class="c1">#create array with values equal to distance in px from centre</span>
+    <span class="n">half_len</span> <span class="o">=</span> <span class="n">arr_len</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">half_len</span><span class="p">,</span> <span class="n">half_len</span><span class="p">,</span> <span class="n">arr_len</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">arr_len</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="n">arr_len</span><span class="p">,</span> <span class="n">arr_len</span><span class="p">))</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">v</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">v</span><span class="o">.</span><span class="n">T</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">v</span></div>
+
+
+
+<div class="viewcode-block" id="define_probe_function"><a class="viewcode-back" href="../../../source/epsic_tools.toolbox.html#epsic_tools.toolbox.define_probe_function.define_probe_function">[docs]</a><span class="k">def</span> <span class="nf">define_probe_function</span><span class="p">(</span><span class="n">V</span><span class="p">,</span><span class="n">alpha</span><span class="p">,</span> <span class="n">px_cal</span><span class="p">,</span><span class="n">array_px</span><span class="p">,</span> <span class="n">aberr_input</span><span class="p">,</span> <span class="n">dose</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">plot_me</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="c1">##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% </span>
+    <span class="c1">##% this function needs comments</span>
+    <span class="c1">#</span>
+    <span class="c1">#% ptycho.varfunctions.define_probe_function: Flag to indicate the function</span>
+    <span class="c1">#% has been executed</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#% Set up the lens aberrations:</span>
+    <span class="c1">#% Lens Aberrations (sorted by radial order):</span>
+    <span class="c1">#    aberr_input(1) = ptycho.aberr.C1;</span>
+    <span class="c1">#    aberr_input(2) = ptycho.aberr.C12a;</span>
+    <span class="c1">#    aberr_input(3) = ptycho.aberr.C12b;</span>
+    <span class="c1">#    aberr_input(4) = ptycho.aberr.C23a; </span>
+    <span class="c1">#    aberr_input(5) = ptycho.aberr.C23b; </span>
+    <span class="c1">#    aberr_input(6) = ptycho.aberr.C21a; </span>
+    <span class="c1">#    aberr_input(7) = ptycho.aberr.C21b; </span>
+    <span class="c1">#    aberr_input(8) = ptycho.aberr.C30a;</span>
+    <span class="c1">#    aberr_input(9) = ptycho.aberr.C34a;</span>
+    <span class="c1">#    aberr_input(10) = ptycho.aberr.C34b;</span>
+    <span class="c1">#    aberr_input(11) = ptycho.aberr.C32a;</span>
+    <span class="c1">#    aberr_input(12) = ptycho.aberr.C32b;</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+    <span class="n">l</span> <span class="o">=</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">h</span> <span class="o">*</span> <span class="n">pc</span><span class="o">.</span><span class="n">c</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">pc</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="n">V</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>  <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pc</span><span class="o">.</span><span class="n">e</span> <span class="o">*</span> <span class="n">V</span> <span class="o">*</span> <span class="n">pc</span><span class="o">.</span><span class="n">m_e</span> <span class="o">*</span> <span class="n">pc</span><span class="o">.</span><span class="n">c</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># relativistic wavelength</span>
+    <span class="c1">#% probe function</span>
+    <span class="c1">#% chi function</span>
+    <span class="n">cen</span> <span class="o">=</span> <span class="n">array_px</span> <span class="o">/</span> <span class="mi">2</span> <span class="c1"># center of array</span>
+    <span class="c1">#K_max = ((cen * px_cal) - (px_cal/2)) / l # max scattering vector </span>
+    <span class="n">K_px</span> <span class="o">=</span>  <span class="n">l</span> <span class="o">/</span> <span class="p">(</span><span class="n">px_cal</span> <span class="o">*</span> <span class="n">array_px</span><span class="p">)</span>
+    <span class="n">K_max</span> <span class="o">=</span> <span class="n">K_px</span> <span class="o">*</span> <span class="n">array_px</span>
+    <span class="c1">#print(K_px, K_max)</span>
+    <span class="n">Kx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">K_max</span> <span class="p">,</span> <span class="n">K_max</span><span class="p">,</span> <span class="n">array_px</span><span class="p">)</span>
+    <span class="n">Kx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">Kx</span><span class="p">,</span><span class="n">array_px</span><span class="p">,</span>  <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">Kx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Kx</span><span class="p">,</span> <span class="p">(</span><span class="n">array_px</span><span class="p">,</span> <span class="n">array_px</span><span class="p">))</span>
+    <span class="n">Ky</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">Kx</span><span class="p">)</span>
+    <span class="n">Kx</span> <span class="o">=</span> <span class="n">Kx</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">func_aber</span> <span class="o">=</span> <span class="n">FuncAberrUV</span><span class="p">(</span><span class="n">Kx</span><span class="p">,</span><span class="n">Ky</span><span class="p">,</span><span class="n">aberr_input</span><span class="p">)</span>
+    
+    <span class="c1">#% transfer function</span>
+    <span class="n">func_transfer</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span> <span class="p">(</span><span class="n">l</span><span class="p">))</span> <span class="o">*</span> <span class="n">func_aber</span><span class="p">)</span>
+    
+    <span class="c1">#% aperture function</span>
+    <span class="c1">#func_ObjApt = ones(size(ptycho.Kwp));</span>
+    <span class="c1">#func_ObjApt( ptycho.Kwp &gt; ptycho.ObjApt_angle) = 0;</span>
+    <span class="c1">#array_px = Kx.shape</span>
+    <span class="n">func_ObjApt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">array_px</span><span class="p">,</span> <span class="n">array_px</span><span class="p">),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[:</span><span class="n">array_px</span><span class="p">,</span> <span class="p">:</span><span class="n">array_px</span><span class="p">]</span>
+    
+    <span class="n">circle</span> <span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">xx</span> <span class="o">-</span> <span class="n">cen</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">yy</span> <span class="o">-</span> <span class="n">cen</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">alpha_px</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="n">K_px</span> <span class="c1"># alpha in px</span>
+    <span class="n">func_ObjApt</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">circle</span><span class="o">&lt;</span> <span class="n">alpha_px</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="c1">#% dose equals to the summed intensity of the average ronchigram.</span>
+    <span class="c1">#dose = sum(ptycho.pacbed(:)) *1.0;</span>
+    <span class="c1">#% for resampled ronchigram</span>
+    <span class="c1">#% pacbed_rs = interp2(tx_wp,ty_wp,mean_m_wp,Kx,Ky,&#39;cubic&#39;,0);</span>
+    <span class="c1">#% dose = sum(pacbed_rs(:)) *1.0;</span>
+    
+    <span class="c1">#% normalize the Objective Aperture to the desired number of electrons</span>
+    <span class="n">scaling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dose</span><span class="o">/</span><span class="n">func_ObjApt</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="n">func_ObjApt</span> <span class="o">=</span> <span class="n">func_ObjApt</span><span class="o">*</span> <span class="n">scaling</span>
+    
+    <span class="c1">#% convergence aperture function; to filter out the updated probe func</span>
+    <span class="c1">#% during ptychography iterations. </span>
+    <span class="c1">#% ObjAptMask = func_ObjApt./sum(func_ObjApt(:));</span>
+    
+    <span class="c1">#% probe function - reciprocal space</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">func_ObjApt</span><span class="o">*</span><span class="n">func_transfer</span>
+    <span class="c1">#% probe function - real space</span>
+    <span class="n">func_probe</span><span class="o">=</span><span class="n">fftshift</span><span class="p">(</span><span class="n">ifft2</span><span class="p">(</span><span class="n">ifftshift</span><span class="p">(</span><span class="n">A</span><span class="p">)));</span>
+    
+    <span class="k">if</span> <span class="n">plot_me</span><span class="p">:</span>
+        <span class="n">fig_mul</span> <span class="o">=</span> <span class="mf">0.0625</span>
+        <span class="c1">#max_fig = px_cal * array_px</span>
+        <span class="n">im_lim</span> <span class="o">=</span> <span class="p">[</span><span class="n">cen</span> <span class="o">-</span> <span class="p">(</span><span class="n">array_px</span> <span class="o">*</span> <span class="n">fig_mul</span><span class="p">),</span> <span class="n">cen</span> <span class="o">+</span> <span class="p">(</span><span class="n">array_px</span> <span class="o">*</span> <span class="n">fig_mul</span><span class="p">)]</span>
+        <span class="n">fig_lim</span> <span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">px_cal</span> <span class="o">*</span><span class="n">array_px</span> <span class="o">*</span><span class="n">fig_mul</span> <span class="p">,</span><span class="n">px_cal</span> <span class="o">*</span><span class="n">array_px</span> <span class="o">*</span><span class="n">fig_mul</span><span class="p">]</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">;</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="p">[[</span><span class="n">ax11</span><span class="p">,</span> <span class="n">ax12</span><span class="p">],</span> <span class="p">[</span><span class="n">ax21</span><span class="p">,</span> <span class="n">ax22</span><span class="p">]]</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax11</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">A</span><span class="p">))</span><span class="c1">#axis square;colorbar; axis off</span>
+        <span class="n">ax11</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Aperture Phase Surface&#39;</span><span class="p">)</span>
+        <span class="n">ax11</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">im_lim</span><span class="p">)</span>
+        <span class="n">ax11</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">im_lim</span><span class="p">)</span>
+        <span class="n">ax12</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">func_probe</span><span class="p">))</span><span class="c1">#;axis image; colorbar; axis off</span>
+        <span class="n">ax12</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Probe Function&#39;</span><span class="p">)</span>
+        <span class="n">ax12</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">im_lim</span><span class="p">)</span>
+        <span class="n">ax12</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">im_lim</span><span class="p">)</span>
+        <span class="n">ax21</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">func_probe</span><span class="p">))</span>
+        <span class="n">ax21</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;real&#39;</span><span class="p">)</span>
+        <span class="n">ax21</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">im_lim</span><span class="p">)</span>
+        <span class="n">ax21</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">im_lim</span><span class="p">)</span>
+        <span class="n">ax22</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">func_probe</span><span class="p">))</span>
+        <span class="n">ax22</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;imag&#39;</span><span class="p">)</span>
+        <span class="n">ax22</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">im_lim</span><span class="p">)</span>
+        <span class="n">ax22</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">im_lim</span><span class="p">)</span>
+        <span class="c1">#plt.title(str(aberr_input[0]) + str(aberr_input[7]))</span>
+        <span class="n">x_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">cen</span> <span class="o">*</span> <span class="n">px_cal</span><span class="p">,</span> <span class="n">cen</span><span class="o">*</span><span class="n">px_cal</span><span class="p">,</span> <span class="n">px_cal</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_list</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">func_probe</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">array_px</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="p">:]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">func_probe</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">array_px</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="p">:]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_list</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">func_probe</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">array_px</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="p">:]))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">fig_lim</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;df = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">aberr_input</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39; Cs = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">aberr_input</span><span class="p">[</span><span class="mi">7</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">func_probe</span>   </div>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, ePSIC
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

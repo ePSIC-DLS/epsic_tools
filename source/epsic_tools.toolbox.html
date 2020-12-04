@@ -1,0 +1,1116 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>epsic_tools.toolbox package &mdash; epsic_tools 0.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home" alt="Documentation Home"> epsic_tools
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">epsic_tools.toolbox package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-epsic_tools.toolbox.define_probe_function">epsic_tools.toolbox.define_probe_function module</a></li>
+<li><a class="reference internal" href="#module-epsic_tools.toolbox.make_merlin_mask">epsic_tools.toolbox.make_merlin_mask module</a></li>
+<li><a class="reference internal" href="#module-epsic_tools.toolbox.make_merlin_mask_test">epsic_tools.toolbox.make_merlin_mask_test module</a></li>
+<li><a class="reference internal" href="#module-epsic_tools.toolbox.ptycho_utils">epsic_tools.toolbox.ptycho_utils module</a></li>
+<li><a class="reference internal" href="#module-epsic_tools.toolbox.radial_profile">epsic_tools.toolbox.radial_profile module</a></li>
+<li><a class="reference internal" href="#module-epsic_tools.toolbox.sim_utils">epsic_tools.toolbox.sim_utils module</a></li>
+<li><a class="reference internal" href="#module-epsic_tools.toolbox.warp_3d">epsic_tools.toolbox.warp_3d module</a></li>
+<li><a class="reference internal" href="#module-epsic_tools.toolbox">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">epsic_tools</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>epsic_tools.toolbox package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/source/epsic_tools.toolbox.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="epsic-tools-toolbox-package">
+<h1>epsic_tools.toolbox package<a class="headerlink" href="#epsic-tools-toolbox-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-epsic_tools.toolbox.define_probe_function">
+<span id="epsic-tools-toolbox-define-probe-function-module"></span><h2>epsic_tools.toolbox.define_probe_function module<a class="headerlink" href="#module-epsic_tools.toolbox.define_probe_function" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="epsic_tools.toolbox.define_probe_function.FuncAberrUV">
+<code class="sig-prename descclassname">epsic_tools.toolbox.define_probe_function.</code><code class="sig-name descname">FuncAberrUV</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">u</span></em>, <em class="sig-param"><span class="n">v</span></em>, <em class="sig-param"><span class="n">aberrcoeff</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/define_probe_function.html#FuncAberrUV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.define_probe_function.FuncAberrUV" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.define_probe_function.define_probe_function">
+<code class="sig-prename descclassname">epsic_tools.toolbox.define_probe_function.</code><code class="sig-name descname">define_probe_function</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">V</span></em>, <em class="sig-param"><span class="n">alpha</span></em>, <em class="sig-param"><span class="n">px_cal</span></em>, <em class="sig-param"><span class="n">array_px</span></em>, <em class="sig-param"><span class="n">aberr_input</span></em>, <em class="sig-param"><span class="n">dose</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">plot_me</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/define_probe_function.html#define_probe_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.define_probe_function.define_probe_function" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.define_probe_function.rad_array">
+<code class="sig-prename descclassname">epsic_tools.toolbox.define_probe_function.</code><code class="sig-name descname">rad_array</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">arr_len</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/define_probe_function.html#rad_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.define_probe_function.rad_array" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-epsic_tools.toolbox.make_merlin_mask">
+<span id="epsic-tools-toolbox-make-merlin-mask-module"></span><h2>epsic_tools.toolbox.make_merlin_mask module<a class="headerlink" href="#module-epsic_tools.toolbox.make_merlin_mask" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="epsic_tools.toolbox.make_merlin_mask.add_to_mask">
+<code class="sig-prename descclassname">epsic_tools.toolbox.make_merlin_mask.</code><code class="sig-name descname">add_to_mask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mask</span></em>, <em class="sig-param"><span class="n">pix_list</span></em>, <em class="sig-param"><span class="n">save_path</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/make_merlin_mask.html#add_to_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.make_merlin_mask.add_to_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an arbitrary list of pixels to a mask.
+Parameters
+__________
+mask: pyxem ElectronDiffraction2D</p>
+<blockquote>
+<div><p>mask as pyxem object</p>
+</div></blockquote>
+<dl class="simple">
+<dt>pix_list: list of tuples of ints</dt><dd><p>list of pixels expressed as tuples to be added to a mask</p>
+</dd>
+<dt>save_path: str</dt><dd><p>default None. If desired to save this new version, full path of
+h5 file to be provided here.</p>
+</dd>
+</dl>
+<p>mask_new: pyxem ElectronDiffraction2D</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.make_merlin_mask.make_mask">
+<code class="sig-prename descclassname">epsic_tools.toolbox.make_merlin_mask.</code><code class="sig-name descname">make_mask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">flat_field</span></em>, <em class="sig-param"><span class="n">hot_pix_factor</span></em>, <em class="sig-param"><span class="n">mask_cross</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">show_mask</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">dest_h5_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">show_hist</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/make_merlin_mask.html#make_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.make_merlin_mask.make_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates mask for Merlin Medipix 
+Parameters:
+_____________
+flat_field: str</p>
+<blockquote>
+<div><p>full path of the flat-field mib data</p>
+</div></blockquote>
+<dl class="simple">
+<dt>hot_pix_factor: float</dt><dd><p>intensity factor above average intensity to determine hot pixels</p>
+</dd>
+<dt>mask_cross: bool</dt><dd><p>Default False. Mask out the central cross on quad chip</p>
+</dd>
+<dt>show_mask: bool</dt><dd><p>Default True. For plotting the mask.</p>
+</dd>
+<dt>dest_h5_path: str</dt><dd><p>default None. full path of the h5 file to be saved. 
+key for mask: ‘merlin_mask’. A pyxem version of the mask is also 
+saved in the same destination.</p>
+</dd>
+<dt>show_hist: bool</dt><dd><p>If passed as True a histogram of the flat-feild data is shown 
+(averaged if the data is a stack)</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>mask: pyxem ElectronDiffraction2D</dt><dd><p>mask pyxem object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsic_tools.toolbox.make_merlin_mask_test">
+<span id="epsic-tools-toolbox-make-merlin-mask-test-module"></span><h2>epsic_tools.toolbox.make_merlin_mask_test module<a class="headerlink" href="#module-epsic_tools.toolbox.make_merlin_mask_test" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="epsic_tools.toolbox.make_merlin_mask_test.add_to_mask">
+<code class="sig-prename descclassname">epsic_tools.toolbox.make_merlin_mask_test.</code><code class="sig-name descname">add_to_mask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mask</span></em>, <em class="sig-param"><span class="n">pix_list</span></em>, <em class="sig-param"><span class="n">save_path</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/make_merlin_mask_test.html#add_to_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.make_merlin_mask_test.add_to_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an arbitrary list of pixels to a mask.
+Parameters
+__________
+mask: pyxem ElectronDiffraction2D</p>
+<blockquote>
+<div><p>mask as pyxem object</p>
+</div></blockquote>
+<dl class="simple">
+<dt>pix_list: list of tuples of ints</dt><dd><p>list of pixels expressed as tuples to be added to a mask</p>
+</dd>
+<dt>save_path: str</dt><dd><p>default None. If desired to save this new version, full path of
+h5 file to be provided here.</p>
+</dd>
+</dl>
+<p>mask_new: pyxem ElectronDiffraction2D</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.make_merlin_mask_test.make_mask">
+<code class="sig-prename descclassname">epsic_tools.toolbox.make_merlin_mask_test.</code><code class="sig-name descname">make_mask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">flat_field</span></em>, <em class="sig-param"><span class="n">hot_pix_factor</span></em>, <em class="sig-param"><span class="n">show_mask</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">dest_h5_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">show_hist</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/make_merlin_mask_test.html#make_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.make_merlin_mask_test.make_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates mask for Merlin Medipix 
+Parameters:
+_____________
+flat_field: str</p>
+<blockquote>
+<div><p>full path of the flat-field mib data</p>
+</div></blockquote>
+<dl class="simple">
+<dt>hot_pix_factor: float</dt><dd><p>intensity factor above average intensity to determine hot pixels</p>
+</dd>
+<dt>show_mask: bool</dt><dd><p>Default True. For plotting the mask.</p>
+</dd>
+<dt>dest_h5_path: str</dt><dd><p>default None. full path of the h5 file to be saved. 
+key for mask: ‘merlin_mask’. A pyxem version of the mask is also 
+saved in the same destination.</p>
+</dd>
+<dt>show_hist: bool</dt><dd><p>If passed as True a histogram of the flat-feild data is shown 
+(averaged if the data is a stack)</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>mask: pyxem ElectronDiffraction2D</dt><dd><p>mask pyxem object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsic_tools.toolbox.ptycho_utils">
+<span id="epsic-tools-toolbox-ptycho-utils-module"></span><h2>epsic_tools.toolbox.ptycho_utils module<a class="headerlink" href="#module-epsic_tools.toolbox.ptycho_utils" title="Permalink to this headline">¶</a></h2>
+<p>Created on Fri May 15 22:52:15 2020</p>
+<p>&#64;author: eha56862</p>
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.crop_recon_obj">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">crop_recon_obj</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">json_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#crop_recon_obj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.crop_recon_obj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.duplicate_json">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">duplicate_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_json_path</span></em>, <em class="sig-param"><span class="n">new_json_path</span></em>, <em class="sig-param"><span class="n">param_to_change</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#duplicate_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.duplicate_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>This gets a source json file and duplicates it, changing a parameter if declared
+Parameters
+____________
+source_json_path: str</p>
+<blockquote>
+<div><p>full path of the starting json file</p>
+</div></blockquote>
+<dl class="simple">
+<dt>new_json_path: str</dt><dd><p>full path of the new json file</p>
+</dd>
+<dt>param_to_change: tuple of (str, new_val) </dt><dd><p>default None - key of the parameter to be changed as first el of tuple and the new value as the second el.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>data_dict: dict</dt><dd><p>The new dict if anything changed.</p>
+</dd>
+</dl>
+<p>TODO: Fix the ugly limited dict depth implementation!</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.e_lambda">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">e_lambda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">e_0</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#e_lambda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.e_lambda" title="Permalink to this definition">¶</a></dt>
+<dd><p>relativistic electron wavelength</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>e_0</strong> – int
+accelerating voltage in volts</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>e_lambda: float</dt><dd><p>wavelength in meters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_RMSE">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_RMSE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dist_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_RMSE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_RMSE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Input: 
+dist_list: list of floats</p>
+<blockquote>
+<div><p>atomic distances</p>
+</div></blockquote>
+<dl class="simple">
+<dt>returns</dt><dd><p>RMSE of the list elements</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_error">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_error</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_error" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>file_path: str</dt><dd><p>full path of the recon file. It check if it is frtom ptypy or ptyREX</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>errors: np.array</dt><dd><p>error as numpy array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_fft">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_fft</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">obj_arr</span></em>, <em class="sig-param"><span class="n">crop</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">apply_hann</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_fft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_fft" title="Permalink to this definition">¶</a></dt>
+<dd><p>obj_arr: numpy.ndarray
+crop: float</p>
+<blockquote>
+<div><p>fraction of FOV to crop before fft. default None</p>
+</div></blockquote>
+<dl class="simple">
+<dt>apply_hann: bool</dt><dd><p>If True, hanning window applied before fft</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>obj_fft: numpy.ndarray</dt><dd><p>abs array of the fft</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_hdf5_complex_probe">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_hdf5_complex_probe</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_hdf5_complex_probe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_hdf5_complex_probe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_hdf5_error">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_hdf5_error</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_hdf5_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_hdf5_error" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_hdf5_object_modulus">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_hdf5_object_modulus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5_file</span></em>, <em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_hdf5_object_modulus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_hdf5_object_modulus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_hdf5_object_phase">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_hdf5_object_phase</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5_file</span></em>, <em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_hdf5_object_phase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_hdf5_object_phase" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_hdf5_probe_modulus">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_hdf5_probe_modulus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_hdf5_probe_modulus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_hdf5_probe_modulus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_hdf5_probe_phase">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_hdf5_probe_phase</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_hdf5_probe_phase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_hdf5_probe_phase" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_json_params">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_json_params</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">h5_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_json_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_json_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_json_pixelSize">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_json_pixelSize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">json_file</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_json_pixelSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_json_pixelSize" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>json_file: str</dt><dd><p>full path of the json file.</p>
+</dd>
+</dl>
+<p>Returns
+pixelSize: float</p>
+<blockquote>
+<div><p>reconstruction pixel size in (m)</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_obj_array">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_obj_array</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_obj_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_obj_array" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><dl class="simple">
+<dt>file_path: str</dt><dd><p>full path of the recon file. It check if it is frtom ptypy or ptyREX</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>data_arr: np.array</dt><dd><p>complex object numpy array</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>TODO: if input is json check if there is a similarly named hdf file in the same folder</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_probe_array">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_probe_array</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_probe_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_probe_array" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>file_path: str</dt><dd><p>full path of the recon file. It check if it is frtom ptypy or ptyREX</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>probe_data_arr: np.array</dt><dd><p>complex probe numpy array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.get_sampling_factor">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">get_sampling_factor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">d</span></em>, <em class="sig-param"><span class="n">n</span></em>, <em class="sig-param"><span class="n">dr</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#get_sampling_factor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.get_sampling_factor" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>x: float</dt><dd><p>pixelSize * number of pixels in probe</p>
+</dd>
+<dt>d: float</dt><dd><p>probe diameter in m</p>
+</dd>
+<dt>n: int</dt><dd><p>number of probe positions</p>
+</dd>
+<dt>dr: float</dt><dd><p>step size</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>s: float</dt><dd><p>sampling factor</p>
+</dd>
+</dl>
+<p>Ref: Darren Batey PhD Thesis, Page 68.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.json_to_dict">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">json_to_dict</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">json_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#json_to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.json_to_dict" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>json_path: str</dt><dd><p>full path of the json file.</p>
+</dd>
+</dl>
+<p>json_dict: dictionary</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.kdtree_NN">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">kdtree_NN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">experiment</span></em>, <em class="sig-param"><span class="n">truth</span></em>, <em class="sig-param"><span class="n">search_rad</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#kdtree_NN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.kdtree_NN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs sklearn KDTree proximity algorithm on the data
+Parameters
+___________
+experiment: list</p>
+<blockquote>
+<div><p>list of atomic position coordinates in the experimental data</p>
+</div></blockquote>
+<dl class="simple">
+<dt>truth: list</dt><dd><p>list of atomic position coordinates in the ground truth</p>
+</dd>
+<dt>search_rad: float</dt><dd><p>radius to search for nearest neighbour</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>nn_results: dict</dt><dd><dl class="simple">
+<dt>dict containing the following keys:</dt><dd><p>TP list - as paired atoms coordinates and there distances
+FP list
+FN list
+Precision
+Recall
+RMSE of distances</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.load_dict_from_hdf5">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">load_dict_from_hdf5</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#load_dict_from_hdf5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.load_dict_from_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>recursively loads an hdf5 file to a nested dict</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.load_recon">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">load_recon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#load_recon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.load_recon" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.load_series">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">load_series</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pn</span></em>, <em class="sig-param"><span class="n">crop_to</span></em>, <em class="sig-param"><span class="n">sort_by</span><span class="o">=</span><span class="default_value">'rot'</span></em>, <em class="sig-param"><span class="n">blur</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">verbose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#load_series"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.load_series" title="Permalink to this definition">¶</a></dt>
+<dd><p>loads all ptycho reconstructions in a folder and sorts by a parameter</p>
+<p>pn : String pathname of folder</p>
+<p>sort_by: ‘rot’ or ‘step’ parameter by which to sort the data</p>
+<p>crop_to: Int size of cropped object reconstruction</p>
+<p>blur: Int to pass as sigma to gaussian blur object phase. 0 = no blur</p>
+<p>verbose: Bool to print detailed output</p>
+<p>d_s: hyperspy singnal2D object function</p>
+<p>p_s: hyperspy singnal2D probe function</p>
+<p>d_s_fft: hyperspy singnal2D fourier transfor of object function</p>
+<p>rad_fft: hyperspy singnal1D object radial profile of d_s_fft</p>
+<p>r_s: hyperspy signal1D object scan rotation</p>
+<p>s_s: hyperspy signal1D object probe step size</p>
+<p>e_s: hyperspy signal1D object final error value</p>
+<p>from epsic_tools.toolbox.ptychography.load_pycho_series import load_series
+pn = r’Y:0cm26481-1processingMerlin00130_80kV_graphene_600C_ptyclusterprocessingpycho’
+d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s = load_series(pn,sort_by = ‘rot’, crop_to = 80)
+hs.plot.plot_signals([d_s,p_s,d_s_fft, rad_fft], navigator_list=[r_s,s_s, e_s,None])</p>
+<p>Break loading from hdf file into seperate functions</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.plot_ptyREX_output">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">plot_ptyREX_output</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">json_path</span></em>, <em class="sig-param"><span class="n">save_fig</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">crop</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#plot_ptyREX_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.plot_ptyREX_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>To save the ptyREX recon output
+Parameters
+———-
+json_path: str</p>
+<blockquote>
+<div><p>full path of the json file. This figure output will be saved in this folder.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>save_fig: str, default None</dt><dd><p>In case we want the figure to be  saved the full path should be given here
+keyword argument.</p>
+</dd>
+<dt>crop: Bool</dt><dd><p>default False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.plot_ptyr">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">plot_ptyr</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#plot_ptyr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.plot_ptyr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the real and imaginary parts of a ptypy recon file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.ptycho_utils.save_dict_to_hdf5">
+<code class="sig-prename descclassname">epsic_tools.toolbox.ptycho_utils.</code><code class="sig-name descname">save_dict_to_hdf5</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dic</span></em>, <em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">overwrite</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/ptycho_utils.html#save_dict_to_hdf5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.ptycho_utils.save_dict_to_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>recursively saves a nested dict into an hdf5 file</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsic_tools.toolbox.radial_profile">
+<span id="epsic-tools-toolbox-radial-profile-module"></span><h2>epsic_tools.toolbox.radial_profile module<a class="headerlink" href="#module-epsic_tools.toolbox.radial_profile" title="Permalink to this headline">¶</a></h2>
+<p>Created on Thu Feb 13 15:37:27 2020</p>
+<p>&#64;author: gys37319</p>
+<dl class="py function">
+<dt id="epsic_tools.toolbox.radial_profile.radial_profile">
+<code class="sig-prename descclassname">epsic_tools.toolbox.radial_profile.</code><code class="sig-name descname">radial_profile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">center</span></em>, <em class="sig-param"><span class="n">nRad</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/radial_profile.html#radial_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.radial_profile.radial_profile" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate radial profile for a 2D array</p>
+<p>data : 2D numpy array</p>
+<p>center: tuple of x,y center positions</p>
+<p>nRad: integer number of radial slices 
+Returns
+——-</p>
+<p>radialprofile : nD numpy array corresponding to nRad</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.radial_profile.radial_profile_stack">
+<code class="sig-prename descclassname">epsic_tools.toolbox.radial_profile.</code><code class="sig-name descname">radial_profile_stack</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hs_obj</span></em>, <em class="sig-param"><span class="n">center</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/radial_profile.html#radial_profile_stack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.radial_profile.radial_profile_stack" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate radial profile from a hyperspy Signal2D object</p>
+<p>hs_obj : hyperspy signal2D object</p>
+<p>center: tuple of x,y center positions</p>
+<p>radial_profiles : hyperspy signal1D object</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.radial_profile.sector_mask">
+<code class="sig-prename descclassname">epsic_tools.toolbox.radial_profile.</code><code class="sig-name descname">sector_mask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">centre</span></em>, <em class="sig-param"><span class="n">radius</span></em>, <em class="sig-param"><span class="n">angle_range</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/radial_profile.html#sector_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.radial_profile.sector_mask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a boolean mask for a circular sector. The start/stop angles in  
+<cite>angle_range</cite> should be given in clockwise order.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsic_tools.toolbox.sim_utils">
+<span id="epsic-tools-toolbox-sim-utils-module"></span><h2>epsic_tools.toolbox.sim_utils module<a class="headerlink" href="#module-epsic_tools.toolbox.sim_utils" title="Permalink to this headline">¶</a></h2>
+<p>Created on Fri Mar 13 09:31:39 2020</p>
+<p>&#64;author: eha56862
+These functions are utilities for determining the parameters for the simulation matrix</p>
+<dl class="py class">
+<dt id="epsic_tools.toolbox.sim_utils.NestedDefaultDict">
+<em class="property">class </em><code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">NestedDefaultDict</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#NestedDefaultDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.NestedDefaultDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.defaultdict</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.calc_camera_length">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">calc_camera_length</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_hs</span></em>, <em class="sig-param"><span class="n">bf_rad</span></em>, <em class="sig-param"><span class="n">angle</span></em>, <em class="sig-param"><span class="n">pixel_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#calc_camera_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.calc_camera_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>it returns the camera length based on the detector pixel size and a known value
+in the diffraction plane - it plots the sum dp with the known value marked with circle roi
+input:</p>
+<blockquote>
+<div><p>data_hs: 4D-STEM hypespy object
+bf_rad: int</p>
+<blockquote>
+<div><p>bf radius in pixels</p>
+</div></blockquote>
+<dl class="simple">
+<dt>angle: float</dt><dd><p>known angle in diff plane in rad</p>
+</dd>
+<dt>pixel_size: float</dt><dd><p>physcial size of detector pix in m</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>returns</dt><dd><dl class="simple">
+<dt>CL: float</dt><dd><p>camera length in meters</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.calc_pixelSize">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">calc_pixelSize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">acc_voltage</span></em>, <em class="sig-param"><span class="n">pixel_array</span></em>, <em class="sig-param"><span class="n">det_pixelSize</span></em>, <em class="sig-param"><span class="n">camera_length</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#calc_pixelSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.calc_pixelSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the pixelSize in ptycho recon</p>
+<dl class="simple">
+<dt>acc_voltage: int</dt><dd><p>accelerating voltage in V</p>
+</dd>
+<dt>pixel_array: int</dt><dd><p>number of pixels in detector in x or y (assumed square)</p>
+</dd>
+<dt>det_pixelSize: float</dt><dd><p>detector physical pixel size in m</p>
+</dd>
+<dt>camera_length: float</dt><dd><p>camera length</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>pixelSize: float</dt><dd><p>recon pixel size in m</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.calc_probe_size">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">calc_probe_size</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pixelSize</span></em>, <em class="sig-param"><span class="n">imageSize</span></em>, <em class="sig-param"><span class="n">_lambda</span></em>, <em class="sig-param"><span class="n">probe_def</span></em>, <em class="sig-param"><span class="n">probe_semiAngle</span></em>, <em class="sig-param"><span class="n">plot_probe</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">return_probeArr</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#calc_probe_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.calc_probe_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>this function is for giving an estimate of the probe size to set up the sim ptycho data accordingly.
+:param pixelSize: float</p>
+<blockquote>
+<div><p>pixel size in (m)</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>imageSize</strong> – list of ints
+image size in (pixels)</p></li>
+<li><p><strong>_lambda</strong> – float
+in (m) - electron wavelength</p></li>
+<li><p><strong>probe_def</strong> – float
+probe defocus in m</p></li>
+<li><p><strong>probe_semiAngle</strong> – float
+(rad) probe semi-angle</p></li>
+<li><p><strong>plot_probe</strong> – boolean
+default to True - to plot the probe imag / real</p></li>
+<li><p><strong>return_probeArr</strong> – boolean
+default to False - if the probe array is needed as output</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>plots probe in the real and fourier space - if plot_probe is True</p></li>
+</ul>
+<dl>
+<dt>probe_rad: float</dt><dd><p>in (m) probe radius
+if return_probeArr set to True:</p>
+<blockquote>
+<div><p>[probe_rad, psiShift]: with
+psiShift: np.array</p>
+<blockquote>
+<div><p>probe in real space</p>
+</div></blockquote>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_adf">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_adf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_hs</span></em>, <em class="sig-param"><span class="n">bf_rad</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_adf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_adf" title="Permalink to this definition">¶</a></dt>
+<dd><p>provides an adf image - as outer angle it defaults to centre pixel position plus the bf disc radius
+and as inner it uses the bf disc radius
+:param data_hs: hyperspy Signal2D object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>bf_rad</strong> – int
+radius of the bright field disc in pixels</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+<p>adf: hyperspy Signal2D object</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_bf_disc">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_bf_disc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_hs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_bf_disc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_bf_disc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interactively gets the radius and centre position of the bright filed disc
+:param
+data_hs: hyperspy Signal2D object</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>circ_roi: hs roi object</dt><dd><p>roi object with centre and radius</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_disc_overlap">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_disc_overlap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rad</span></em>, <em class="sig-param"><span class="n">dist</span></em>, <em class="sig-param"><span class="n">print_output</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_disc_overlap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_disc_overlap" title="Permalink to this definition">¶</a></dt>
+<dd><p>More suitable for Wigner - as it aims to minimse triple overlap regions
+for ptyREX will be using the simpler function get_overlap
+to calculate disc over lap in image or diff plane</p>
+<dl class="simple">
+<dt>rad: float</dt><dd><p>radius of probe or probe semi-angle</p>
+</dd>
+<dt>dist: float</dt><dd><p>step distance or the angle to the reflection of interest</p>
+</dd>
+</dl>
+<p>returns</p>
+<p>Percentage_overlap: float</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_figs">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_figs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim_matrix_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_figs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_figs" title="Permalink to this definition">¶</a></dt>
+<dd><p>returns the list of the png figure of the final recon</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_overlap">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_overlap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">probe_rad</span></em>, <em class="sig-param"><span class="n">step_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_overlap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_overlap" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>probe_rad: float</dt><dd><p>probe radius in m (or rad)</p>
+</dd>
+<dt>step_size: float</dt><dd><p>scan step size in m (or known diffraction disc position in rad)</p>
+</dd>
+</dl>
+<p>Returns
+probe_overlap: float</p>
+<blockquote>
+<div><p>percentage probe overlap</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_potential">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_potential</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim_file_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_potential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_potential" title="Permalink to this definition">¶</a></dt>
+<dd><p>gets the pyprismatic h5 file and outputs the potential - in V.Angstroms</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_ptyREX_ready">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_ptyREX_ready</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim_matrix_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_ptyREX_ready"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_ptyREX_ready" title="Permalink to this definition">¶</a></dt>
+<dd><p>checks for the folders that have ptyREX json file</p>
+<p>Returns
+ptyREX_dirs: list</p>
+<blockquote>
+<div><p>list of dirs</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_ptyREX_recon_list">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_ptyREX_recon_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim_matrix_path</span></em>, <em class="sig-param"><span class="n">run_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_ptyREX_recon_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_ptyREX_recon_list" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>sim_matrix_path: str</dt><dd><p>full path of the simulation matrix</p>
+</dd>
+<dt>run_id: str</dt><dd><p>default None. If provided the json files with run_id in their names will be
+returned.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>common_dirs: list</dt><dd><p>List of json files that have identically named hdf5 file in the same folder</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_raw_dir_list">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_raw_dir_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim_matrix_path</span></em>, <em class="sig-param"><span class="n">get_all</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_raw_dir_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_raw_dir_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>checks for the folders with only two files and identify them as raw
+get_all set to True returns all the folders</p>
+<dl class="simple">
+<dt>sim_matrix_path: str</dt><dd><p>full path holding the sim matrix</p>
+</dd>
+<dt>get_all: bool</dt><dd><p>Default False. Set to True if all folders needed</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>raw_dirs: list</dt><dd><p>list of directories</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.get_step_size">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">get_step_size</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">probe_rad</span></em>, <em class="sig-param"><span class="n">target_overlap</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_step_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_step_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>knowing the probe radius and the target overlap percentage this function returns
+the suitable step size.
+Parameters
+___________
+probe_rad: float</p>
+<blockquote>
+<div><p>probe radius in m</p>
+</div></blockquote>
+<dl class="simple">
+<dt>target_overlap: float</dt><dd><p>overlap fraction</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>step_size: float</dt><dd><p>the step size  in m needed to get the target overlap</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.json_to_dict_sim">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">json_to_dict_sim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">json_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#json_to_dict_sim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.json_to_dict_sim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.makeFourierCoordinates">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">makeFourierCoordinates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">N</span></em>, <em class="sig-param"><span class="n">pixelSize</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#makeFourierCoordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.makeFourierCoordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>this function creates a set of coordinates in the Fourier space
+Input
+________
+N: np.array of int</p>
+<blockquote>
+<div><p>image size in pixels. np.array((Nx,Ny))</p>
+</div></blockquote>
+<dl class="simple">
+<dt>pixelSize: float</dt><dd><p>pixel size in A</p>
+</dd>
+</dl>
+<p>qx: np.array 
+qy: np.array</p>
+<blockquote>
+<div><p>fourier coordinates</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.max_defocus">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">max_defocus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pixelSize</span></em>, <em class="sig-param"><span class="n">imageSize</span></em>, <em class="sig-param"><span class="n">_lambda</span></em>, <em class="sig-param"><span class="n">probe_semiAngle</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#max_defocus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.max_defocus" title="Permalink to this definition">¶</a></dt>
+<dd><p>this function returns the max defocus to be used for ptycho experiment given 
+the Nyquist restrictions on the probe size.</p>
+<dl class="simple">
+<dt>pixelSize: float</dt><dd><p>pixel size in (m)</p>
+</dd>
+<dt>imageSize: list of ints</dt><dd><p>image size in (pixels)</p>
+</dd>
+<dt>_lambda: float</dt><dd><ol class="loweralpha simple" start="13">
+<li><p>electron wavelength</p></li>
+</ol>
+</dd>
+<dt>probe_semiAngle: float</dt><dd><p>(rad) probe semi-angle</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>max_def: float</dt><dd><p>max defocus in (m)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.parse_params_file">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">parse_params_file</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params_file</span></em>, <em class="sig-param"><span class="n">h5_file</span></em>, <em class="sig-param"><span class="n">drop_unneeded</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#parse_params_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.parse_params_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the parameters text file into a dict to be fed into ptypy / pycho recons</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.shift_probe">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">shift_probe</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">X</span></em>, <em class="sig-param"><span class="n">dx</span></em>, <em class="sig-param"><span class="n">dy</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#shift_probe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.shift_probe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.sim_to_hs">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">sim_to_hs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sim_h5_file</span></em>, <em class="sig-param"><span class="n">h5_key</span><span class="o">=</span><span class="default_value">'hdose_noisy_data'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#sim_to_hs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.sim_to_hs" title="Permalink to this definition">¶</a></dt>
+<dd><p>reads simulated 4DSTEM file into hs object
+Parameters
+__________
+sim_h5_file: str</p>
+<blockquote>
+<div><p>full path of the simulated 4DSTEM dataset h5 file</p>
+</div></blockquote>
+<dl class="simple">
+<dt>h5_key: str</dt><dd><p>the h5 key of the dataset - default is ‘hdose_noisy_data’
+if h5_key is passed as ‘skip’: for skipped probe data
+if h5_key is passed as ‘raw’: as-output sim - each dp sums to ~1 intensity
+if another h5_key is provided that location is looked up for data</p>
+</dd>
+</dl>
+<p>data_hs: hyperspy Signal2D object</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.sim_utils.write_ptyrex_json">
+<code class="sig-prename descclassname">epsic_tools.toolbox.sim_utils.</code><code class="sig-name descname">write_ptyrex_json</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">exp_dict</span></em>, <em class="sig-param"><span class="n">iter_num</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#write_ptyrex_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.write_ptyrex_json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-epsic_tools.toolbox.warp_3d">
+<span id="epsic-tools-toolbox-warp-3d-module"></span><h2>epsic_tools.toolbox.warp_3d module<a class="headerlink" href="#module-epsic_tools.toolbox.warp_3d" title="Permalink to this headline">¶</a></h2>
+<p>Created on Fri Jul 12 14:15:48 2019</p>
+<p>&#64;author: gys37319</p>
+<p>Functions to fit and warp 4DSTEM diffraction data</p>
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.compute_transform">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">compute_transform</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#compute_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.compute_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>compute the tranform from fit parameters</p>
+<p>data : Input image, 2D numpy array
+params : center [x0,y0], phi (in rad), axes [major,minor]</p>
+<p>transformation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.ellipse_angle_of_rotation">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">ellipse_angle_of_rotation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#ellipse_angle_of_rotation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.ellipse_angle_of_rotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate ellipse angle of rotation from fit params</p>
+<p>a : fit parameters</p>
+<p>angle in radians</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.ellipse_axis_length">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">ellipse_axis_length</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#ellipse_axis_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.ellipse_axis_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate ellipse major / minor axis length from fit params</p>
+<p>a : fit parameters</p>
+<p>len1 , len2 as a numpy array</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.ellipse_center">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">ellipse_center</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#ellipse_center"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.ellipse_center" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate ellipse center from fit params</p>
+<p>a : fit parameters</p>
+<p>x0, y0 as a numpy array</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.fitEllipse">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">fitEllipse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">y</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#fitEllipse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.fitEllipse" title="Permalink to this definition">¶</a></dt>
+<dd><p>fit ellipse to x,y co-ordinates</p>
+<p>x : 1D numpy array
+y :1D numpy array</p>
+<p>a : fit parameters to be fed into functions</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.fit_ellipse">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">fit_ellipse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">threshold</span><span class="o">=</span><span class="default_value">5</span></em>, <em class="sig-param"><span class="n">sigma</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">plot_me</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#fit_ellipse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.fit_ellipse" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to fit ellipse to a single image</p>
+<p>data : Input image, 2D numpy array
+thershold : threshold for binarising image, integer
+plot_me : boolean to plot results</p>
+<p>center, phi, axes</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.get_coords_4d">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">get_coords_4d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">coords</span></em>, <em class="sig-param"><span class="n">shape_4d</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#get_coords_4d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.get_coords_4d" title="Permalink to this definition">¶</a></dt>
+<dd><p>build the 4d transformation co-ordinates</p>
+<p>coords : 2D coordinates
+shape_4d : shape of the 4d data set to be transformed</p>
+<p>co_ords4d : 4d coordinates for the transform</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.plot_ellipse">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">plot_ellipse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">line_width</span><span class="o">=</span><span class="default_value">2</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#plot_ellipse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.plot_ellipse" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to plot ellipse fits</p>
+<p>data : Input image, 2D numpy array
+params : center [x0,y0], phi (in rad), axes [major,minor]
+line_width : thickness of plot line</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.remove_cross">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">remove_cross</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#remove_cross"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.remove_cross" title="Permalink to this definition">¶</a></dt>
+<dd><p>normalize bright px and add data to zero px cross in quad chip data</p>
+<p>data : 2D numpy array with bright and zero px cross</p>
+<p>data : 2D numpy array with normalised / filled cross</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.warp_all">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">warp_all</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">coords</span></em>, <em class="sig-param"><span class="n">dat_type</span></em>, <em class="sig-param"><span class="n">plot_me</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#warp_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.warp_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>NOT CURRENTLY USED</p>
+<p>apply transformation to full 4d data set</p>
+<p>data : inpud 4d data set (dask array)
+coords : 4D coordinates
+plot_me : boolean</p>
+<p>dat_temp : warped 4D data</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="epsic_tools.toolbox.warp_3d.warp_all_np">
+<code class="sig-prename descclassname">epsic_tools.toolbox.warp_3d.</code><code class="sig-name descname">warp_all_np</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">coords</span></em>, <em class="sig-param"><span class="n">order</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">preserve_range</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">plot_me</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/warp_3d.html#warp_all_np"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#epsic_tools.toolbox.warp_3d.warp_all_np" title="Permalink to this definition">¶</a></dt>
+<dd><p>apply transformation to full 4d data set</p>
+<p>data : inpud 4d data set (dask array)
+coords : 4D coordinates
+plot_me : boolean</p>
+<p>dat_temp : warped 4D data</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-epsic_tools.toolbox">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-epsic_tools.toolbox" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, ePSIC
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
