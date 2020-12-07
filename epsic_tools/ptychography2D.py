@@ -126,6 +126,16 @@ class Ptychography2D(object):
             
     def get_iterations(self):
         return self.ptyrex['process']['PIE']['iterations']
+    
+    def get_scan_refine_start(self):
+        return self.ptyrex['process']['PIE']['scan']['start']
+        
+    def set_scan_refine_start(self, val):
+        if int(val) == val:
+            self.ptyrex['process']['PIE']['scan']['start'] = val
+        else:
+            raise ValueError("scan refine start must be an integer")
+        
         
     def get_decay(self):
         return self.ptyrex['process']['PIE']['decay']
@@ -226,9 +236,29 @@ class Ptychography2D(object):
         else:
             raise ValueError("probe path must be a string")
     
+    def get_probe_start(self):
+        return self.ptyrex['process']['PIE']['probe']['start']
+    
+    def set_probe_start(self, val):
+        #todo : check if path is valid here??
+        if is_number(val) == True:
+            self.ptyrex['process']['PIE']['probe']['start'] = val
+        else:
+            raise ValueError("probe start must be a number")
+    
+    def get_probe_alpha(self):
+        return self.ptyrex['process']['PIE']['probe']['alpha']
+    
+    def set_probe_alpha(self, val):
+        #todo : check if path is valid here??
+        if is_number(val) == True:
+            self.ptyrex['process']['PIE']['probe']['alpha'] = val
+        else:
+            raise ValueError("probe alpha must be a number")
+    
     def get_load_object_flag(self):
         return self.ptyrex['process']['common']['object']['load_flag']
-        
+    
     def set_load_object_flag(self, val):
         if val == 1 or val == 0:
             self.ptyrex['process']['common']['object']['load_flag'] = val
@@ -270,7 +300,19 @@ class Ptychography2D(object):
             self.ptyrex['process']['common']['scan']['N'] = val
         else:
             raise ValueError("scan size must take the form [x, y]")
-            
+    
+    def set_scan_region(self, val):
+    #scan region must take the form [x_start,x_end, y_start, y_end, x_step, y_step]
+    #start 0.0 = first px
+    #end 1.0 = last px
+        if len(val) == 6:
+            self.ptyrex['process']['common']['scan']['region'] = val
+        else:
+            raise ValueError("scan region must take the form [x_start,x_end, y_start, y_end, x_step, y_step]")
+    
+    def get_scan_region(self, val):
+        return self.ptyrex['process']['common']['scan']['region']
+        
     def get_load_data_flag(self):
         return self.ptyrex['experiment']['data']['load_flag']
         

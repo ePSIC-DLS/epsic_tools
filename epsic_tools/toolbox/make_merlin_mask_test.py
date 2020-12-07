@@ -4,7 +4,7 @@ import h5py
 import matplotlib.pyplot as plt
 import os
 
-def make_mask(flat_field, hot_pix_factor,mask_cross = False,  show_mask=True, dest_h5_path=None, show_hist=False):
+def make_mask(flat_field, hot_pix_factor, show_mask=True, dest_h5_path=None, show_hist=False):
     """
     Creates mask for Merlin Medipix 
     Parameters:
@@ -13,8 +13,6 @@ def make_mask(flat_field, hot_pix_factor,mask_cross = False,  show_mask=True, de
         full path of the flat-field mib data
     hot_pix_factor: float
         intensity factor above average intensity to determine hot pixels
-    mask_cross: bool
-        Default False. Mask out the central cross on quad chip
     show_mask: bool
         Default True. For plotting the mask.
     dest_h5_path: str
@@ -39,28 +37,16 @@ def make_mask(flat_field, hot_pix_factor,mask_cross = False,  show_mask=True, de
     # in  case a stack, replace with mean
     #if flat_data.axes_manager[0].size > 1:
     #   flat_data = flat_data.mean()
-    if mask_cross:
-        mask_cross = np.zeros_like(flat_data)
-        if shape[0] == 515:
-            mask_cross[255:260,:] = 1
-            mask_cross[:, 255:260] = 1
-            
-        elif shape[0] == 128:
-            mask_cross[63:65,:] = 0
-            mask_cross[:, 65:65] = 0
-            
-        flat_data = np.ma.masked_array(flat_data, mask_cross)
-        
+
     if show_hist:
-        flat_int_array = np.reshape(flat_data, (shape[0]*shape[1],))
+        flat_int_array = np.reshape(flat_data, (shape,))
         plt.figure()
         plt.hist(flat_int_array, bins = 100, log = True)
     flat_int_ave = np.mean(flat_data)
     print('flat field intensity average is: ', flat_int_ave)
 
     mask_dead = flat_data.astype(bool)
-    
-    mask_hot = flat_data > (flat_int_ave * hot_pix_factor)
+    mask_hot = flat_data < (flat_int_ave * hot_pix_factor)
     mask_hot_and_dead = np.logical_and(mask_dead, mask_hot)
     # Do we need to save these separately?
     mask = mask_hot_and_dead    
@@ -68,8 +54,6 @@ def make_mask(flat_field, hot_pix_factor,mask_cross = False,  show_mask=True, de
     if show_mask:
         plt.figure()
         plt.imshow(mask_hot_and_dead)
-        plt.figure()
-        plt.imshow(mask_dead)
     if dest_h5_path is not None:
         h5f = h5py.File(dest_h5_path, 'w')
         h5f.create_dataset('merlin_mask', data = mask_hot_and_dead)

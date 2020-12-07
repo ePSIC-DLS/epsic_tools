@@ -765,6 +765,12 @@ def kdtree_NN(experiment, truth, search_rad):
         truth = list(truth)
 
     for i in range(len(experiment)):
+        #check if either of the lists is empty and if so move onto the next 
+        if len(experiment[i]) == 0 or len(truth) ==0:
+            false_pos.append([])
+            false_neg.append([])
+            paired_list.append([])
+            continue
         test = np.vstack((experiment[i], truth))
         tree = KDTree(test, leaf_size=10)
         [ind, d] = tree.query_radius(test[:1], r=search_rad, count_only=False, return_distance = True)
@@ -794,7 +800,6 @@ def kdtree_NN(experiment, truth, search_rad):
     
     distances_flat = [item for sublist in distances for item in sublist]
     rmse = get_RMSE(distances_flat)
-    
     nn_results.update({'TP_list': paired_list,
                        'Distances': distances_flat,
                        'FP_list': false_pos,
