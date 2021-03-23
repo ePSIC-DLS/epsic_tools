@@ -172,7 +172,7 @@ def convert(beamline, year, visit, mib_to_convert, folder=None):
                 print('number of frames: ', depth)
                 # Only write the h5 stack for large scan arrays
 #                if (depth > 300*300) or (hdr_info['Counter Depth (number)'] > 8):
-                if (depth > 300*300):
+                if (depth > 600*600):
                     print('large file 4DSTEM file - first saving the stack into h5 file!')
 
                     merlin_ind = hdr_info['title'].split('/').index('Merlin')
