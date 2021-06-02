@@ -186,10 +186,18 @@ def get_json_pixelSize(json_file):
     """
     json_dict = json_to_dict(json_file)
     wavelength = e_lambda(json_dict['process']['common']['source']['energy'][0])
-    camLen = json_dict['process']['common']['detector']['distance']
-    N = json_dict['process']['common']['detector']['crop'][0]
-    dc = json_dict['process']['common']['detector']['pix_pitch'][0]
+    try: 
+        camLen = json_dict['process']['common']['detector']['distance']
+    except KeyError:
+        camLen = json_dict['experiment']['detector']['position']
+        camLen = camLen[-1]
     
+    N = json_dict['process']['common']['detector']['crop'][0]
+    try:
+        dc = json_dict['process']['common']['detector']['pix_pitch'][0]
+    except KeyError:
+        dc = json_dict['process']['common']['detector']['pixel_pitch'][0]
+
     pixelSize = (wavelength * camLen) / (N * dc)
     
     return pixelSize

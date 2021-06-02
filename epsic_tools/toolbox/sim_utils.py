@@ -5,6 +5,9 @@ Created on Fri Mar 13 09:31:39 2020
 
 @author: eha56862
 These functions are utilities for determining the parameters for the simulation matrix
+TODO:
+    get_probe
+    get_sim_params
 """
 import numpy as np
 import hyperspy.api as hs
@@ -17,6 +20,93 @@ import json
 from epsic_tools.toolbox.ptycho_utils import e_lambda
 
 
+def get_sim_params(sim_h5_file):
+    f = h5py.File(sim_h5_file, 'r')
+    keys = []
+    vals = []
+    for case in f['/4DSTEM_simulation/metadata/metadata_0/original/simulation_parameters' ].attrs.keys():
+        keys.append(case)
+        vals.append(f['/4DSTEM_simulation/metadata/metadata_0/original/simulation_parameters' ].attrs[case])
+    f.close()
+    return dict(zip(keys, vals))
+
+def get_sim_probe(sim_h5_file, real_space=True):
+    f = h5py.File(sim_h5_file, 'r')
+    probe = f['4DSTEM_simulation']['data']['diffractionslices']['probe']['data'][:]
+    f.close()
+    if real_space:
+        probe = np.fft.ifft2(probe)
+        probe = np.fft.fftshift(probe)
+    return probe
+
+
+def get_sim_data(sim_h5_file):
+    with h5py.File(sim_h5_file, 'r') as f:
+        sh = f['4DSTEM_simulation/data/datacubes/CBED_array_depth0000/data'].shape
+        print('Dataset shape is %s' % str(sh))
+        data = f.get('4DSTEM_simulation/data/datacubes/CBED_array_depth0000/data')
+        data = np.array(data)
+    
+    return data
+    
+def get_sim_probe_for_ptyrex(sim_h5_file, probe_path, pixel_size):
+    """
+    gets the sim probe, bins it by 2 and saves it into an h5 file readable by ptyrex.
+    """
+    probe = get_sim_probe(sim_h5_file)
+    probe_hs = hs.signals.Signal2D(probe)
+    probe_bin = probe_hs.rebin(scale=(2,2))
+    det_array = probe_bin.axes_manager[0].size
+    probe_bin_ = np.reshape(probe_bin.data, (1, 1, 1, 1, 1, 512, 512))
+    
+    f = h5py.File(probe_path, 'w')
+    f.create_dataset('/entry_1/process_1/output_1/probe/', data = probe_bin_.data, dtype='complex64')
+    f.create_dataset('entry_1/process_1/PIE_1/detector/binning', data = [1, 1], dtype = 'int')
+    f.create_dataset('entry_1/process_1/PIE_1/detector/upsample', data = [1, 1], dtype = 'int')
+    f.create_dataset('entry_1/process_1/PIE_1/detector/crop', data = [det_array, det_array], dtype='float32')
+    f.create_dataset('entry_1/process_1/common_1/dx', data = [[pixel_size, pixel_size]], dtype='float32')               
+    f.close()
+    return
+
+
+def add_dose_noise(file_path, stack_path, dose, add_noise=True):
+    '''
+    the dtype is returned as int
+    __________
+    file_path: str
+        full path and name of the sim h5 file
+    stack_path:
+        full path for the stack h5 file
+    dose: int
+        target sum intensity of the entire 4DSTEM data
+    add_noise: boolean
+        if True it also adds posson noise to the diffraction patterns
+    Returns
+    ___________
+    
+    '''
+    
+    with h5py.File(file_path, 'r') as f:
+        sh = f['4DSTEM_simulation/data/datacubes/CBED_array_depth0000/data'].shape
+        print('Dataset shape is %s' % str(sh))
+        data = f.get('4DSTEM_simulation/data/datacubes/CBED_array_depth0000/data')
+        data = np.array(data)
+    dose = float(dose)
+    factor = dose / np.sum(data)
+    if add_noise is False:
+        data_highD = factor * data
+    else:
+        data_highD = factor * data
+        data_highD = np.random.poisson(data_highD)
+    
+    f = h5py.File(stack_path, 'w')
+    data_highD_stack = np.reshape(data_highD,[np.prod(data_highD.shape[:2]), data_highD.shape[-2], data_highD.shape[-1]])
+    stack_int = data_highD_stack.astype('int')
+    f.create_dataset('data/frames', data = stack_int, dtype='int')
+    print('Max count of sim data is: ', np.max(stack_int))
+    f.close()
+    
+    return
 
 
 def sim_to_hs(sim_h5_file, h5_key = 'hdose_noisy_data'):
@@ -475,7 +565,7 @@ def calc_pixelSize(acc_voltage, pixel_array, det_pixelSize, camera_length):
 
 
 def calc_probe_size(pixelSize, imageSize, _lambda, probe_def, probe_semiAngle, \
-                    plot_probe=True, return_probeArr = False):
+                    method='90pctInt', plot_probe=True, return_probeArr = False):
     """
     this function is for giving an estimate of the probe size to set up the sim ptycho data accordingly.
     :param pixelSize: float
@@ -528,16 +618,36 @@ def calc_probe_size(pixelSize, imageSize, _lambda, probe_def, probe_semiAngle, \
 
     x0 = np.sum(probeInt*xa) / np.sum(probeInt)
     y0 = np.sum(probeInt*ya) / np.sum(probeInt)
-    # RMS probe size
-    rmsProbe = np.sum(np.ravel(probeInt)*(np.ravel(xa) - x0)**2) / np.sum(probeInt) \
-        + np.sum(np.ravel(probeInt)*(np.ravel(ya) - y0)**2) / np.sum(probeInt)
-
-    # Write probe size to console
-    # print('Probe RMS size = %2.3f'%rmsProbe ,'Angstroms')
+    if method == 'IntRMS':
+        # RMS probe size
+        rmsProbe = np.sum(np.ravel(probeInt)*(np.ravel(xa) - x0)**2) / np.sum(probeInt) \
+            + np.sum(np.ravel(probeInt)*(np.ravel(ya) - y0)**2) / np.sum(probeInt)
     
-    probe_rad = rmsProbe / 2
-    probe_rad = probe_rad * 1e-10 # to (m)
-
+        # Write probe size to console
+        # print('Probe RMS size = %2.3f'%rmsProbe ,'Angstroms')
+        
+        probe_rad = rmsProbe / 2
+        probe_rad = probe_rad * 1e-10 # to (m)
+    elif method == '90pctInt': 
+        # Use %80 of intensity
+        totalInt = np.sum(probeInt)
+        target_sum = 0.9 * totalInt
+        sum_x = np.sum(probeInt, axis=0)
+        r_x = 0
+        indx = find_nearest(xa[:,0], x0)
+        while (np.sum(sum_x[indx - r_x : indx + r_x]) < target_sum):
+            r_x += 1
+        sum_y = np.sum(probeInt, axis=1)
+        r_y = 0
+        indy = find_nearest(ya[0,:], y0)
+        while (np.sum(sum_y[indy - r_y : indy + r_y]) < target_sum):
+            r_y += 1
+        probe_rad = pixelSize * np.mean([r_x, r_y])
+        probe_rad = probe_rad * 1e-10 # to (m)
+        # while np.ravel(probeInt) * (np.ravel(xa) - x0)
+    else:
+        print('method argument can be either IntRMS or 80pctInt. Nothing returned!')
+        return
     if plot_probe:
         fig, axs = plt.subplots(1,2, figsize=(5, 5))
         im1 = axs[0].imshow(np.fft.fftshift(abs(Psi)))
@@ -551,6 +661,11 @@ def calc_probe_size(pixelSize, imageSize, _lambda, probe_def, probe_semiAngle, \
 
     return probe_rad
     
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return idx
+
 
 def max_defocus(pixelSize, imageSize, _lambda, probe_semiAngle):
     """
