@@ -54,7 +54,7 @@ class Sim_4DSTEM:
             "import-smatrix": 0,
             "nyquist-sampling": 0,
             "also-do-cpu-work": 1,
-            "script_path": "/dls/science/groups/e02/Mohsen/code/Git_Repos/Staff-notebooks-1/ptyREX_sim_matrix"
+            "script_path": "/dls/science/groups/e02/Mohsen/code/Git_Repos/Merlin-Medipix/epsic_tools/toolbox/"
             }
         self.params_dict = params_dict
         
