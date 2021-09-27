@@ -61,7 +61,7 @@ def get_sim_probe_for_ptyrex(sim_h5_file, probe_path, pixel_size):
     
     f = h5py.File(probe_path, 'w')
     f.create_dataset('/entry_1/process_1/output_1/probe/', data = probe_bin_.data, dtype='complex64')
-    f.create_dataset('entry_1/process_1/PIE_1/detector/binning', data = [1, 1], dtype = 'int')
+    f.create_dataset('entry_1/process_1/PIE_1/detector/binning', data = [2, 2], dtype = 'int')
     f.create_dataset('entry_1/process_1/PIE_1/detector/upsample', data = [1, 1], dtype = 'int')
     f.create_dataset('entry_1/process_1/PIE_1/detector/crop', data = [det_array, det_array], dtype='float32')
     f.create_dataset('entry_1/process_1/common_1/dx', data = [[pixel_size, pixel_size]], dtype='float32')               
@@ -143,9 +143,9 @@ def sim_to_hs(sim_h5_file, h5_key = 'hdose_noisy_data'):
         
     elif h5_key == 'raw':
         with h5py.File(sim_h5_file, 'r') as f:
-            sh = f['4DSTEM_simulation/data/datacubes/CBED_array_depth0000/datacube'].shape
+            sh = f['4DSTEM_simulation/data/datacubes/CBED_array_depth0000/data'].shape
             print('Dataset shape is %s' % str(sh))
-            data = f.get('4DSTEM_simulation/data/datacubes/CBED_array_depth0000/datacube')
+            data = f.get('4DSTEM_simulation/data/datacubes/CBED_array_depth0000/data')
             data = np.array(data)
             data_hs = hs.signals.Signal2D(data)
     else:
@@ -565,7 +565,7 @@ def calc_pixelSize(acc_voltage, pixel_array, det_pixelSize, camera_length):
 
 
 def calc_probe_size(pixelSize, imageSize, _lambda, probe_def, probe_semiAngle, \
-                    method='90pctInt', plot_probe=True, return_probeArr = False):
+                    method='80pctInt', plot_probe=True, return_probeArr = False):
     """
     this function is for giving an estimate of the probe size to set up the sim ptycho data accordingly.
     :param pixelSize: float
@@ -628,10 +628,10 @@ def calc_probe_size(pixelSize, imageSize, _lambda, probe_def, probe_semiAngle, \
         
         probe_rad = rmsProbe / 2
         probe_rad = probe_rad * 1e-10 # to (m)
-    elif method == '90pctInt': 
+    elif method == '80pctInt': 
         # Use %80 of intensity
         totalInt = np.sum(probeInt)
-        target_sum = 0.9 * totalInt
+        target_sum = 0.8 * totalInt
         sum_x = np.sum(probeInt, axis=0)
         r_x = 0
         indx = find_nearest(xa[:,0], x0)
@@ -644,7 +644,6 @@ def calc_probe_size(pixelSize, imageSize, _lambda, probe_def, probe_semiAngle, \
             r_y += 1
         probe_rad = pixelSize * np.mean([r_x, r_y])
         probe_rad = probe_rad * 1e-10 # to (m)
-        # while np.ravel(probeInt) * (np.ravel(xa) - x0)
     else:
         print('method argument can be either IntRMS or 80pctInt. Nothing returned!')
         return
@@ -669,8 +668,8 @@ def find_nearest(array, value):
 
 def max_defocus(pixelSize, imageSize, _lambda, probe_semiAngle):
     """
-    this function returns the max defocus to be used for ptycho experiment given 
-    the Nyquist restrictions on the probe size.
+    this function returns the max defocus to be used for ptycho sim given 
+    by the defocus resulting in probe diameter of quarter of the reconstruction array size.
     
     Input
     ________
@@ -689,8 +688,8 @@ def max_defocus(pixelSize, imageSize, _lambda, probe_semiAngle):
         max defocus in (m)
     """
     imageSize = np.asanyarray(imageSize)
-    max_probe_rad_target = pixelSize * imageSize[0] / 4
-    print('target probe radius(m):', max_probe_rad_target)
+    max_probe_rad_target = pixelSize * imageSize[0] / 8
+    print('target probe radius(m)- quarter:', max_probe_rad_target)
     def_val = max_probe_rad_target / np.tan(probe_semiAngle) 
     probe_rad = calc_probe_size(pixelSize, imageSize, _lambda, def_val, probe_semiAngle, plot_probe = False)
     if probe_rad < max_probe_rad_target:
@@ -735,8 +734,12 @@ def get_potential(sim_file_path):
     gets the pyprismatic h5 file and outputs the potential - in V.Angstroms
     '''
     with h5py.File(sim_file_path, 'r') as f:
-        pots = f['4DSTEM_simulation']['data']['realslices']['ppotential']['realslice'][:]
-        pots = np.squeeze(pots)
+        try:
+            pots = f['4DSTEM_simulation']['data']['realslices']['ppotential']['realslice'][:]
+            pots = np.squeeze(pots)
+        except KeyError:
+            pots = f['4DSTEM_simulation/data/realslices/ppotential_fp0001/data'][()]
+            pots = np.squeeze(pots)
     return pots
 
 
@@ -816,3 +819,173 @@ def shift_probe(X, dx, dy):
     elif dx<0:
         X[:, dx:] = 0
     return X
+
+
+def genAp(*args):
+    """### Generate a circular aperture ###
+    out:
+        ap - Aperture
+    in:
+        shape - Array size
+        r     - Radius of aperture
+    """
+    if len(args) > 0:
+        shape = args[0]
+    if len(args) > 1:
+        r = args[1]
+    if len(args) > 2:
+        cent = args[2]
+
+    ap = np.ones(shape) * np.exp(1j*np.zeros(shape))
+    r = np.array(r)
+    #print "gen_ap_r", r
+    if len(args) < 3:
+        cent = np.divide(shape,2)
+
+    x = np.arange(0,np.size(ap,0)) - cent[0]
+    y = np.arange(0,np.size(ap,1)) - cent[1]
+    
+#     print("gen ap r and size", r, r.size)
+    
+    if r.size == 1:
+        #print "r dim is 1"
+        yy, xx = np.meshgrid(y, x)
+        grid = np.sqrt((xx**2)+(yy**2))
+        rad = np.mean(r)
+        ap[grid>rad] = 0
+    elif r.size == 2:
+        yy, xx = np.meshgrid(y, x)
+        yy = np.abs(yy)
+        xx = np.abs(xx)
+        ap[yy>r[1]] = 0
+        ap[xx>r[0]] = 0
+    return ap
+
+def genStop(*args):
+    """### Generate a circular aperture ###
+    out:
+        ap - Aperture
+    in:
+        shape - Array size
+        r     - Radius of aperture
+    """
+    if len(args) > 0:
+        shape = args[0]
+    if len(args) > 1:
+        r = args[1]
+    if len(args) > 2:
+        cent = args[2]
+
+    out = np.zeros(shape) * np.exp(1j*np.zeros(shape))
+
+    if len(args) < 3:
+        cent = np.divide(shape,2)
+        
+    x = np.arange(0,np.size(out,0)) - cent[0]
+    y = np.arange(0,np.size(out,1)) - cent[1]
+    yy, xx = np.meshgrid(y, x)
+    grid = np.sqrt((xx**2)+(yy**2))
+    
+    rad = np.mean(r)
+    out[grid>rad] = 1
+    return out
+
+def fft(ar):
+    ar = np.fft.fftshift(np.fft.fft2(ar))
+    return ar
+def ifft(ar):
+    ar = np.fft.ifft2(np.fft.fftshift(ar))
+    return ar
+
+# def fourierDownSample(image, keep_fraction, pixelSize):
+#     """
+#     Reduces the size of the FFT, returns also the new pixel size
+#     """
+#     im_fft = np.fft.fft2(image)
+#     r, c = im_fft.shape[-2:]
+#     im_fft_crop = np.delete(im_fft, np.arange(int(r*keep_fraction), int(r*(1 - keep_fraction))), 1)
+#     im_fft_crop = np.delete(im_fft_crop, np.arange(int(c*keep_fraction), int(c*(1 - keep_fraction))), 2)
+#     im_ds = np.fft.ifft2(im_fft_crop)
+#     # stack_ds_hs = hs.signals.Signal2D(abs(stack_ds))
+#     pixelSizeNew = (r / im_ds.shape[-2])*pixelSize
+
+#     return im_ds, pixelSizeNew
+
+def setPower(ar, power):
+    P_sz = np.size(ar, -2) * np.size(ar, -1)
+    int_in = np.float32(ar.real ** 2 + ar.imag ** 2)
+    P_in = np.sum(int_in)
+    P_in = np.multiply(P_in, P_sz)
+    ratio = np.divide(power, P_in)
+    int_out = np.multiply(int_in, ratio)
+    mod_out = np.sqrt(int_out)
+    ar = np.abs(mod_out) * np.exp(1j * (np.angle(ar)))
+    return ar
+
+def get_frc(ar1, ar2, dx, norm = False, plot=False):
+    ar1 = fft(ar1)
+    ar2 = fft(ar2)
+    
+    if norm is True:
+        ar1 = setPower(ar1, np.sum(np.abs(ar2) ** 2))
+
+    frc = np.zeros(np.uint32(ar1.shape[0]/2))
+    two_sig = np.zeros(np.uint32(ar1.shape[0]/2))
+    one_t = np.zeros(np.uint32(ar1.shape[0]/2))
+    half_t = np.zeros(np.uint32(ar1.shape[0]/2))
+    
+    two_sig_lim_reached = False
+    one_t_lim_reached = False
+    half_t_lim_reached = False
+    
+    res_r = ar1.shape[0]/2
+    for r in range(frc.shape[0]):
+        ring_mask = np.abs(genAp(ar1.shape, r+1) * genStop(ar1.shape, r))
+        npr = np.sum(ring_mask)
+        ar1_r = ar1 * ring_mask
+        ar2_r = ar2 * ring_mask
+        frc[r] = np.sum(ar1_r * np.conj(ar2_r)) / np.sqrt( np.sum(np.square(np.abs(ar1_r))) * np.sum(np.square(np.abs(ar2_r))) )
+        two_sig[r] = 2 / np.sqrt(npr/2)
+        one_t[r] = (0.5+(2.4142/np.sqrt(npr))) / (1.5+(1.4142/np.sqrt(npr)))
+        half_t[r] = (0.2071+(1.9102/np.sqrt(npr))) / (1.2071+(0.9102/np.sqrt(npr)))
+        
+        if r>1:
+            if frc[r] <= two_sig[r] and two_sig_lim_reached == False:
+                two_sig_r = r
+                two_sig_lim_reached = True
+            if frc[r] <= one_t[r] and not one_t_lim_reached:
+                one_t_r = r
+                one_t_lim_reached = True
+            if frc[r] <= half_t[r] and not half_t_lim_reached:
+                half_t_r = r
+                half_t_lim_reached = True
+        else:
+            two_sig_r = 1
+            one_t_r = 1
+            half_t_r = 1
+    
+    #print("dx", dx)
+    u = 1/dx
+    du = u/ar1.shape[0]
+    du /= 1e9   
+    two_sig_lim = 1e9/(float(two_sig_r) * float(du) * 1e9)
+    one_t_lim = 1e9/(float(one_t_r) * float(du) * 1e9)
+    half_t_lim = 1e9/(float(half_t_r) * float(du) * 1e9)
+    
+    if plot is True:
+        x_axis = np.arange(2, ar1.shape[0]/2) * du
+        plt.figure()
+        plt.plot(x_axis, frc[2:], color = 'k')
+        plt.plot(x_axis, two_sig[2:], color = 'r')
+        plt.plot(x_axis, one_t[2:], color = 'g')
+        plt.plot(x_axis, half_t[2:], color = 'b')
+        plt.axvline(x=two_sig_r*du, color='r', linestyle='--', label="Two Sigma")
+        plt.axvline(x=one_t_r*du, color='g', linestyle='--', label="One Bit")
+        plt.axvline(x=half_t_r*du, color='b', linestyle='--', label="Half Bit")
+        plt.ylabel('Ring Correlation')
+        plt.xlabel('Reciprocal nms')
+        plt.title('FRC\n Two Sigma Resolution = %fnm\n One Bit Resolution = %fnm\n Half Bit Resolution = %fnm' %(two_sig_lim, one_t_lim, half_t_lim))
+        plt.legend()
+        plt.show()
+    
+    return two_sig_lim

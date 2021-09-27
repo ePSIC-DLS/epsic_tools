@@ -7,7 +7,7 @@ Created on Fri Apr 30 09:48:52 2021
 """
 import json
 # import h5py
-import pyprismatic as pr
+# import pyprismatic as pr
 import numpy as np
 import os
 import argparse
@@ -109,58 +109,58 @@ class Sim_4DSTEM:
         c5 = self.params_dict['C5'] * 1e10
         
         
-        meta = pr.Metadata(filenameAtoms = xyz)
-        meta.algorithm = 'multislice'
-        meta.filenameOutput = self.params_dict['output_path']
-        meta.realspacePixelSizeX = pixelSize
-        meta.realspacePixelSizeY = pixelSize 
-        meta.potBound = 2
-        meta.numFP = num_FP
-        meta.sliceThickness = slice_thickness
-        meta.E0 = E0
-        meta.alphaBeamMax = alpha_max
-        meta.batchSizeCPU = 1
-        meta.probeStepX = float(step_size) 
-        meta.probeStepY = float(step_size) 
+        # meta = pr.Metadata(filenameAtoms = xyz)
+        # meta.algorithm = 'multislice'
+        # meta.filenameOutput = self.params_dict['output_path']
+        # meta.realspacePixelSizeX = pixelSize
+        # meta.realspacePixelSizeY = pixelSize 
+        # meta.potBound = 2
+        # meta.numFP = num_FP
+        # meta.sliceThickness = slice_thickness
+        # meta.E0 = E0
+        # meta.alphaBeamMax = alpha_max
+        # meta.batchSizeCPU = 1
+        # meta.probeStepX = float(step_size) 
+        # meta.probeStepY = float(step_size) 
         
-        cell_dims = self._get_cell_dims()
-        meta.cellDimX = cell_dims[0]
-        meta.cellDimY = cell_dims[1]
-        meta.cellDimZ = cell_dims[2]
+        # cell_dims = self._get_cell_dims()
+        # meta.cellDimX = cell_dims[0]
+        # meta.cellDimY = cell_dims[1]
+        # meta.cellDimZ = cell_dims[2]
         
-        meta.tileX = cell_tiling[0]
-        meta.tileY = cell_tiling[1]
-        meta.tileZ = cell_tiling[2]
-        meta.probeDefocus = float(def_val)
-        meta.C3 = c3
-        meta.C5 = c5
-        if 'aberrations_file' in self.params_dict:
-            if self.params_dict['aberrations_file'] is not None:
-                meta.aberrations_file = self.params_dict['aberrations_file']
-        meta.probeSemiangle = float(conv_semiangle) 
-        meta.detectorAngleStep = 1
-        meta.probeXtilt = probe_tilt_x
-        meta.probeYtilt = probe_tilt_y
-        meta.scanWindowXMin = scan_win_x[0]
-        meta.scanWindowXMax = scan_win_x[1]
-        meta.scanWindowYMin = scan_win_y[0]
-        meta.scanWindowYMax = scan_win_y[1]
-        meta.randomSeed = self.params_dict['random_seed']
-        meta.includeThermalEffects = self.params_dict['thermal-effects']
-        meta.save2DOutput = 0
-        meta.save3DOutput = 0
-        meta.save4DOutput = 1
-        meta.nyquistSampling = 0
-        meta.saveDPC_CoM = 0
-        meta.savePotentialSlices = self.params_dict['save-potential-slices']
-        meta.alsoDoCPUWork = 1
-        meta.batchSizeGPU = 1
-        meta.numGPUs = 2
-        meta.numStreamsPerGPU = 3
-        meta.saveProbe = 1
-        meta.maxFileSize = 5*10**9
+        # meta.tileX = cell_tiling[0]
+        # meta.tileY = cell_tiling[1]
+        # meta.tileZ = cell_tiling[2]
+        # meta.probeDefocus = float(def_val)
+        # meta.C3 = c3
+        # meta.C5 = c5
+        # if 'aberrations_file' in self.params_dict:
+        #     if self.params_dict['aberrations_file'] is not None:
+        #         meta.aberrations_file = self.params_dict['aberrations_file']
+        # meta.probeSemiangle = float(conv_semiangle) 
+        # meta.detectorAngleStep = 1
+        # meta.probeXtilt = probe_tilt_x
+        # meta.probeYtilt = probe_tilt_y
+        # meta.scanWindowXMin = scan_win_x[0]
+        # meta.scanWindowXMax = scan_win_x[1]
+        # meta.scanWindowYMin = scan_win_y[0]
+        # meta.scanWindowYMax = scan_win_y[1]
+        # meta.randomSeed = self.params_dict['random_seed']
+        # meta.includeThermalEffects = self.params_dict['thermal-effects']
+        # meta.save2DOutput = 0
+        # meta.save3DOutput = 0
+        # meta.save4DOutput = 1
+        # meta.nyquistSampling = 0
+        # meta.saveDPC_CoM = 0
+        # meta.savePotentialSlices = self.params_dict['save-potential-slices']
+        # meta.alsoDoCPUWork = 1
+        # meta.batchSizeGPU = 1
+        # meta.numGPUs = 2
+        # meta.numStreamsPerGPU = 3
+        # meta.saveProbe = 1
+        # meta.maxFileSize = 5*10**9
         
-        meta.go()  
+        # meta.go()  
         
         
     def submit_dls_cluster(self, json_path):
