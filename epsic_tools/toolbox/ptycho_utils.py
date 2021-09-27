@@ -63,6 +63,8 @@ def plot_ptyREX_output(json_path, save_fig=None, crop=False):
     name = json_dict['base_dir'].split('/')[-1]
     recon_path = os.path.splitext(json_path)[0]+'.hdf'
     probe = get_probe_array(recon_path)
+    if len(probe.shape)==3:
+        probe = probe[0,:,:]
     if crop is True:
         obj = crop_recon_obj(json_path)
     else:
@@ -186,10 +188,18 @@ def get_json_pixelSize(json_file):
     """
     json_dict = json_to_dict(json_file)
     wavelength = e_lambda(json_dict['process']['common']['source']['energy'][0])
-    camLen = json_dict['process']['common']['detector']['distance']
-    N = json_dict['process']['common']['detector']['crop'][0]
-    dc = json_dict['process']['common']['detector']['pix_pitch'][0]
+    try: 
+        camLen = json_dict['process']['common']['detector']['distance']
+    except KeyError:
+        camLen = json_dict['experiment']['detector']['position']
+        camLen = camLen[-1]
     
+    N = json_dict['process']['common']['detector']['crop'][0]
+    try:
+        dc = json_dict['process']['common']['detector']['pix_pitch'][0]
+    except KeyError:
+        dc = json_dict['process']['common']['detector']['pixel_pitch'][0]
+
     pixelSize = (wavelength * camLen) / (N * dc)
     
     return pixelSize
@@ -837,15 +847,18 @@ def duplicate_json(source_json_path, new_json_path, param_to_change = None):
             if _finditem(data_dict, param_to_change[0]) is not None:
                 p = _finditem(data_dict, param_to_change[0])
                 keys = _get_path(p)
-#                 print(keys)
+                # print(keys)
                 keys.append(param_to_change[0])
+                
                 if len(keys)==4:
                     data_dict[keys[0]][keys[1]][keys[2]][keys[3]] = param_to_change[1]
                 elif len(keys)==3:
                     data_dict[keys[0]][keys[1]][keys[2]] = param_to_change[1]
                 elif len(keys)==2:
                     data_dict[keys[0]][keys[1]] = param_to_change[1]
-                with open(new_json_path, 'w') as outfile:
+                elif len(keys)==1:
+                    data_dict[keys[0]] = param_to_change[1]
+                with open(new_json_path, 'a') as outfile:
                     json.dump(data_dict, outfile, indent = 4)
                 return data_dict
             else:
