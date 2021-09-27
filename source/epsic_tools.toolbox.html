@@ -541,11 +541,31 @@ Returns
 <span id="epsic-tools-toolbox-sim-utils-module"></span><h2>epsic_tools.toolbox.sim_utils module<a class="headerlink" href="#module-epsic_tools.toolbox.sim_utils" title="Permalink to this headline"></a></h2>
 <p>Created on Fri Mar 13 09:31:39 2020</p>
 <p>&#64;author: eha56862
-These functions are utilities for determining the parameters for the simulation matrix</p>
+These functions are utilities for determining the parameters for the simulation matrix
+TODO:</p>
+<blockquote>
+<div><p>get_probe
+get_sim_params</p>
+</div></blockquote>
 <dl class="py class">
 <dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.NestedDefaultDict">
 <em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">NestedDefaultDict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#NestedDefaultDict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.NestedDefaultDict" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.defaultdict</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.add_dose_noise">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">add_dose_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stack_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dose</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_noise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#add_dose_noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.add_dose_noise" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>file_path: str</dt><dd><p>full path and name of the sim h5 file</p>
+</dd>
+<dt>stack_path:</dt><dd><p>full path for the stack h5 file</p>
+</dd>
+<dt>dose: int</dt><dd><p>target sum intensity of the entire 4DSTEM data</p>
+</dd>
+<dt>add_noise: boolean</dt><dd><p>if True it also adds posson noise to the diffraction patterns</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -598,7 +618,7 @@ bf_rad: int</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.calc_probe_size">
-<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">calc_probe_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pixelSize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imageSize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_lambda</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe_def</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe_semiAngle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_probe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_probeArr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#calc_probe_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.calc_probe_size" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">calc_probe_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pixelSize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imageSize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_lambda</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe_def</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe_semiAngle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'80pctInt'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_probe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_probeArr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#calc_probe_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.calc_probe_size" title="Permalink to this definition"></a></dt>
 <dd><p>this function is for giving an estimate of the probe size to set up the sim ptycho data accordingly.
 :param pixelSize: float</p>
 <blockquote>
@@ -638,6 +658,46 @@ psiShift: np.array</p>
 <div><p>probe in real space</p>
 </div></blockquote>
 </div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.fft">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">fft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ar</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#fft"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.fft" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.find_nearest">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">find_nearest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#find_nearest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.find_nearest" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.genAp">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">genAp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#genAp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.genAp" title="Permalink to this definition"></a></dt>
+<dd><p>### Generate a circular aperture ###
+out:</p>
+<blockquote>
+<div><p>ap - Aperture</p>
+</div></blockquote>
+<dl class="simple">
+<dt>in:</dt><dd><p>shape - Array size
+r     - Radius of aperture</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.genStop">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">genStop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#genStop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.genStop" title="Permalink to this definition"></a></dt>
+<dd><p>### Generate a circular aperture ###
+out:</p>
+<blockquote>
+<div><p>ap - Aperture</p>
+</div></blockquote>
+<dl class="simple">
+<dt>in:</dt><dd><p>shape - Array size
+r     - Radius of aperture</p>
 </dd>
 </dl>
 </dd></dl>
@@ -698,6 +758,11 @@ to calculate disc over lap in image or diff plane</p>
 <span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">get_figs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_matrix_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_figs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_figs" title="Permalink to this definition"></a></dt>
 <dd><p>returns the list of the png figure of the final recon</p>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.get_frc">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">get_frc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ar1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ar2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_frc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_frc" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.get_overlap">
@@ -766,6 +831,27 @@ get_all set to True returns all the folders</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.get_sim_data">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">get_sim_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_h5_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_sim_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_sim_data" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.get_sim_params">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">get_sim_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_h5_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_sim_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_sim_params" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.get_sim_probe">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">get_sim_probe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_h5_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">real_space</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_sim_probe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_sim_probe" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.get_sim_probe_for_ptyrex">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">get_sim_probe_for_ptyrex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sim_h5_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixel_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_sim_probe_for_ptyrex"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_sim_probe_for_ptyrex" title="Permalink to this definition"></a></dt>
+<dd><p>gets the sim probe, bins it by 2 and saves it into an h5 file readable by ptyrex.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.get_step_size">
 <span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">get_step_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">probe_rad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_overlap</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#get_step_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.get_step_size" title="Permalink to this definition"></a></dt>
 <dd><p>knowing the probe radius and the target overlap percentage this function returns
@@ -785,6 +871,11 @@ probe_rad: float</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.ifft">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">ifft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ar</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#ifft"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.ifft" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.json_to_dict_sim">
@@ -815,8 +906,8 @@ qy: np.array</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.max_defocus">
 <span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">max_defocus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pixelSize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imageSize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_lambda</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probe_semiAngle</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#max_defocus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.max_defocus" title="Permalink to this definition"></a></dt>
-<dd><p>this function returns the max defocus to be used for ptycho experiment given 
-the Nyquist restrictions on the probe size.</p>
+<dd><p>this function returns the max defocus to be used for ptycho sim given 
+by the defocus resulting in probe diameter of quarter of the reconstruction array size.</p>
 <dl class="simple">
 <dt>pixelSize: float</dt><dd><p>pixel size in (m)</p>
 </dd>
@@ -840,6 +931,11 @@ the Nyquist restrictions on the probe size.</p>
 <span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">parse_params_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h5_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_unneeded</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#parse_params_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.parse_params_file" title="Permalink to this definition"></a></dt>
 <dd><p>Reads the parameters text file into a dict to be fed into ptypy / pycho recons</p>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.setPower">
+<span class="sig-prename descclassname"><span class="pre">epsic_tools.toolbox.sim_utils.</span></span><span class="sig-name descname"><span class="pre">setPower</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ar</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/epsic_tools/toolbox/sim_utils.html#setPower"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#epsic_tools.toolbox.sim_utils.setPower" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="epsic_tools.toolbox.sim_utils.shift_probe">
