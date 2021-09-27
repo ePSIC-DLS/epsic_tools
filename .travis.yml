@@ -5,6 +5,7 @@ python:
 
 before_script:
   - pip install scikit-image==0.16.2
+  - pip install numpy==1.2
   - pip install hyperspy
   - pip install dask
   - pip install pyxem
