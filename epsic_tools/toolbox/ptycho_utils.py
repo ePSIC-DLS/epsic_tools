@@ -57,6 +57,7 @@ def e_lambda(e_0):
 def plot_ptyREX_output(json_path, save_fig=None, crop=False):
     """
     To save the ptyREX recon output
+    
     Parameters
     ----------
     json_path: str
@@ -151,6 +152,7 @@ def crop_recon_obj(json_file):
 
 def get_fft(obj_arr, crop = None, apply_hann = False):
     """
+    
     Parameters
     ----------
     obj_arr: numpy.ndarray
@@ -188,6 +190,7 @@ def get_fft(obj_arr, crop = None, apply_hann = False):
 
 def get_json_pixelSize(json_file):
     """
+    
     Parameters
     ----------
     json_file: str
@@ -219,6 +222,7 @@ def get_json_pixelSize(json_file):
 
 def json_to_dict(json_path):
     """
+    
     Parameters
     ----------
     json_path: str
@@ -490,6 +494,7 @@ def load_recon(fn):
 
 def get_error(file_path):
     """
+    
     Parameters
     ----------
     file_path: str
@@ -554,6 +559,7 @@ def get_hdf5_object_modulus(h5_file, params):
 
 def get_probe_array(file_path):
     """
+    
     Parameters
     ----------
     file_path: str
@@ -584,6 +590,7 @@ def get_probe_array(file_path):
 
 def get_obj_array(file_path):
     """
+    
     Parameters
     ----------
     file_path: str
@@ -751,6 +758,7 @@ def get_RMSE(dist_list):
 def kdtree_NN(experiment, truth, search_rad):
     """
     Runs sklearn KDTree proximity algorithm on the data
+    
     Parameters
     ___________
     experiment: list
@@ -835,6 +843,7 @@ def kdtree_NN(experiment, truth, search_rad):
 def duplicate_json(source_json_path, new_json_path, param_to_change = None):
     """
     This gets a source json file and duplicates it, changing a parameter if declared
+    
     Parameters
     ____________
     source_json_path: str
