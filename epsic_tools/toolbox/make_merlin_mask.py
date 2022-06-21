@@ -4,7 +4,7 @@ import h5py
 import matplotlib.pyplot as plt
 import os
 
-def make_mask(flat_field, hot_pix_factor,mask_cross = False,  show_mask=True, dest_h5_path=None, show_hist=False):
+def make_mask(flat_field, hot_pix_factor, cold_pix_factor = 0 , mask_cross = False,  show_mask=True, dest_h5_path=None, show_hist=False):
     """
     Creates mask for Merlin Medipix 
     Parameters:
@@ -62,8 +62,10 @@ def make_mask(flat_field, hot_pix_factor,mask_cross = False,  show_mask=True, de
     
     mask_hot = flat_data > (flat_int_ave * hot_pix_factor)
     mask_hot_and_dead = np.logical_and(mask_dead, mask_hot)
+    mask_cold = flat_data < (flat_int_ave * cold_pix_factor)
+    mask_hot_and_cold_and_dead = np.logical_and(mask_hot_and_dead, mask_cold)
     # Do we need to save these separately?
-    mask = mask_hot_and_dead    
+    mask = mask_hot_and_cold_and_dead    
     #mask = pxm.ElectronDiffraction2D(mask)
     if show_mask:
         plt.figure()
