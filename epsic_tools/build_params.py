@@ -108,7 +108,7 @@ def init_ptyrex():
 
     params['process']['common']['detector']['crop'] = [512,512]
 
-    params['process']['common']['detector']['orientation'] = '10'
+    params['process']['common']['detector']['orientation'] = "10"
 
     params['process']['common']['detector']['mask_flag'] = 0
 

@@ -472,7 +472,7 @@ def load_recon(fn):
     probe = hs.signals.Signal2D(data = probe)
     err = hs.signals.Signal1D(data = err)
 
-    return dat, probe, err
+    return params, dat, probe, err
 
 
 
