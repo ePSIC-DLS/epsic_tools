@@ -1,8 +1,11 @@
 import numpy as np
 from scipy import constants as pc
+from scipy.ndimage import gaussian_filter
 from numpy.fft import fftshift, ifft2, ifftshift
 import matplotlib.pyplot as plt
 import h5py
+from ctypes import *
+
 
 
 def FuncAberrUV(u,v,aberrcoeff):
@@ -36,15 +39,15 @@ def FuncAberrUV(u,v,aberrcoeff):
     C32b = aberrcoeff[11] # star
     
     # output:  chi function. in unit of meter*radian.  multiply by 2pi/lambda to get dimensionless
-    func_aberr =  1/2*C1*(u2+v2)\
-            + 1/2*(C12a*(u2-v2) + 2*C12b*u*v)\
-            + 1/3*(C23a*(u3-3*u*v2) + C23b*(3*u2*v - v3))\
-            + 1/3*(C21a*(u3+u*v2) + C21b*(v3+u2*v))\
-            + 1/4* C3*(u4+v4+2*u2*v2)\
-            + 1/4* C34a*(u4-6*u2*v2+v4)\
-            + 1/4* C34b*(4*u3*v-4*u*v3)\
-            + 1/4* C32a*(u4-v4)\
-            + 1/4* C32b*(2*u3*v + 2*u*v3)\
+    func_aberr =  1/2*C1*(u2+v2) \
+	    + 1/2*(C12a*(u2-v2) + 2*C12b*u*v) \
+            + 1/3*(C23a*(u3-3*u*v2) + C23b*(3*u2*v - v3)) \
+            + 1/3*(C21a*(u3+u*v2) + C21b*(v3+u2*v)) \
+            + 1/4* C3*(u4+v4+2*u2*v2) \
+            + 1/4* C34a*(u4-6*u2*v2+v4) \
+            + 1/4* C34b*(4*u3*v-4*u*v3) \
+            + 1/4* C32a*(u4-v4) \
+            + 1/4* C32b*(2*u3*v + 2*u*v3)
     
     return func_aberr
 
@@ -90,6 +93,7 @@ def define_probe_function(V,alpha, px_cal,array_px, aberr_input, dose = 1, plot_
     #
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     l =(pc.h * pc.c) / np.sqrt((pc.e * V)**2  + 2 * pc.e * V * pc.m_e * pc.c**2)  # relativistic wavelength
+    print(l)
     #% probe function
     #% chi function
     cen = array_px / 2 # center of array
@@ -103,10 +107,12 @@ def define_probe_function(V,alpha, px_cal,array_px, aberr_input, dose = 1, plot_
     Ky = np.copy(Kx)
     Kx = Kx.T
     func_aber = FuncAberrUV(Kx,Ky,aberr_input)
-    
-    #% transfer function
-    func_transfer=np.exp((-1j*2*np.pi/ (l)) * func_aber)
-    
+    #func_aber = func_aber.astype('float128')
+    #% transfer function 831
+    #% func_transfer = 
+    func_transfer= np.exp(((-1j*2*np.pi)/ (l)) * func_aber)#np.exp((-1j*2*np.pi/ (l)) * func_aber)
+    print(func_transfer.shape, func_transfer.dtype)
+
     #% aperture function
     #func_ObjApt = ones(size(ptycho.Kwp));
     #func_ObjApt( ptycho.Kwp > ptycho.ObjApt_angle) = 0;
@@ -122,11 +128,14 @@ def define_probe_function(V,alpha, px_cal,array_px, aberr_input, dose = 1, plot_
     #% for resampled ronchigram
     #% pacbed_rs = interp2(tx_wp,ty_wp,mean_m_wp,Kx,Ky,'cubic',0);
     #% dose = sum(pacbed_rs(:)) *1.0;
-    
+    #add small blur to object aperture
+    #% func_ObjApt = gaussian_filter(func_ObjApt,2)
+
     #% normalize the Objective Aperture to the desired number of electrons
     scaling = np.sqrt(dose/func_ObjApt.sum())
     func_ObjApt = func_ObjApt* scaling
-    
+    #%func_ObjApt = gaussian_filter(func_ObjApt,4)
+
     #% convergence aperture function; to filter out the updated probe func
     #% during ptychography iterations. 
     #% ObjAptMask = func_ObjApt./sum(func_ObjApt(:));
@@ -135,7 +144,7 @@ def define_probe_function(V,alpha, px_cal,array_px, aberr_input, dose = 1, plot_
     A = func_ObjApt*func_transfer
     #% probe function - real space
     func_probe=fftshift(ifft2(ifftshift(A)));
-    
+
     if plot_me:
         fig_mul = 0.0625
         #max_fig = px_cal * array_px
@@ -167,5 +176,5 @@ def define_probe_function(V,alpha, px_cal,array_px, aberr_input, dose = 1, plot_
         plt.plot(x_list, np.imag(func_probe[int(array_px/2), :]))
         plt.xlim(fig_lim)
         plt.title('df = ' + str(aberr_input[0]) + ' Cs = ' + str(aberr_input[7]))
-    return func_probe   
+    return func_aber, func_transfer,  func_ObjApt, func_probe
 

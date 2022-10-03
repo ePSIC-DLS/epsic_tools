@@ -63,8 +63,6 @@ def plot_ptyREX_output(json_path, save_fig=None, crop=False):
     name = json_dict['base_dir'].split('/')[-1]
     recon_path = os.path.splitext(json_path)[0]+'.hdf'
     probe = get_probe_array(recon_path)
-    if len(probe.shape)==3:
-        probe = probe[0,:,:]
     if crop is True:
         obj = crop_recon_obj(json_path)
     else:
@@ -188,18 +186,10 @@ def get_json_pixelSize(json_file):
     """
     json_dict = json_to_dict(json_file)
     wavelength = e_lambda(json_dict['process']['common']['source']['energy'][0])
-    try: 
-        camLen = json_dict['process']['common']['detector']['distance']
-    except KeyError:
-        camLen = json_dict['experiment']['detector']['position']
-        camLen = camLen[-1]
-    
+    camLen = json_dict['process']['common']['detector']['distance']
     N = json_dict['process']['common']['detector']['crop'][0]
-    try:
-        dc = json_dict['process']['common']['detector']['pix_pitch'][0]
-    except KeyError:
-        dc = json_dict['process']['common']['detector']['pixel_pitch'][0]
-
+    dc = json_dict['process']['common']['detector']['pix_pitch'][0]
+    
     pixelSize = (wavelength * camLen) / (N * dc)
     
     return pixelSize
@@ -222,9 +212,30 @@ def json_to_dict(json_path):
 
     return json_dict
 
+def squarify(M, val):
+    '''
+    Function to make a non square 2D array square.
+    
+    Parameters
+    ----------
+    
+    M : 2D input array
+    
+    val: float value to fill padded region
+    
+    Returns
+    -------
+    
+    Square array 
+    '''
+    (a,b) = M.shape
+    if a>b:
+        padding = ((0,0), (0, a-b))
+    else:
+        padding = ((0,b-a), (0,0))
+    return np.pad(M, padding, mode = 'constant', constant_values = val)
 
-
-def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
+def load_series(pn,crop_to, sort_by = 'rot', blur = 0,file_pattern = None,  verbose = False):
     ''' 
     loads all ptycho reconstructions in a folder and sorts by a parameter
     
@@ -239,6 +250,8 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     
     blur: Int to pass as sigma to gaussian blur object phase. 0 = no blur 
     
+    file_pattern: String, if set only files containing this pattern are used 
+    
     verbose: Bool to print detailed output
     
     Returns
@@ -248,7 +261,9 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     
     p_s: hyperspy singnal2D probe function
     
-    d_s_fft: hyperspy singnal2D fourier transfor of object function
+    d_s_fft: hyperspy singnal2D fourier transfer of object function
+    
+    p_s_fft: hyperspy singnal2D fourier transfer of probe function
     
     rad_fft: hyperspy singnal1D object radial profile of d_s_fft 
     
@@ -263,14 +278,17 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     -------------
     from epsic_tools.toolbox.ptychography.load_pycho_series import load_series
     pn = r'Y:\2020\cm26481-1\processing\Merlin\20200130_80kV_graphene_600C_pty\cluster\processing\pycho'
-    d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s = load_series(pn,sort_by = 'rot', crop_to = 80)
-    hs.plot.plot_signals([d_s,p_s,d_s_fft, rad_fft], navigator_list=[r_s,s_s, e_s,None])
+    d_s, p_s, d_s_fft, p_s_fft, rad_fft, r_s, s_s, e_s = load_series(pn,sort_by = 'rot', crop_to = 80)
+    hs.plot.plot_signals([d_s,p_s,d_s_fft,p_s_fft, rad_fft], navigator_list=[r_s,s_s, e_s,None, None])
 
     to do 
     ------
     Break loading from hdf file into seperate functions 
     '''
-    pn = pn +'/*.hdf'
+    if file_pattern ==None:
+        pn = pn +'/*.hdf'
+    else:
+        pn = pn + file_pattern
     #build list of files
     fp_list = glob.glob(pn)
     len_dat = len(fp_list)
@@ -313,6 +331,9 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
             error = np.array(d5['entry_1']['process_1']['output_1']['error'])
             error = error[error != 0]
             d5.close()  # probably not necessary but just in case!
+        #make sure object is square array
+        dat = squarify(dat, 0)
+        dat_m = squarify(dat_m, 0)
         if n == 0:
             #initiate arrays if first itteration - make bigger than fist data to account for change in size
             shape_dat = int(10 * (np.ceil(dat.shape[0]/10) +1))
@@ -444,8 +465,31 @@ def load_series(pn,crop_to, sort_by = 'rot', blur = 0, verbose = False):
     d_s_fft.inav[:,0].data[:,:,int(fft_shape[-2]/2)] =0
     
     rad_fft = radial_profile.radial_profile_stack(d_s_fft)
+    
+    probe_mod = p_s.data[1,:,:,:]
+    probe_theta = p_s.data[0,:,:,:]
+    real = probe_mod * np.cos(probe_theta)
+    imag = probe_mod * np.sin(probe_theta)
+    
+    probe_c = real + 1j * imag
+    
+    probe_sort_fft = np.fft.fft2(probe_c)
+    probe_sort_fft = np.fft.fftshift(probe_sort_fft)
+    probe_sort_fft = np.log10(np.abs(probe_sort_fft)**2)
+    probe_c_fft = np.zeros_like(p_s.data)
+    probe_c_fft[0,:,:,:] = probe_sort_fft
+    probe_c_fft[1,:,:,:] = probe_sort_fft
+    p_s_fft = hs.signals.Signal2D(data = probe_c_fft)
+    p_s_fft.data = np.flip(p_s_fft.data, axis = 0)
+    #fft_mask = np.zeros_like(p_s_fft.data, dtype = 'bool')
+    #fft_shape = fft_mask.shape
+    
+    #p_s_fft.inav[:,0].data[:,int(fft_shape[-1]/2), :] =0
+    #p_s_fft.inav[:,0].data[:,:,int(fft_shape[-2]/2)] =0
+    
+    #rad_fft = radial_profile.radial_profile_stack(d_s_fft)
     print(n, ' files loaded successfully')
-    return d_s, p_s, d_s_fft, rad_fft, r_s, s_s, e_s#, fe_s
+    return d_s, p_s, d_s_fft, p_s_fft, rad_fft, r_s, s_s, e_s#, fe_s
 
 def load_recon(fn):
     params = get_json_params(fn)
@@ -472,7 +516,7 @@ def load_recon(fn):
     probe = hs.signals.Signal2D(data = probe)
     err = hs.signals.Signal1D(data = err)
 
-    return params, dat, probe, err
+    return dat, probe, err
 
 
 
@@ -847,18 +891,15 @@ def duplicate_json(source_json_path, new_json_path, param_to_change = None):
             if _finditem(data_dict, param_to_change[0]) is not None:
                 p = _finditem(data_dict, param_to_change[0])
                 keys = _get_path(p)
-                # print(keys)
+#                 print(keys)
                 keys.append(param_to_change[0])
-                
                 if len(keys)==4:
                     data_dict[keys[0]][keys[1]][keys[2]][keys[3]] = param_to_change[1]
                 elif len(keys)==3:
                     data_dict[keys[0]][keys[1]][keys[2]] = param_to_change[1]
                 elif len(keys)==2:
                     data_dict[keys[0]][keys[1]] = param_to_change[1]
-                elif len(keys)==1:
-                    data_dict[keys[0]] = param_to_change[1]
-                with open(new_json_path, 'a') as outfile:
+                with open(new_json_path, 'w') as outfile:
                     json.dump(data_dict, outfile, indent = 4)
                 return data_dict
             else:
@@ -893,3 +934,52 @@ def _get_path(bad_list):
     else:
         pass
     return path
+    
+def sum_bragg(data,xy,  shift_xy = [0,0], delta_theta = 0 , alpha = 60, r = 86,dr2 = (13.65 / 8.36),  plot_me = False):
+    #data = image data
+    #xy = center position
+    #shift_xy = change in center position for Bragg reflections w.r.t. bfd
+    #delta_theta = rotation anlge of Bragg reflections
+    #alpha = bfd radius in px
+    #r = position of first bragg reflection in px
+    #dr2 =  position of second bragg reflection relative to first
+    
+    r2 = dr2* r
+    if plot_me:
+        plt.figure()
+        ax = plt.gca()
+        im = plt.imshow(data)#d_sum**0.1)
+        circ = plt.Circle([xy[1], xy[0]], alpha, fill = False)
+        ax.add_artist(circ)
+
+    m_array = np.zeros_like(data)
+    for i in range(6):
+        c_x = xy[1] + shift_xy[0]
+        c_y = xy[0] + shift_xy[1] 
+        x_pos = c_x + r * np.sin((delta_theta + i * np.pi/3 ))
+        y_pos = c_y+ r * np.cos((delta_theta + i * np.pi/3 ))
+        circ1 = plt.Circle([x_pos, y_pos], alpha, fill = False, color = 'r')
+        #ax.add_artist(circ1)
+        x_pos2 = c_x + r2 * np.sin((delta_theta + np.pi/6 + i * np.pi/3 ))
+        y_pos2 = c_y + r2 * np.cos((delta_theta + np.pi/6 + i * np.pi/3 ))
+        circ2 = plt.Circle([x_pos2, y_pos2], alpha, fill = False, color = 'b')
+        if plot_me:
+            ax.add_artist(circ1)
+            ax.add_artist(circ2)
+            #im.set_clip_path(circ2)
+
+        a, b = 1, 1
+        n = data.shape[0]
+
+
+        y,x = np.ogrid[-y_pos2:n-y_pos2, -x_pos2:n-x_pos2]
+        mask = x*x + y*y <= alpha*alpha
+        m_array[mask] = 1
+        y,x = np.ogrid[-y_pos:n-y_pos, -x_pos:n-x_pos]
+        mask = x*x + y*y <= alpha*alpha
+        m_array[mask] = 1
+        #im.set_clip_path(path = None)
+        
+    m_array = m_array * data
+    area_sum = m_array.sum()
+    return m_array, area_sum
