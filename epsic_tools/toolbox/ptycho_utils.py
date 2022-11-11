@@ -9,6 +9,7 @@ Created on Fri May 15 22:52:15 2020
 
 import h5py
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 from scipy.ndimage.interpolation import rotate
 from skimage.filters import gaussian
@@ -474,7 +475,53 @@ def load_recon(fn):
 
     return params, dat, probe, err
 
+def plot_sub_region_json(img, json_file):
+   ''' 
+    displays subregion of input image for reconstruction from parameters in PtyRex json file
+    
+    Parameters
+    ----------
+    
+    img : 2D numpy array image
+    
+    json_file: full file path - string
+    
+    Returns
+    -------
+    
+    crop_img : 2D numpy array image cropped according to json paraeters
+    
+    '''
+    with open(json_file) as r:
+        params = json.load(r)
+    data_path = params['experiment']['data']['data_path']
+    region = params['process']['common']['scan']['region']
+    rotation =  params['process']['common']['scan']['rotation']
+    print(data_path)
+    # try:
+        # img_file = data_path.split('.')[0] + '_ibf.hspy'
+        # with h5py.File(img_file, 'r') as f:
+            # img = f['Experiments']['__unnamed__']['data'][:]
+    # except OSError as e:
+        # print('img file does not exist, creating')
+        # d = hs.load(data_path)
+        # img = d.sum(axis = (2,3))
+    img = rotate(img, rotation )
+    img_shape= img.shape
+    crop_ints = int(region[0] * img.shape[0]), int(region[1] * img.shape[0]), int(region[2] * img.shape[1]),int(region[3]* img.shape[1])
 
+    img_crop = img[crop_ints[2]:crop_ints[3], crop_ints[0]:crop_ints[1]]
+    rect_patch = patches.Rectangle((crop_ints[2], crop_ints[0]), crop_ints[3] - crop_ints[2], crop_ints[1] - crop_ints[0], fill = False)
+    minval = np.min(img[np.nonzero(img)])
+    maxval = np.max(img[np.nonzero(img)])
+    plt.figure()
+    plt.imshow(img, cmap = 'gray', vmin = minval, vmax = maxval)
+    ax = plt.gca()
+    ax.add_patch(rect_patch)
+    plt.show
+    plt.figure()
+    plt.imshow(img_crop, cmap = 'gray', vmin = minval, vmax = maxval)
+    return(img_crop)
 
 def get_error(file_path):
     """
