@@ -456,7 +456,7 @@ def load_recon(fn):
         dat_mod = get_hdf5_object_modulus(h5_file, params)
         probe_phase = get_hdf5_probe_phase(h5_file)
         probe_mod = get_hdf5_probe_modulus(h5_file)
-    
+        
     dat_shape = dat_phase.shape
     dat = np.empty(shape = (2, dat_shape[0], dat_shape[1]))
     dat[0,:,:] = dat_phase
@@ -538,6 +538,7 @@ def get_hdf5_object_modulus(h5_file, params):
     #rotate
     rot_angle = 90-params['process']['common']['scan']['rotation']
     dat_m = rotate(dat_m, rot_angle)
+    return dat_m
           
 
 def get_probe_array(file_path):
@@ -858,7 +859,7 @@ def duplicate_json(source_json_path, new_json_path, param_to_change = None):
                     data_dict[keys[0]][keys[1]] = param_to_change[1]
                 elif len(keys)==1:
                     data_dict[keys[0]] = param_to_change[1]
-                with open(new_json_path, 'a') as outfile:
+                with open(new_json_path, 'wt') as outfile:
                     json.dump(data_dict, outfile, indent = 4)
                 return data_dict
             else:
