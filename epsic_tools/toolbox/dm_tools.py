@@ -77,7 +77,7 @@ def show_ROI(high_res_image, low_res_image):
 
     Returns
     -------
-    None
+    high_res_rel_center[0], high_res_rel_center[1]
     """
     
     low_res_stage = get_img_stage_coords(low_res_image)
@@ -110,7 +110,7 @@ def show_ROI(high_res_image, low_res_image):
     high_res_file_num = high_res_image.metadata.General.original_filename.split('_')[-1].split('.')[0]
     t = hs.markers.text(high_res_rel_center[0], high_res_rel_center[1], high_res_file_num)
     low_res_image.add_marker(t)
-    
+    return high_res_rel_center[0], high_res_rel_center[1]
    
 def equalize_res(low_res_image, high_res_image):
     """
@@ -130,6 +130,7 @@ def equalize_res(low_res_image, high_res_image):
     low_res_px = get_img_px_size(low_res_image)
     scale = low_res_px / high_res_px 
     bin_high_res_image = high_res_image.rebin(scale=[scale, scale])
+    #bin_high_res_image.data = bin_high_res_image.data / (scale*scale)
     return bin_high_res_image 
    
 def template_match(image, template):

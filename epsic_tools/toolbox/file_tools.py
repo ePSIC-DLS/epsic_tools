@@ -46,7 +46,9 @@ def list_files(dir_list, dir_num, search_str = '*.*'):
     """
     #print(dir_list[dir_num])
     data_dir = dir_list[dir_num] + r'/'
+    #print(data_dir)
     file_list = glob.glob(data_dir + search_str)
+    file_list = sorted(file_list)
     number_list(file_list)
     return file_list
     
