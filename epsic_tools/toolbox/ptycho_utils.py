@@ -496,6 +496,10 @@ def plot_sub_region_json(img, json_file):
     data_path = params['experiment']['data']['data_path']
     region = params['process']['common']['scan']['region']
     rotation =  params['process']['common']['scan']['rotation']
+    probe_array = params['process']['common']['detector']['crop']
+    probe_bin = params['process']['common']['detector']['bin']
+    probe_size = probe_array[0] / probe_bin[0], probe_array[1] / probe_bin[1]
+    print(probe_size)
     print(data_path)
     # try:
         # img_file = data_path.split('.')[0] + '_ibf.hspy'
@@ -505,10 +509,15 @@ def plot_sub_region_json(img, json_file):
         # print('img file does not exist, creating')
         # d = hs.load(data_path)
         # img = d.sum(axis = (2,3))
-    img = rotate(img, rotation )
-    img_shape= img.shape
-    crop_ints = int(region[0] * img.shape[0]), int(region[1] * img.shape[0]), int(region[2] * img.shape[1]),int(region[3]* img.shape[1])
 
+    img = rotate(img, rotation )
+    img = np.pad(img, (int(probe_size[0]/2), int(probe_size[1]/2)), mode='constant')
+    img_shape= img.shape
+    print('region : ', region)
+    crop_ints = int(region[0] * img.shape[0]), int(region[1] * img.shape[0]), int(region[2] * img.shape[1]),int(region[3]* img.shape[1])
+    print(crop_ints)
+    img = np.flipud(img)
+    img = np.fliplr(img)
     img_crop = img[crop_ints[2]:crop_ints[3], crop_ints[0]:crop_ints[1]]
     rect_patch = patches.Rectangle((crop_ints[0], crop_ints[2]), crop_ints[1] - crop_ints[0], crop_ints[3] - crop_ints[2], fill = False)
     minval = np.min(img[np.nonzero(img)])
