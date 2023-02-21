@@ -9,6 +9,7 @@ Created on Fri May 15 22:52:15 2020
 
 import h5py
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 from scipy.ndimage.interpolation import rotate
 from skimage.filters import gaussian
@@ -472,7 +473,7 @@ def load_recon(fn):
         dat_mod = get_hdf5_object_modulus(h5_file, params)
         probe_phase = get_hdf5_probe_phase(h5_file)
         probe_mod = get_hdf5_probe_modulus(h5_file)
-    
+        
     dat_shape = dat_phase.shape
     dat = np.empty(shape = (2, dat_shape[0], dat_shape[1]))
     dat[0,:,:] = dat_phase
@@ -488,9 +489,63 @@ def load_recon(fn):
     probe = hs.signals.Signal2D(data = probe)
     err = hs.signals.Signal1D(data = err)
 
-    return dat, probe, err
+    return params, dat, probe, err
 
+def plot_sub_region_json(img, json_file):
+    ''' 
+    displays subregion of input image for reconstruction from parameters in PtyRex json file
 
+    Parameters
+    ----------
+
+    img : 2D numpy array image
+
+    json_file: full file path - string
+
+    Returns
+    -------
+
+    crop_img : 2D numpy array image cropped according to json paraeters
+    '''
+    with open(json_file) as r:
+        params = json.load(r)
+    data_path = params['experiment']['data']['data_path']
+    region = params['process']['common']['scan']['region']
+    rotation =  params['process']['common']['scan']['rotation']
+    probe_array = params['process']['common']['detector']['crop']
+    probe_bin = params['process']['common']['detector']['bin']
+    probe_size = probe_array[0] / probe_bin[0], probe_array[1] / probe_bin[1]
+    print(probe_size)
+    print(data_path)
+    # try:
+        # img_file = data_path.split('.')[0] + '_ibf.hspy'
+        # with h5py.File(img_file, 'r') as f:
+            # img = f['Experiments']['__unnamed__']['data'][:]
+    # except OSError as e:
+        # print('img file does not exist, creating')
+        # d = hs.load(data_path)
+        # img = d.sum(axis = (2,3))
+
+    img = rotate(img, rotation )
+    img = np.pad(img, (int(probe_size[0]/2), int(probe_size[1]/2)), mode='constant')
+    img_shape= img.shape
+    print('region : ', region)
+    crop_ints = int(region[0] * img.shape[0]), int(region[1] * img.shape[0]), int(region[2] * img.shape[1]),int(region[3]* img.shape[1])
+    print(crop_ints)
+    img = np.flipud(img)
+    img = np.fliplr(img)
+    img_crop = img[crop_ints[2]:crop_ints[3], crop_ints[0]:crop_ints[1]]
+    rect_patch = patches.Rectangle((crop_ints[0], crop_ints[2]), crop_ints[1] - crop_ints[0], crop_ints[3] - crop_ints[2], fill = False)
+    minval = np.min(img[np.nonzero(img)])
+    maxval = np.max(img[np.nonzero(img)])
+    plt.figure()
+    plt.imshow(img, cmap = 'gray', vmin = minval, vmax = maxval)
+    ax = plt.gca()
+    ax.add_patch(rect_patch)
+    plt.show
+    plt.figure()
+    plt.imshow(img_crop, cmap = 'gray', vmin = minval, vmax = maxval)
+    return(img_crop)
 
 def get_error(file_path):
     """
@@ -555,6 +610,7 @@ def get_hdf5_object_modulus(h5_file, params):
     #rotate
     rot_angle = 90-params['process']['common']['scan']['rotation']
     dat_m = rotate(dat_m, rot_angle)
+    return dat_m
           
 
 def get_probe_array(file_path):
@@ -879,7 +935,7 @@ def duplicate_json(source_json_path, new_json_path, param_to_change = None):
                     data_dict[keys[0]][keys[1]] = param_to_change[1]
                 elif len(keys)==1:
                     data_dict[keys[0]] = param_to_change[1]
-                with open(new_json_path, 'a') as outfile:
+                with open(new_json_path, 'wt') as outfile:
                     json.dump(data_dict, outfile, indent = 4)
                 return data_dict
             else:
