@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Feb 14 13:51:27 2020
 
-@author: gys37319
-"""
 
 import collections
 
