@@ -71,6 +71,17 @@ class ePSIC_S3(object):
         sample_list = list(set(sample_list))
         pprint(sample_list)
         
+    def get_data_list(self, key_search='None'):
+        data_list = []
+        for obj in self.bucket.objects.all():
+            key = obj.key
+            if key_search == 'None':
+                data_list.append(key)
+            else:
+                if key_search in key:
+                    data_list.append(key)
+        return data_list
+            
             
             
 def print_buckets():
