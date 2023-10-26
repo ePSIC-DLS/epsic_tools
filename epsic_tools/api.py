@@ -9,3 +9,7 @@ from epsic_tools.toolbox import sim_utils
 from epsic_tools.toolbox import ptycho_utils
 from epsic_tools.toolbox import notebook_utils
 from epsic_tools.iris_S3 import ePSIC_S3
+from epsic_tools.toolbox.stemutils import io
+from epsic_tools.toolbox.stemutils import process
+from epsic_tools.toolbox.stemutils import selection
+from epsic_tools.toolbox.stemutils import visualise
