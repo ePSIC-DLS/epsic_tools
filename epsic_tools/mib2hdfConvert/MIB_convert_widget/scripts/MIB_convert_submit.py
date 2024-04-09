@@ -15,7 +15,7 @@ import shutil
 import ipywidgets
 import ipywidgets as widgets
 import sys
-sys.path.append('/dls_sw/e02/scripts/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts')
+sys.path.append('/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts')
 from MIB_convert import *
 from MIB_convert import _add_crosses
 import os
@@ -75,7 +75,11 @@ add_cross = eval(info['add_cross'])
 
 data_memmap, headers = load_mib_data(path, return_headers=True, return_mmap=True)
 # Adding cross
-data = _add_crosses(data[0]['data'])
+if add_cross == 1:
+    data = _add_crosses(data[0]['data'])
+
+else:
+    data = data[0]['data']
 
 
 if no_reshaping:

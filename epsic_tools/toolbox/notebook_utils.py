@@ -84,9 +84,9 @@ class NotebookHelper:
         source = []
         for key, value in new_settings.items():
             if type(value) is dict:
-                source.append(f"{key}={value['value']}\n")
+                source.append(f"{key}='{value['value']}'\n")
             else:
-                source.append(f"{key}={value}\n") 
+                source.append(f"{key}='{value}'\n") 
         source = ''.join(source)
         notebook["cells"][blank_cell_index]["source"] = source
         nbformat.write(notebook, save_path)

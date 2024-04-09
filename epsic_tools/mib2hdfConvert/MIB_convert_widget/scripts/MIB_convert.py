@@ -75,7 +75,7 @@ class convert_info_widget():
         if create_batch_check:
             bash_script_path = os.path.join(script_save_path, 'cluster_submit.sh')
             info_path = os.path.join(script_save_path, 'convert_info.txt')
-            python_script_path = '/dls_sw/e02/scripts/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
+            python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
             
             with open (bash_script_path, 'w') as f:
                 f.write('''#!/usr/bin/env bash
