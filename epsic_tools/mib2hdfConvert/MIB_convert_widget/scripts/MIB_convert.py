@@ -14,6 +14,7 @@ import shutil
 
 import ipywidgets
 from ipywidgets.widgets import *
+from ipywidgets import HBox, Label
 import sys
 import os
 import glob
@@ -49,6 +50,7 @@ class convert_info_widget():
         src_path = f'/dls/e02/data/{year}/{session}/Merlin/{subfolder}'
         print("source_path: ", src_path)
         if os.path.exists(src_path):
+            print('MIB files in the source directory')
             mib_files = glob.glob(src_path + '/*/*.mib')
             print(*mib_files, sep="\n")
         else:
@@ -61,8 +63,8 @@ class convert_info_widget():
             os.makedirs(dest_path)
             print("created: "+dest_path)
         
-        to_convert = check_differences(src_path, dest_path)
-        print("converted MIBs")
+        to_convert = check_differences(src_path, dest_path, subfolder)
+        print("MIB files will be converted")
         print(*to_convert, sep="\n")
 
         script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}/scripts'
@@ -192,24 +194,30 @@ f"python {python_script_path} {info_path} $SLURM_ARRAY_TASK_ID\n"
        
         
     def _activate(self):
-        year = Text(description='Year:')
-        session = Text(description='Session:')
-        subfolder = Text(description='Subfolder:')
+        print('*********************************************************************************')
+        print('Make sure that <Submit checkbox> is unchecked before changing any other variables')
+        print('*********************************************************************************')
 
-        no_reshaping = Checkbox(values=False, description='No reshaping')
-        use_fly_back = Checkbox(value=True, description='Use Fly-back')
-        known_shape = Checkbox(value=False, description='Known_shape')
-        Scan_X = IntText(description='Scan_X:')
-        Scan_Y = IntText(description='Scan_Y:')
+        
+        st = {"description_width": "initial"}
+        year = Text(description='Year:', style=st)
+        session = Text(description='Session:', style=st)
+        subfolder = Text(description='Subfolder:', style=st)
 
-        add_cross_check = Checkbox(value=True, description='add_cross')
+        no_reshaping = Checkbox(values=False, description='No reshaping', style=st)
+        use_fly_back = Checkbox(value=True, description='Use Fly-back', style=st)
+        known_shape = Checkbox(value=False, description='Known_shape', style=st)
+        Scan_X = IntText(description='Scan_X: (avaiable for known_shape)', style=st)
+        Scan_Y = IntText(description='Scan_Y: (avaiable for known_shape)', style=st)
 
-        ADF_check = Checkbox(value=False, description='ADF (Not available yet)')
-        iBF_check = Checkbox(value=True, description='iBF')
-        DPC_check = Checkbox(value=False, description='DPC (Not available yet)')
+        add_cross_check = Checkbox(value=True, description='add_cross', style=st)
+
+        ADF_check = Checkbox(value=False, description='ADF (Not available yet)', style=st)
+        iBF_check = Checkbox(value=True, description='iBF', style=st)
+        DPC_check = Checkbox(value=False, description='DPC (Not available yet)', style=st)
 
         bin_nav_widget = IntSlider(
-                                value=7,
+                                value=2,
                                 min=1,
                                 max=8,
                                 step=1,
@@ -218,11 +226,11 @@ f"python {python_script_path} {info_path} $SLURM_ARRAY_TASK_ID\n"
                                 continuous_update=False,
                                 orientation='horizontal',
                                 readout=True,
-                                readout_format='d'
+                                readout_format='d', style=st
                                         )
 
         bin_sig_widget = IntSlider(
-                                value=7,
+                                value=2,
                                 min=1,
                                 max=8,
                                 step=1,
@@ -231,12 +239,12 @@ f"python {python_script_path} {info_path} $SLURM_ARRAY_TASK_ID\n"
                                 continuous_update=False,
                                 orientation='horizontal',
                                 readout=True,
-                                readout_format='d'
+                                readout_format='d', style=st
                                         )
         
-        create_batch_check = Checkbox(value=False, description='Create slurm batch file')
-        create_info_check = Checkbox(value=False, description='Create conversion info file')
-        submit_check = Checkbox(value=False, description='Submit the conversion job')
+        create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
+        create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
+        submit_check = Checkbox(value=False, description='Submit the job using slurm', style=st)
         
         self.values = ipywidgets.interact(self._organize, 
                                           year=year, 
@@ -259,7 +267,7 @@ f"python {python_script_path} {info_path} $SLURM_ARRAY_TASK_ID\n"
 
 
 # Functions
-def check_differences(source_path, destination_path):
+def check_differences(source_path, destination_path, subfolder_name):
     """Checks for .mib files associated with a specified session that have
     not yet been converted to .hdf5.
 
@@ -285,24 +293,46 @@ def check_differences(source_path, destination_path):
 
     mib_paths = []
     raw_dirs = []
-    for p, d, files in os.walk(source_path):
-        # look at the files and see if there are any mib files there
-        for f in files:
-            if f.endswith('mib'):
-                mib_paths.append(os.path.join(str(p), str(f)))
-                raw_dirs.append(p)
-    # look in the processing folder and list all the directories
-    converted_dirs = []
 
-    hdf_files = []
-    for p, d, files in os.walk(destination_path):
-        # look at the files and see if there are any mib files there
-        for f in files:
-            if f.endswith('_data.hdf5'):
-                #if folder:
-                #    p = './'+ folder + p[1:]
-                hdf_files.append(f)
-                converted_dirs.append(p)
+    if subfolder_name == '':
+        mib_files = glob.glob(source_path + '/*/*.mib')
+        #print(*mib_files, sep='\n')
+        for f in mib_files:
+            p = os.path.dirname(f)
+            mib_paths.append(f)
+            raw_dirs.append(p)
+
+        converted_dirs = []
+        hdf_files = []
+        for p, d, files in os.walk(destination_path):
+            # look at the files and see if there are any mib files there
+            for f in files:
+                if f.endswith('_data.hdf5'):
+                    #if folder:
+                    #    p = './'+ folder + p[1:]
+                    hdf_files.append(f)
+                    converted_dirs.append(p)
+        
+    else:        
+        for p, d, files in os.walk(source_path):
+            # look at the files and see if there are any mib files there
+            for f in files:
+                if f.endswith('mib'):
+                    mib_paths.append(os.path.join(str(p), str(f)))
+                    raw_dirs.append(p)
+        # look in the processing folder and list all the directories
+        converted_dirs = []
+    
+        hdf_files = []
+        for p, d, files in os.walk(destination_path):
+            # look at the files and see if there are any mib files there
+            for f in files:
+                if f.endswith('_data.hdf5'):
+                    #if folder:
+                    #    p = './'+ folder + p[1:]
+                    hdf_files.append(f)
+                    converted_dirs.append(p)
+                    
     # only using the time-stamp section of the paths to compare:
     raw_dirs_check = []
     converted_dirs_check = []
