@@ -34,7 +34,6 @@ logger = logging.getLogger(__name__)
 # Make a logger for this module.
 logger = logging.getLogger(__name__)
 
-
 info_path = sys.argv[1]
 index = int(sys.argv[2])
 info = {}
@@ -50,12 +49,20 @@ with open(info_path, 'r') as f:
 
 path = eval(info['to_convert_paths'][0])[index]
 
+adr_split = path.split('/')
+tmp_save = []
+tmp_save.append('/')
+tmp_save.extend(adr_split[1:6])
+tmp_save.append('processing')
+tmp_save.extend(adr_split[6:8])
+save_dir = os.path.join(*tmp_save)
+
 # Load data as stack
-proc_path = info['proc_path']
-src_path = info['src_path']
+
+src_path = path[:-40]
 
 time_stamp = path.split('/')[-1][:15]
-save_path = os.path.join(proc_path, time_stamp)
+save_path = os.path.join(save_dir, time_stamp)
 if not os.path.exists(save_path):
      os.makedirs(save_path)
     
