@@ -282,11 +282,6 @@ f"python {python_script_path} {info_path} $SLURM_ARRAY_TASK_ID\n"
                 add_cross = 1
             else:
                 add_cross = 0
-
-            if create_ptycho_folder:
-                print('something did happen')
-            else:
-                print('something did not happen')
             
             with open (info_path, 'w') as f:
                 f.write(
