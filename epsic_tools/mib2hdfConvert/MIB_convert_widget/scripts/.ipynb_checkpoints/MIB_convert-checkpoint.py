@@ -32,14 +32,119 @@ logger = logging.getLogger(__name__)
 logger = logging.getLogger(__name__)
 import matplotlib.pyplot as plt
 
+# ptyrex import
+import json
+
+def gen_config(template_path, dest_path, config_name, meta_file_path, rotation_angle, camera_length, conv_angle):
+    config_file = dest_path + '/' + config_name + '.json'
+
+    with open(template_path, 'r') as template_file:
+        pty_expt = json.load(template_file)
+    data_path = meta_file_path
+
+    pty_expt['base_dir'] = dest_path
+    pty_expt['process']['save_dir'] = dest_path
+    pty_expt['experiment']['data']['data_path'] = data_path
+
+    pty_expt['process']['common']['scan']['rotation'] = rotation_angle
+
+    # pty_expt['process']['common']['scan']['N'] = scan_shape
+    pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
+    pty_expt['experiment']['optics']['lens']['alpha'] = conv_angle
+
+    with h5py.File(meta_file_path, 'r') as microscope_meta:
+        meta_values = microscope_meta['metadata']
+        pty_expt['process']['common']['scan']['N'] = [int(meta_values['4D_shape'][:2][0]),
+                                                      int(meta_values['4D_shape'][:2][1])]
+        pty_expt['process']['common']['source']['energy'] = [float(np.array(meta_values['ht_value(V)']))]
+        pty_expt['process']['common']['scan']['dR'] = [float(np.array(meta_values['step_size(m)'])),
+                                                       float(np.array(meta_values['step_size(m)']))]
+        # pty_expt['experiment']['optics']['lens']['alpha'] = 2 * float(np.array(meta_values['convergence_semi-angle(rad)']))
+        pty_expt['experiment']['optics']['lens']['defocus'] = [float(np.array(meta_values['defocus(nm)']) * 1e-9),
+                                                               float(np.array(meta_values['defocus(nm)']) * 1e-9)]
+        pty_expt['process']['save_prefix'] = config_name
+
+    with open(config_file, 'w') as f:
+        json.dump(pty_expt, f, indent=4)
+
+
+def Meta2Config(acc,nCL,aps):
+    '''This function converts the meta data from the 4DSTEM data set into parameters to be used in a ptyREX json file'''
+
+    '''The rotation angles noted here are from ptychographic reconstructions which have been successful. see the 
+    following directory for example reconstruction from which these values are derived:
+     /dls/science/groups/imaging/ePSIC_ptychography/experimental_data'''
+    if acc == 80e3:
+        rot_angle = 238.5
+        print('Rotation angle = ' + str(rot_angle))
+        if aps == 1:
+            conv_angle = 41.65e-3
+            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 2:
+            conv_angle = 31.74e-3
+            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 3:
+            conv_angle = 24.80e-3
+            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 4:
+            conv_angle =15.44e-3
+            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        else:
+            print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
+    elif acc == 200e3:
+        rot_angle = 90
+        print('Rotation angle = ' + str(rot_angle) +' Warning: This rotation angle need further calibration')
+        if aps == 1:
+            conv_angle = 37.7e-3
+            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 2:
+            conv_angle = 28.8e-3
+            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 3:
+            conv_angle = 22.4e-3
+            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 4:
+            conv_angle = 14.0
+            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 5:
+            conv_angle = 6.4
+            print('Condenser aperture size is 10um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+    elif acc == 300e3:
+        rot_angle = -85.5
+        print('Rotation angle = ' + str(rot_angle))
+        if aps == 1:
+            conv_angle = 44.7e-3
+            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 2:
+            conv_angle = 34.1e-3
+            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 3:
+            conv_angle = 26.7e-3
+            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 4:
+            conv_angle =16.7e-3
+            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        else:
+            print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
+    else:
+        print('Rotation angle for this acceleration voltage is unknown, please collect calibration data. Rotation angle being set to zero')
+        rot_angle = 0
+
+    '''this is incorrect way of calucating the actual camera length but okay for this prototype code'''
+    '''TODO: add py4DSTEM workflow which automatic determines the camera length from a small amount of reference data and the known convergence angle'''
+    camera_length = 1.5*nCL
+    print('camera length estimated to be ' + str(camera_length))
+
+    return rot_angle,camera_length,conv_angle
+
+
 
 # Widgets
 class convert_info_widget():
-
     def __init__(self):
         self._activate()
 
-    def _paths(self, year, session, subfolder, subfolder_check):
+    def _paths(self, year, session, subfolder_check, subfolder, path_verbose):
 
         if subfolder == '' and subfolder_check:
             print("**************************************************")
@@ -80,7 +185,8 @@ class convert_info_widget():
 
         if subfolder != '' or subfolder_check==True:
             self.to_convert = self._check_differences(self.src_path, self.dest_path)
-            print(*self.to_convert, sep="\n")
+            if path_verbose:
+                print(*self.to_convert, sep="\n")
 
         #save_dir = []
         #for adr in to_convert:
@@ -95,7 +201,7 @@ class convert_info_widget():
     def _organize(self, no_reshaping, use_fly_back, known_shape, 
                   Scan_X, Scan_Y, add_cross_check,
                 ADF_check, iBF_check, DPC_check,
-                bin_nav_widget, bin_sig_widget,
+                bin_nav_widget, bin_sig_widget, node_check,
                 create_batch_check, create_info_check):
 
         self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
@@ -104,26 +210,24 @@ class convert_info_widget():
             self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
             
             with open (self.bash_script_path, 'w') as f:
-                f.write('''#!/usr/bin/env bash
-#SBATCH --partition cs04r
-#SBATCH --job-name epsic_mib_convert
-#SBATCH --nodes 1
-#SBATCH --tasks-per-node 1
-#SBATCH --cpus-per-task 1
-#SBATCH --time 05:00:00
-#SBATCH --mem 100G
-'''
-f"#SBATCH --array=0-{len(self.to_convert)-1}%3\n"
-f"#SBATCH --error={self.script_save_path}{os.sep}error_%j.out\n"
-f"#SBATCH --output={self.script_save_path}{os.sep}output_%j.out\n"
-'''
-echo "I am running the array job with task ID $SLURM_ARRAY_TASK_ID"
-module load python/epsic3.10
-            
-sleep 10
-'''
-f"python {self.python_script_path} {self.info_path} $SLURM_ARRAY_TASK_ID\n"
-                       )
+                f.write('#!/usr/bin/env bash\n')
+                f.write('#SBATCH --partition %s\n'%node_check)
+                f.write('#SBATCH --job-name mib_convert\n')
+                f.write('#SBATCH --nodes 1\n')
+                f.write('#SBATCH --tasks-per-node 1\n')
+                f.write('#SBATCH --cpus-per-task 1\n')
+                f.write('#SBATCH --time 05:00:00\n')
+                f.write('#SBATCH --mem 100G\n\n')
+
+                f.write(f"#SBATCH --array=0-{len(self.to_convert)-1}%3\n")
+                f.write(f"#SBATCH --error={self.script_save_path}{os.sep}error_%j.out\n")
+                f.write(f"#SBATCH --output={self.script_save_path}{os.sep}output_%j.out\n")
+
+                f.write('echo "I am running the array job with task ID $SLURM_ARRAY_TASK_ID"\n')
+                f.write('module load python/epsic3.10\n\n')              
+                f.write('sleep 10\n')
+                f.write(f"python {self.python_script_path} {self.info_path} $SLURM_ARRAY_TASK_ID\n")
+
             print("sbatch file created: "+self.bash_script_path)
             print("submission python file: "+self.python_script_path)
 
@@ -187,7 +291,67 @@ f"python {self.python_script_path} {self.info_path} $SLURM_ARRAY_TASK_ID\n"
                     f"add_cross = {add_cross}\n"
                         )
             print("conversion info file created: "+self.info_path)
-            
+
+    def _ptycho(self, create_ptycho_folder, ptycho_config_name, ptycho_template_path):
+        '''This part of the code is designed to automatic generate Ptyrex Json and associated folders, its uses os.walk 
+           and the inputted year, session and subfolder varibles to find already converted data files, using the 
+           converted data meta file and known dictionary of parameters it is possible fill out the json file
+           frederick allars 09-05-2024'''
+        if create_ptycho_folder:
+            hdf_files = []
+            '''use os.walk to find the date time when the data was collected which corresponds to its folder and file names within the subfolder'''
+            for path, directories, files in os.walk(self.dest_path):
+                for f in files:
+                    if f.endswith('_data.hdf5'):
+                        folder_name = f.replace('_data.hdf5','')
+
+                        '''create folders with standard names and skip if they already exist otherwise an error is incurred'''
+                        pty_dest = self.dest_path + '/' + folder_name + '/' + 'pty_out'
+                        pty_dest_2 = self.dest_path + '/' + folder_name + '/' + 'pty_out/initial_recon'
+                        print(pty_dest)
+                        try:
+                            os.makedirs(pty_dest)
+                        except:
+                            print('skipping this folder as it already has pty_out folder')
+                        try:
+                            os.makedirs(pty_dest_2)
+                        except:
+                            print('skipping this folder as it already has pty_out/initial folder')
+
+                        '''now the objective to get all the data required to fill the Json, we use the folder name to 
+                        create the path to the meta data file'''
+                        meta_file = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf'
+                        print(meta_file)
+
+                        '''we can now open the meta data file itself to check the energy which will give us the rotation angle,
+                         the size of the aperture which will tell us the convergence angle, and the camera length which 
+                         we can guess from the nomial camera length with approximate k factor in this case 1.5'''
+
+                        '''TODO add py4DSTEM code which automatic guess the camera length from the subset of the collected diffraction patterns'''
+                        with h5py.File(meta_file, 'r') as microscope_meta:
+                            meta_values = microscope_meta['metadata']
+                            print(meta_values['aperture_size'][()])
+                            print(meta_values['nominal_camera_length(m)'][()])
+                            print(meta_values['ht_value(V)'][()])
+                            acc = meta_values['ht_value(V)'][()]
+                            nCL = meta_values['nominal_camera_length(m)'][()]
+                            aps = meta_values['aperture_size'][()]
+                        rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)
+
+                        '''check that the config_name parameter has been filled if not give it a default name'''
+                        if ptycho_config_name == '':
+                            config_name = 'pty_recon'
+                        else:
+                            config_name = ptycho_config_name
+
+                        '''TODO: set up some standard ptyREX config files to reference at different energies'''
+                        if ptycho_template_path == '':
+                            template_path = '/dls/science/groups/imaging/ePSIC_ptychography/experimental_data/User_example/UserExampleJson.json'
+                        else:
+                            template_path = ptycho_template_path
+
+
+                        gen_config(template_path, pty_dest_2, config_name, meta_file, rot_angle, camera_length, conv_angle)        
 
                 
     def _submit(self, submit_check):
@@ -221,19 +385,21 @@ f"python {self.python_script_path} {self.info_path} $SLURM_ARRAY_TASK_ID\n"
         print('*********************************************************************************')
         print('Make sure that <Submit checkbox> is unchecked before changing any other variables')
         print('*********************************************************************************')
-
         
         st = {"description_width": "initial"}
         year = Text(description='Year:', style=st)
         session = Text(description='Session:', style=st)
-        subfolder_check = Checkbox(values=False, description="All MIB files in 'Merlin' folder", style=st)
+        
+        subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
         subfolder = Text(description='Subfolder:', style=st)
+        
+        path_verbose = Checkbox(value=False, description="Show the path of each MIB file", style=st)
 
-        no_reshaping = Checkbox(values=False, description='No reshaping', style=st)
+        no_reshaping = Checkbox(value=False, description='No reshaping', style=st)
         use_fly_back = Checkbox(value=True, description='Use Fly-back', style=st)
         known_shape = Checkbox(value=False, description='Known_shape', style=st)
-        Scan_X = IntText(description='Scan_X: (avaiable for known_shape)', style=st)
-        Scan_Y = IntText(description='Scan_Y: (avaiable for known_shape)', style=st)
+        Scan_X = IntText(description='Scan_X: (avaiable for Known_shape)', style=st)
+        Scan_Y = IntText(description='Scan_Y: (avaiable for Known_shape)', style=st)
 
         add_cross_check = Checkbox(value=True, description='add_cross', style=st)
 
@@ -266,16 +432,23 @@ f"python {self.python_script_path} {self.info_path} $SLURM_ARRAY_TASK_ID\n"
                                 readout=True,
                                 readout_format='d', style=st
                                         )
+
+        create_ptycho_folder = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
+        ptycho_config_name = Text(description='Enter config name (optional) :', style=st)
+        ptycho_template_path = Text(description='Enter template config path (optional) :', style=st)
+
+        node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
         
         create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
         create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
-        submit_check = Checkbox(value=False, description='Submit the job using slurm', style=st)
+        submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)
 
         self.path = ipywidgets.interact(self._paths, 
                                           year=year, 
                                           session=session,
                                           subfolder_check=subfolder_check,
-                                          subfolder=subfolder)
+                                          subfolder=subfolder,
+                                          path_verbose=path_verbose)
         
         self.values = ipywidgets.interact(self._organize,
                                           no_reshaping=no_reshaping, 
@@ -289,13 +462,24 @@ f"python {self.python_script_path} {self.info_path} $SLURM_ARRAY_TASK_ID\n"
                                           DPC_check=DPC_check,
                                         bin_nav_widget=bin_nav_widget, 
                                           bin_sig_widget=bin_sig_widget,
+                                          node_check=node_check,
                                         create_batch_check=create_batch_check, 
                                           create_info_check=create_info_check)
-
+        
         self.submit = ipywidgets.interact(self._submit, submit_check=submit_check)
 
+        print("***************************************************************************")
+        print("***************************************************************************")
+        print("***************************************************************************")
+        print("The widgets below are valid only if the MIB conversion process is finished.")
+        print("It will generate a JSON file for the PtyRex reconstruction.")
+        print("***************************************************************************")
+        self.ptycho = ipywidgets.interact(self._ptycho, 
+                                      create_ptycho_folder=create_ptycho_folder, 
+                                      ptycho_config_name=ptycho_config_name, 
+                                      ptycho_template_path=ptycho_template_path)
 
-
+    
     def _check_differences(self, source_path, destination_path):
         """Checks for .mib files associated with a specified session that have
         not yet been converted to .hdf5.
