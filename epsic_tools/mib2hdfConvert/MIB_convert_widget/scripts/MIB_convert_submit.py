@@ -418,7 +418,8 @@ elif data[0]['data'].shape[1:] == (256, 256):
     data = data[0]['data']
 
 else:
-    print("Warning! The dimensions of diffraction pattern is unusual.")
+    print("data shape: ", data[0]['data'].shape)
+    print("Warning! The dimensions of diffraction pattern are unusual.")
 
 
 if no_reshaping:
