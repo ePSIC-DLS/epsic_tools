@@ -144,7 +144,7 @@ class convert_info_widget():
     def __init__(self):
         self._activate()
 
-    def _paths(self, year, session, subfolder_check, subfolder, path_verbose):
+    def _paths(self, year, session, subfolder_check, subfolder):
 
         if subfolder == '' and subfolder_check:
             print("**************************************************")
@@ -182,25 +182,17 @@ class convert_info_widget():
         if not os.path.exists(self.script_save_path) and src_path_flag:
             os.makedirs(self.script_save_path)
             print("created: "+self.script_save_path)
-
+            
+        self.to_convert = []
         if subfolder != '' or subfolder_check==True:
             self.to_convert = self._check_differences(self.src_path, self.dest_path)
-            if path_verbose:
-                print(*self.to_convert, sep="\n")
 
-        #save_dir = []
-        #for adr in to_convert:
-        #    adr_split = adr.split('/')
-        #    tmp_save = []
-        #    tmp_save.append('/')
-        #    tmp_save.extend(test[1:6])
-        #    tmp_save.append('processing')
-        #    tmp_save.extend(test[6:8])
-        #    save_dir.append(os.path.join(*tmp_save))
+    def _verbose(self, path_verbose):
+        if path_verbose:
+            print(*self.to_convert, sep="\n")        
     
     def _organize(self, no_reshaping, use_fly_back, known_shape, 
-                  Scan_X, Scan_Y, add_cross_check,
-                ADF_check, iBF_check, DPC_check,
+                  Scan_X, Scan_Y, ADF_check, iBF_check, DPC_check,
                 bin_nav_widget, bin_sig_widget, node_check,
                 create_batch_check, create_info_check):
 
@@ -265,12 +257,7 @@ class convert_info_widget():
             if no_reshaping:
                 reshape = 0
             else:
-                reshape = 1
-                
-            if add_cross_check:
-                add_cross = 1
-            else:
-                add_cross = 0     
+                reshape = 1    
             
             with open (self.info_path, 'w') as f:
                 f.write(
@@ -288,7 +275,6 @@ class convert_info_widget():
                     f"bin_nav_flag = {bin_nav_flag}\n"
                     f"bin_nav_factor = {bin_nav_factor}\n"
                     f"reshape = {reshape}\n"
-                    f"add_cross = {add_cross}\n"
                         )
             print("conversion info file created: "+self.info_path)
 
@@ -401,8 +387,6 @@ class convert_info_widget():
         Scan_X = IntText(description='Scan_X: (avaiable for Known_shape)', style=st)
         Scan_Y = IntText(description='Scan_Y: (avaiable for Known_shape)', style=st)
 
-        add_cross_check = Checkbox(value=True, description='add_cross', style=st)
-
         ADF_check = Checkbox(value=False, description='ADF (Not available yet)', style=st)
         iBF_check = Checkbox(value=True, description='iBF', style=st)
         DPC_check = Checkbox(value=False, description='DPC (Not available yet)', style=st)
@@ -447,8 +431,9 @@ class convert_info_widget():
                                           year=year, 
                                           session=session,
                                           subfolder_check=subfolder_check,
-                                          subfolder=subfolder,
-                                          path_verbose=path_verbose)
+                                          subfolder=subfolder)
+        
+        self.verbose = ipywidgets.interact(self._verbose, path_verbose=path_verbose)
         
         self.values = ipywidgets.interact(self._organize,
                                           no_reshaping=no_reshaping, 
@@ -456,7 +441,6 @@ class convert_info_widget():
                                           known_shape=known_shape, 
                                           Scan_X=Scan_X, 
                                           Scan_Y=Scan_Y,
-                                          add_cross_check=add_cross_check,
                                         ADF_check=ADF_check, 
                                           iBF_check=iBF_check, 
                                           DPC_check=DPC_check,

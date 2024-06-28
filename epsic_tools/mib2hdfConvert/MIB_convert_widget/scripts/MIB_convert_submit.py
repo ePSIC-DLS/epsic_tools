@@ -405,15 +405,20 @@ bin_sig_factor = eval(info['bin_sig_factor'])
 bin_nav_flag = eval(info['bin_nav_flag'])
 bin_nav_factor = eval(info['bin_nav_factor'])
 reshape = eval(info['reshape'])
-add_cross = eval(info['add_cross'])
 
 data_memmap, headers = load_mib_data(path, return_headers=True, return_mmap=True)
+
 # Adding cross
-if add_cross == 1:
+if data[0]['data'].shape[1:] == (512, 512):
+    print("Quad-Medipix 4DSTEM data - Cross added")
     data = _add_crosses(data[0]['data'])
 
-else:
+elif data[0]['data'].shape[1:] == (256, 256):
+    print("Single-Medipix 4DSTEM data - No cross added")
     data = data[0]['data']
+
+else:
+    print("Warning! The dimensions of diffraction pattern is unusual.")
 
 
 if no_reshaping:
