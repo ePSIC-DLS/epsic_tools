@@ -187,15 +187,19 @@ class convert_info_widget():
         if subfolder != '' or subfolder_check==True:
             self.to_convert = self._check_differences(self.src_path, self.dest_path)
 
+
     def _verbose(self, path_verbose):
         if path_verbose:
             print(*self.to_convert, sep="\n")        
-    
+
+
     def _organize(self, no_reshaping, use_fly_back, known_shape, 
                   Scan_X, Scan_Y, ADF_check, iBF_check, DPC_check,
                 bin_nav_widget, bin_sig_widget, node_check,
-                create_batch_check, create_info_check):
+                create_batch_check, create_info_check,
+                  create_json, ptycho_config, ptycho_template):
 
+        #self.python_script_path = '/dls/science/groups/e02/Ryu/epsic_code/MIB_convert/test/scripts/MIB_convert_submit.py'
         self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
         if create_batch_check:
             self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
@@ -212,8 +216,8 @@ class convert_info_widget():
                 f.write('#SBATCH --mem 100G\n\n')
 
                 f.write(f"#SBATCH --array=0-{len(self.to_convert)-1}%3\n")
-                f.write(f"#SBATCH --error={self.script_save_path}{os.sep}error_%j.out\n")
-                f.write(f"#SBATCH --output={self.script_save_path}{os.sep}output_%j.out\n")
+                f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
+                f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
 
                 f.write('echo "I am running the array job with task ID $SLURM_ARRAY_TASK_ID"\n')
                 f.write('module load python/epsic3.10\n\n')              
@@ -257,7 +261,12 @@ class convert_info_widget():
             if no_reshaping:
                 reshape = 0
             else:
-                reshape = 1    
+                reshape = 1
+
+            if create_json:
+                json = 1
+            else:
+                json = 0
             
             with open (self.info_path, 'w') as f:
                 f.write(
@@ -275,7 +284,11 @@ class convert_info_widget():
                     f"bin_nav_flag = {bin_nav_flag}\n"
                     f"bin_nav_factor = {bin_nav_factor}\n"
                     f"reshape = {reshape}\n"
+                    f"create_json = {json}\n"
+                    f"ptycho_config = {ptycho_config}\n"
+                    f"ptycho_template = {ptycho_template}\n"
                         )
+                
             print("conversion info file created: "+self.info_path)
 
     def _ptycho(self, create_ptycho_folder, ptycho_config_name, ptycho_template_path):
@@ -366,7 +379,7 @@ class convert_info_widget():
             for line in  sshProcess.stdout: 
                 print(line,end="")
         
-        
+    
     def _activate(self):
         print('*********************************************************************************')
         print('Make sure that <Submit checkbox> is unchecked before changing any other variables')
@@ -416,7 +429,10 @@ class convert_info_widget():
                                 readout=True,
                                 readout_format='d', style=st
                                         )
-
+        create_json = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
+        ptycho_config = Text(description='Enter config name (optional) :', style=st)
+        ptycho_template = Text(description='Enter template config path (optional) :', style=st)
+        
         create_ptycho_folder = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
         ptycho_config_name = Text(description='Enter config name (optional) :', style=st)
         ptycho_template_path = Text(description='Enter template config path (optional) :', style=st)
@@ -448,16 +464,18 @@ class convert_info_widget():
                                           bin_sig_widget=bin_sig_widget,
                                           node_check=node_check,
                                         create_batch_check=create_batch_check, 
-                                          create_info_check=create_info_check)
+                                          create_info_check=create_info_check, 
+                                          create_json=create_json, 
+                                          ptycho_config=ptycho_config, 
+                                          ptycho_template=ptycho_template)
         
         self.submit = ipywidgets.interact(self._submit, submit_check=submit_check)
 
-        print("***************************************************************************")
-        print("***************************************************************************")
-        print("***************************************************************************")
-        print("The widgets below are valid only if the MIB conversion process is finished.")
-        print("It will generate a JSON file for the PtyRex reconstruction.")
-        print("***************************************************************************")
+        print("********************************************************************************")
+        print("********************************************************************************")
+        print("The widgets below are to generate PtyREX JSON files for the converted MIB files.")
+        print("********************************************************************************")
+        print("********************************************************************************")
         self.ptycho = ipywidgets.interact(self._ptycho, 
                                       create_ptycho_folder=create_ptycho_folder, 
                                       ptycho_config_name=ptycho_config_name, 
