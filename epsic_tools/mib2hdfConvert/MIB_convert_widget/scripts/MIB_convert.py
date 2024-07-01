@@ -409,7 +409,7 @@ class convert_info_widget():
 
         bin_nav_widget = IntSlider(
                                 value=2,
-                                min=2,
+                                min=1,
                                 max=8,
                                 step=1,
                                 description='Bin_nav:',
@@ -422,7 +422,7 @@ class convert_info_widget():
 
         bin_sig_widget = IntSlider(
                                 value=2,
-                                min=2,
+                                min=1,
                                 max=8,
                                 step=1,
                                 description='Bin_sig:',
