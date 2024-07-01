@@ -14,7 +14,6 @@ import shutil
 
 import ipywidgets
 import ipywidgets as widgets
-import json
 import sys
 import os
 import glob
@@ -357,110 +356,6 @@ def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed_
         
     return
 
-
-def gen_config(template_path, dest_path, config_name, meta_file_path, rotation_angle, camera_length, conv_angle):
-    config_file = dest_path + '/' + config_name + '.json'
-
-    with open(template_path, 'r') as template_file:
-        pty_expt = json.load(template_file)
-    data_path = meta_file_path
-
-    pty_expt['base_dir'] = dest_path
-    pty_expt['process']['save_dir'] = dest_path
-    pty_expt['experiment']['data']['data_path'] = data_path
-
-    pty_expt['process']['common']['scan']['rotation'] = rotation_angle
-
-    # pty_expt['process']['common']['scan']['N'] = scan_shape
-    pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
-    pty_expt['experiment']['optics']['lens']['alpha'] = conv_angle
-
-    with h5py.File(meta_file_path, 'r') as microscope_meta:
-        meta_values = microscope_meta['metadata']
-        pty_expt['process']['common']['scan']['N'] = [int(meta_values['4D_shape'][:2][0]),
-                                                      int(meta_values['4D_shape'][:2][1])]
-        pty_expt['process']['common']['source']['energy'] = [float(np.array(meta_values['ht_value(V)']))]
-        pty_expt['process']['common']['scan']['dR'] = [float(np.array(meta_values['step_size(m)'])),
-                                                       float(np.array(meta_values['step_size(m)']))]
-        # pty_expt['experiment']['optics']['lens']['alpha'] = 2 * float(np.array(meta_values['convergence_semi-angle(rad)']))
-        pty_expt['experiment']['optics']['lens']['defocus'] = [float(np.array(meta_values['defocus(nm)']) * 1e-9),
-                                                               float(np.array(meta_values['defocus(nm)']) * 1e-9)]
-        pty_expt['process']['save_prefix'] = config_name
-
-    with open(config_file, 'w') as f:
-        json.dump(pty_expt, f, indent=4)
-
-
-def Meta2Config(acc,nCL,aps):
-    '''This function converts the meta data from the 4DSTEM data set into parameters to be used in a ptyREX json file'''
-
-    '''The rotation angles noted here are from ptychographic reconstructions which have been successful. see the 
-    following directory for example reconstruction from which these values are derived:
-     /dls/science/groups/imaging/ePSIC_ptychography/experimental_data'''
-    if acc == 80e3:
-        rot_angle = 238.5
-        print('Rotation angle = ' + str(rot_angle))
-        if aps == 1:
-            conv_angle = 41.65e-3
-            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 2:
-            conv_angle = 31.74e-3
-            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 3:
-            conv_angle = 24.80e-3
-            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 4:
-            conv_angle =15.44e-3
-            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        else:
-            print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
-    elif acc == 200e3:
-        rot_angle = 90
-        print('Rotation angle = ' + str(rot_angle) +' Warning: This rotation angle need further calibration')
-        if aps == 1:
-            conv_angle = 37.7e-3
-            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 2:
-            conv_angle = 28.8e-3
-            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 3:
-            conv_angle = 22.4e-3
-            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 4:
-            conv_angle = 14.0
-            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 5:
-            conv_angle = 6.4
-            print('Condenser aperture size is 10um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-    elif acc == 300e3:
-        rot_angle = -85.5
-        print('Rotation angle = ' + str(rot_angle))
-        if aps == 1:
-            conv_angle = 44.7e-3
-            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 2:
-            conv_angle = 34.1e-3
-            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 3:
-            conv_angle = 26.7e-3
-            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        elif aps == 4:
-            conv_angle =16.7e-3
-            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
-        else:
-            print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
-    else:
-        print('Rotation angle for this acceleration voltage is unknown, please collect calibration data. Rotation angle being set to zero')
-        rot_angle = 0
-
-    '''this is incorrect way of calucating the actual camera length but okay for this prototype code'''
-    '''TODO: add py4DSTEM workflow which automatic determines the camera length from a small amount of reference data and the known convergence angle'''
-    camera_length = 1.5*nCL
-    print('camera length estimated to be ' + str(camera_length))
-
-    return rot_angle,camera_length,conv_angle
-
-
 ###########################################################################################################
 #############################################   Functions - End   #########################################
 ###########################################################################################################
@@ -510,23 +405,15 @@ bin_sig_factor = eval(info['bin_sig_factor'])
 bin_nav_flag = eval(info['bin_nav_flag'])
 bin_nav_factor = eval(info['bin_nav_factor'])
 reshape = eval(info['reshape'])
-create_json = eval(info['create_json'])
-ptycho_config = info['ptycho_config']
-ptycho_template = info['ptycho_template']
+add_cross = eval(info['add_cross'])
 
 data_memmap, headers = load_mib_data(path, return_headers=True, return_mmap=True)
-
 # Adding cross
-if data[0]['data'].shape[1:] == (512, 512):
-    print("Quad-Medipix 4DSTEM data - Cross added")
+if add_cross == 1:
     data = _add_crosses(data[0]['data'])
 
-elif data[0]['data'].shape[1:] == (256, 256):
-    print("Single-Medipix 4DSTEM data - No cross added")
-    data = data[0]['data']
-
 else:
-    print("Warning! The dimensions of diffraction pattern are unusual.")
+    data = data[0]['data']
 
 
 if no_reshaping:
@@ -541,22 +428,34 @@ if no_reshaping:
 elif use_fly_back:
     timestamps = parse_exposures(headers, max_index=-1)
     data_dict = STEM_flag_dict(timestamps)
+    print(type(data))
     data = pxm.signals.ElectronDiffraction2D(data)
     data.metadata.Signal.flip = "True"
-    data.metadata.Signal.scan_X = data_dict["scan_X"]
-    data.metadata.Signal.exposure_time = data_dict["exposure time"]
-    data.metadata.Signal.frames_number_skipped = data_dict["number of frames_to_skip"]
-    data.metadata.Signal.flyback_times = data_dict["flyback_times"]
-    meta_path = find_metadat_file(time_stamp, src_path)
-    logger.debug(f'metadata path: {meta_path}')
-
+    print(type(data))
+    # Transferring dict info to metadata
     if data_dict["STEM_flag"] == 1:
         data.metadata.Signal.signal_type = "STEM"
-        if len(data.data.shape) == 3:
-            print("reshaping using flyback pixel")
-            data = reshape_4DSTEM_FlyBack(data)
-            logger.debug(f'data shape: {data.data.shape}')
-       
+    else:
+        data.metadata.Signal.signal_type = "TEM"
+    data.metadata.Signal.scan_X = data_dict["scan_X"]
+    data.metadata.Signal.exposure_time = data_dict["exposure time"]
+    data.metadata.Signal.frames_number_skipped = data_dict[
+        "number of frames_to_skip"
+    ]
+    data.metadata.Signal.flyback_times = data_dict["flyback_times"]
+    # only attempt reshaping if it is not already reshaped!
+    if len(data.data.shape) == 3:
+        # try:
+        if data.metadata.Signal.signal_type == "TEM":
+            print(
+                "This mib file appears to be TEM data. The stack is returned with no reshaping."
+            )
+
+        print("reshaping using flyback pixel")
+        data = reshape_4DSTEM_FlyBack(data)
+        logger.debug(f'data shape: {data.data.shape}')
+        data.save(os.path.join(save_path, f'{time_stamp}_data.zspy'), overwrite = True)
+        data.save(os.path.join(save_path, f'{time_stamp}_data.hdf5'), overwrite = True, file_format = 'HSPY')
         if iBF == 1:
             ibf = data.sum(axis=data.axes_manager.signal_axes)
             # Rescale contrast of IBF image
@@ -570,63 +469,9 @@ elif use_fly_back:
             data_bin_sig = bin_sig(data, bin_nav_factor)
             data_bin_sig.save(os.path.join(save_path, f'{time_stamp}_data_bin_nav_factor_{bin_nav_factor}.hspy'), overwrite = True)
 
-    else:
-        data.metadata.Signal.signal_type = "TEM"
-        logger.debug(f'data shape: {data.data.shape}')
-
-    meta = h5py.File(meta_path)
-    data.metadata.add_node("merlin")
-    for key in meta['metadata'].keys():
-        try:
-            print(key, np.array([meta['metadata'][key][()]]))
-            data.metadata["merlin"].add_dictionary({key:np.array([meta['metadata'][key][()]])})
-        except:
-            key_group = meta['metadata'][key].keys()
-            data.metadata["merlin"].add_node(key)
-            for skey in key_group:
-                data.metadata["merlin"][key].add_dictionary({skey:np.array([meta['metadata'][key][skey][()]])})
-                print(key, " > ", skey, np.array([meta['metadata'][key][skey][()]]))
-    meta.close()
-
-    data.save(os.path.join(save_path, f'{time_stamp}_data.zspy'), overwrite = True)
-    data.save(os.path.join(save_path, f'{time_stamp}_data.hdf5'), overwrite = True, file_format = 'HSPY')
-
-    write_vds(save_path + '/' + time_stamp + '_data.hdf5', save_path + '/' + time_stamp + '_vds.h5', metadata_path=meta_path)
-
-    if create_json:
-        pty_dest = save_path + '/pty_out'
-        pty_dest_2 = save_path + '/pty_out/initial_recon'
-    
-        try:
-            os.makedirs(pty_dest)
-        except:
-            print('skipping this folder as it already has pty_out folder')
-        try:
-            os.makedirs(pty_dest_2)
-        except:
-            print('skipping this folder as it already has pty_out/initial folder')
-
-        with h5py.File(meta_path, 'r') as microscope_meta:
-            meta_values = microscope_meta['metadata']
-            print(meta_values['aperture_size'][()])
-            print(meta_values['nominal_camera_length(m)'][()])
-            print(meta_values['ht_value(V)'][()])
-            acc = meta_values['ht_value(V)'][()]
-            nCL = meta_values['nominal_camera_length(m)'][()]
-            aps = meta_values['aperture_size'][()]
-        rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)
-        
-        if ptycho_config == '':
-            config_name = 'pty_recon'
-        else:
-            config_name = ptycho_config
-
-        if ptycho_template == '':
-            template_path = '/dls/science/groups/imaging/ePSIC_ptychography/experimental_data/User_example/UserExampleJson.json'
-        else:
-            template_path = ptycho_template
-
-        gen_config(template_path, pty_dest_2, config_name, save_path +'/'+time_stamp+'.hdf', rot_angle, camera_length, conv_angle)
+        meta_path = find_metadat_file(time_stamp, src_path)
+        logger.debug(f'metadata path: {meta_path}')
+        write_vds(save_path + '/' + time_stamp + '_data.hdf5', save_path + '/' + time_stamp + '_vds.h5', metadata_path=meta_path)
 
 elif known_shape:
     try:
@@ -634,8 +479,8 @@ elif known_shape:
         data = pxm.signals.ElectronDiffraction2D(data)
         data.metadata.Signal.flip = "True"
         logger.debug(f'data shape: {data.data.shape}')
-        meta_path = find_metadat_file(time_stamp, src_path)
-        logger.debug(f'metadata path: {meta_path}')
+        data.save(os.path.join(save_path, f'{time_stamp}_data.zspy'), overwrite = True)
+        data.save(os.path.join(save_path, f'{time_stamp}_data.hdf5'), overwrite = True, file_format = 'HSPY')
 
         if iBF == 1:
             ibf = data.sum(axis=data.axes_manager.signal_axes)
@@ -650,59 +495,10 @@ elif known_shape:
             data_bin_sig = bin_sig(data, bin_nav_factor)
             data_bin_sig.save(os.path.join(save_path, f'{time_stamp}_data_bin_nav_factor_{bin_nav_factor}.hspy'), overwrite = True)
 
-        meta = h5py.File(meta_path)
-        data.metadata.add_node("merlin")
-        for key in meta['metadata'].keys():
-            try:
-                print(key, np.array([meta['metadata'][key][()]]))
-                data.metadata["merlin"].add_dictionary({key:np.array([meta['metadata'][key][()]])})
-            except:
-                key_group = meta['metadata'][key].keys()
-                data.metadata["merlin"].add_node(key)
-                for skey in key_group:
-                    data.metadata["merlin"][key].add_dictionary({skey:np.array([meta['metadata'][key][skey][()]])})
-                    print(key, " > ", skey, np.array([meta['metadata'][key][skey][()]]))
-        meta.close()
-    
-        data.save(os.path.join(save_path, f'{time_stamp}_data.zspy'), overwrite = True)
-        data.save(os.path.join(save_path, f'{time_stamp}_data.hdf5'), overwrite = True, file_format = 'HSPY')
-
+        meta_path = find_metadat_file(time_stamp, src_path)
+        logger.debug(f'metadata path: {meta_path}')
         write_vds(save_path + '/' + time_stamp + '_data.hdf5', save_path + '/' + time_stamp + '_vds.h5', metadata_path=meta_path)
 
-        if create_json:
-            pty_dest = save_path + '/pty_out'
-            pty_dest_2 = save_path + '/pty_out/initial_recon'
-        
-            try:
-                os.makedirs(pty_dest)
-            except:
-                print('skipping this folder as it already has pty_out folder')
-            try:
-                os.makedirs(pty_dest_2)
-            except:
-                print('skipping this folder as it already has pty_out/initial folder')
-    
-            with h5py.File(meta_path, 'r') as microscope_meta:
-                meta_values = microscope_meta['metadata']
-                print(meta_values['aperture_size'][()])
-                print(meta_values['nominal_camera_length(m)'][()])
-                print(meta_values['ht_value(V)'][()])
-                acc = meta_values['ht_value(V)'][()]
-                nCL = meta_values['nominal_camera_length(m)'][()]
-                aps = meta_values['aperture_size'][()]
-            rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)
-            
-            if ptycho_config == '':
-                config_name = 'pty_recon'
-            else:
-                config_name = ptycho_config
-    
-            if ptycho_template == '':
-                template_path = '/dls/science/groups/imaging/ePSIC_ptychography/experimental_data/User_example/UserExampleJson.json'
-            else:
-                template_path = ptycho_template
-    
-            gen_config(template_path, pty_dest_2, config_name, save_path +'/'+time_stamp+'.hdf', rot_angle, camera_length, conv_angle)
         
     except ValueError:
         logger.debug(f'Could not reshape the data to the requested scan dimensions. Original shape: {data.shape}')
