@@ -353,7 +353,7 @@ class convert_info_widget():
                             template_path = ptycho_template_path
 
 
-                        gen_config(template_path, pty_dest_2, config_name, meta_file, rot_angle, camera_length, conv_angle)        
+                        gen_config(template_path, pty_dest_2, config_name, meta_file, rot_angle, camera_length, 2*conv_angle)        
 
                 
     def _submit(self, submit_check):
