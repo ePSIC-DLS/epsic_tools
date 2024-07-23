@@ -626,7 +626,7 @@ elif use_fly_back:
         else:
             template_path = ptycho_template
 
-        gen_config(template_path, pty_dest_2, config_name, save_path +'/'+time_stamp+'.hdf', rot_angle, camera_length, conv_angle)
+        gen_config(template_path, pty_dest_2, config_name, save_path +'/'+time_stamp+'.hdf', rot_angle, camera_length, 2*conv_angle)
 
 elif known_shape:
     try:
@@ -702,7 +702,7 @@ elif known_shape:
             else:
                 template_path = ptycho_template
     
-            gen_config(template_path, pty_dest_2, config_name, save_path +'/'+time_stamp+'.hdf', rot_angle, camera_length, conv_angle)
+            gen_config(template_path, pty_dest_2, config_name, save_path +'/'+time_stamp+'.hdf', rot_angle, camera_length, 2*conv_angle)
         
     except ValueError:
         logger.debug(f'Could not reshape the data to the requested scan dimensions. Original shape: {data.shape}')
