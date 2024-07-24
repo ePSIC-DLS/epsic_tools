@@ -11,6 +11,7 @@ from rsciio.quantumdetector import load_mib_data, parse_exposures
 from rsciio.quantumdetector import file_reader
 import h5py
 import shutil
+import pandas as pd
 
 import ipywidgets
 from ipywidgets.widgets import *
@@ -31,6 +32,22 @@ logger = logging.getLogger(__name__)
 # Make a logger for this module.
 logger = logging.getLogger(__name__)
 import matplotlib.pyplot as plt
+
+def find_metadat_file(timestamp, acquisition_path):
+    metadata_file_paths = []
+    mib_file_paths = []
+        
+    for root, folders, files in os.walk(acquisition_path):
+        for file in files:
+            if file.endswith('hdf'):
+                metadata_file_paths.append(os.path.join(root, file))
+            elif file.endswith('mib'):
+                mib_file_paths.append(os.path.join(root, file))
+    for path in metadata_file_paths:
+        if timestamp == path.split('/')[-1].split('.')[0]:
+            return path
+    logger.debug('No metadata file could be matched.')
+    return 
 
 # ptyrex import
 import json
@@ -141,6 +158,25 @@ def Meta2Config(acc,nCL,aps):
 
 # Widgets
 class convert_info_widget():
+
+    meta_keys = ['filename', 'A1_value_(kV)', 'A2_value_(kV)', 'aperture_size',
+       'convergence_semi-angle(rad)', 'current_OLfine', 'deflector_values',
+       'defocus(nm)', 'defocus_per_bit(nm)', 'field_of_view(m)', 'ht_value(V)',
+       'lens_values', 'magnification', 'merlin_camera_length(m)',
+       'nominal_camera_length(m)', 'nominal_scan_rotation', 'set_bit_depth',
+       'set_dwell_time(usec)', 'set_scan_px', 'spot_size', 'step_size(m)',
+       'x_pos(m)', 'x_tilt(deg)', 'y_pos(m)', 'y_tilt(deg)', 'z_pos(m)',
+       'zero_OLfine']
+
+    meta_keys_after = ['filename', '4D_shape', 'A1_value_(kV)', 'A2_value_(kV)',
+       'aperture_size', 'convergence_semi-angle(rad)', 'current_OLfine',
+       'deflector_values', 'defocus(nm)', 'defocus_per_bit(nm)',
+       'field_of_view(m)', 'ht_value(V)', 'lens_values', 'magnification',
+       'merlin_camera_length(m)', 'nominal_camera_length(m)',
+       'nominal_scan_rotation', 'set_bit_depth', 'set_dwell_time(usec)',
+       'set_scan_px', 'spot_size', 'step_size(m)', 'x_pos(m)', 'x_tilt(deg)',
+       'y_pos(m)', 'y_tilt(deg)', 'z_pos(m)', 'zero_OLfine']
+    
     def __init__(self, only_ptyrex=False):
         if only_ptyrex:
             self._ptyrex_json()
@@ -190,12 +226,31 @@ class convert_info_widget():
         if subfolder != '' or subfolder_check==True:
             self.to_convert = self._check_differences(self.src_path, self.dest_path)
 
-
     def _verbose(self, path_verbose):
         if path_verbose:
-            print(*self.to_convert, sep="\n")        
+            meta_show = {}
+            meta_show["filename"] = []
+            for key in self.meta_keys:
+                meta_show[key] = []
 
+            for path in self.to_convert:
+                src_path = path[:-40]
+                time_stamp = path.split('/')[-1][:15]
+                meta_path = find_metadat_file(time_stamp, src_path)
+                
+                with h5py.File(meta_path, 'r') as microscope_meta:
+                    meta_show['filename'].append(path.split('/')[-1][:15])
+                    for meta_key, meta_val in microscope_meta['metadata'].items():
+                        try:
+                            meta_show[meta_key].append(meta_val[()])
+                        except:
+                            meta_show[meta_key].append('NA')
 
+            self.df = pd.DataFrame(meta_show)
+            self.keys_show = self.df[["filename", 'ht_value(V)', 'aperture_size', "convergence_semi-angle(rad)",  'defocus(nm)', 'magnification', 'step_size(m)', 'nominal_camera_length(m)']]
+
+            return self.keys_show
+                
     def _organize(self, no_reshaping, use_fly_back, known_shape, 
                   Scan_X, Scan_Y, ADF_check, iBF_check, DPC_check,
                 bin_nav_widget, bin_sig_widget, node_check,
@@ -294,6 +349,46 @@ class convert_info_widget():
                 
             print("conversion info file created: "+self.info_path)
 
+    def _meta_show(self, meta_check, sort_key, search_key, search_value):
+        if meta_check:
+            meta_show = {}
+            meta_show['filename'] = []
+            for key in self.meta_keys_after:
+                meta_show[key] = []  
+                
+            for path, directories, files in os.walk(self.dest_path):
+                for f in files:
+                    if f.endswith('_data.hdf5'):
+                        folder_name = f.replace('_data.hdf5','')
+                        meta_path = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf'
+
+                        with h5py.File(meta_path, 'r') as microscope_meta:
+                            meta_show['filename'].append(path.split('/')[-1][:15])
+                            for meta_key, meta_val in microscope_meta['metadata'].items():
+                                try:
+                                    meta_show[meta_key].append(meta_val[()])
+                                except:
+                                    meta_show[meta_key].append('NA')
+        
+            self.df_after = pd.DataFrame(meta_show)
+            self.keys_show_after = self.df_after[["filename", '4D_shape', 'ht_value(V)', 'aperture_size', "convergence_semi-angle(rad)",  'defocus(nm)', 'magnification', 'step_size(m)', 'field_of_view(m)', 'nominal_camera_length(m)', 'set_bit_depth']]
+
+            if sort_key != '':
+                try:
+                    return self.keys_show_after.sort_values(sort_key)
+                except:
+                    print("Wrong metadata key!")
+
+            elif search_key != '':
+                try:
+                    return self.keys_show_after.loc[self.keys_show_after[search_key] == eval(search_value)]
+                except:
+                    print("Wrong metadata key! or empty search value!")
+
+            else:
+                return self.keys_show_after
+                
+
     def _ptycho(self, create_ptycho_folder, ptycho_config_name, ptycho_template_path):
         '''This part of the code is designed to automatic generate Ptyrex Json and associated folders, its uses os.walk 
            and the inputted year, session and subfolder varibles to find already converted data files, using the 
@@ -323,7 +418,6 @@ class convert_info_widget():
                         '''now the objective to get all the data required to fill the Json, we use the folder name to 
                         create the path to the meta data file'''
                         meta_file = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf'
-                        print(meta_file)
 
                         '''we can now open the meta data file itself to check the energy which will give us the rotation angle,
                          the size of the aperture which will tell us the convergence angle, and the camera length which 
@@ -395,7 +489,7 @@ class convert_info_widget():
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
         subfolder = Text(description='Subfolder:', style=st)
         
-        path_verbose = Checkbox(value=False, description="Show the path of each MIB file", style=st)
+        path_verbose = Checkbox(value=False, description="Show the metadata of each MIB file", style=st)
 
         no_reshaping = Checkbox(value=False, description='No reshaping', style=st)
         use_fly_back = Checkbox(value=True, description='Use Fly-back', style=st)
@@ -478,8 +572,12 @@ class convert_info_widget():
         session = Text(description='Session:', style=st)
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
         subfolder = Text(description='Subfolder:', style=st)
-        path_verbose = Checkbox(value=False, description="Show the path of each MIB file", style=st)
 
+        meta_check = Checkbox(value=False, description="Show the metadata of converted data", style=st)
+        sort_key = Text(description='Metadata key to sort:', style=st)
+        search_key = Text(description='Metadata key to search:', style=st)
+        search_value = Text(description='Value to search:', style=st)
+        
         create_ptycho_folder = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
         ptycho_config_name = Text(description='Enter config name (optional) :', style=st)
         ptycho_template_path = Text(description='Enter template config path (optional) :', style=st)
@@ -489,14 +587,18 @@ class convert_info_widget():
                                           session=session,
                                           subfolder_check=subfolder_check,
                                           subfolder=subfolder)
-        
-        self.verbose = ipywidgets.interact(self._verbose, path_verbose=path_verbose)
-        
 
+        self.meta_show = ipywidgets.interact(self._meta_show,
+                                            meta_check=meta_check,
+                                            sort_key=sort_key,
+                                            search_key=search_key,
+                                            search_value=search_value)
+                
         self.ptycho = ipywidgets.interact(self._ptycho, 
                                       create_ptycho_folder=create_ptycho_folder, 
                                       ptycho_config_name=ptycho_config_name, 
-                                      ptycho_template_path=ptycho_template_path)       
+                                      ptycho_template_path=ptycho_template_path)
+
 
     def _check_differences(self, source_path, destination_path):
         """Checks for .mib files associated with a specified session that have
