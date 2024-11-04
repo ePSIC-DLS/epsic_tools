@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#SBATCH --partition cs04r
+#SBATCH --nodes 1
+#SBATCH --ntasks-per-node 1
+#SBATCH --cpus-per-task 4
+#SBATCH --time 10
+#SBATCH --mem 16G
+
+module load python/epsic3.10
+
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export BLOSC_NTHREADS=$((SLURM_CPUS_PER_TASK * 2))
+
+srun -c ${SLURM_CPUS_PER_TASK} python with_reshape.py
