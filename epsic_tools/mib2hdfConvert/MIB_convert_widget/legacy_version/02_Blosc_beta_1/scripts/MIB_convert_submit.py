@@ -1,31 +1,42 @@
 #!/usr/bin/env bash
 import os
-import shutil
+
 import numpy as np
 import h5py
 import blosc
 from hyperspy.signals import Signal2D
 from hyperspy.misc.array_tools import rebin
-from hyperspy.signal import BaseSignal
-
-from itertools import product
-from math import floor
 
 # C extensions
+from mib_prop import mib_props
 try:
     from fast_binning import fast_bin
 except ImportError:
     print("Cannot import fast binning function.")
 
-from mib_prop import mib_props
+from mib_flyback_utils import (PIXEL_DEPTH_NPY_TYPE,
+                               PIXEL_DEPTH_NPY_TYPE_PROMOTED,
+                               STEM_flag_dict,
+                               get_scan_y,
+                               bright_flyback_frame,
+                               grid_chunk_offsets,
+                               stack_chunk_offsets,
+                               empty_hspy_hdf5,
+                               binned_nav_indices,
+                               _add_crosses,
+                               )
+
+
+
+
 import ipywidgets
 import ipywidgets as widgets
 import json
 import sys
+import os
 import glob
 import logging
 import subprocess
-import time
 
 formatter = logging.Formatter("%(asctime)s    %(process)5d %(processName)-12s %(threadName)-12s                   %(levelname)-8s %(pathname)s:%(lineno)d %(message)s")
 for handler in logging.getLogger().handlers:
@@ -37,345 +48,6 @@ logger = logging.getLogger(__name__)
 
 # Make a logger for this module.
 logger = logging.getLogger(__name__)
-
-
-#####################################################################################################################
-#############################################   mib_flyback_utils - start   #########################################
-#####################################################################################################################
-
-PIXEL_DEPTH_NPY_TYPE = {"U01": np.uint8,
-                        "U08": np.uint8,
-                        "U16": np.uint16,
-                        "U32": np.uint32,
-                        "U64": np.uint64,
-                        }
-
-PIXEL_DEPTH_NPY_TYPE_PROMOTED = {"U01": np.uint8,
-                                 "U08": np.uint16,
-                                 "U16": np.uint32,
-                                 "U32": np.uint64,
-                                 "U64": np.uint64,
-                                 }
-def _add_crosses(a):
-    """
-    Adds 3 pixel buffer cross to quad chip data.
-
-    Parameters
-    ----------
-    a : numpy.ndarray
-        Stack of raw frames or reshaped dask array object, prior to dimension reshaping, to insert
-        3 pixel buffer cross into.
-
-    Returns
-    -------
-    b : numpy.ndarray
-        Stack of frames or reshaped 4DSTEM object including 3 pixel buffer cross in the diffraction plane.
-    """
-    original_shape = a.shape
-
-    if len(original_shape) == 4:
-        a = a.reshape(
-            original_shape[0] * original_shape[1], original_shape[2], original_shape[3]
-        )
-
-    a_half = int(original_shape[-1] / 2), int(original_shape[-2] / 2)
-    # Define 3 pixel wide cross of zeros to pad raw data
-    if len(original_shape) == 4:
-        z_array = np.zeros(
-            (original_shape[0] * original_shape[1], original_shape[-2], 3),
-            dtype=a.dtype,
-        )
-        z_array2 = np.zeros(
-            (original_shape[0] * original_shape[1], 3, original_shape[-1] + 3),
-            dtype=a.dtype,
-        )
-    else:
-        z_array = np.zeros((original_shape[0], original_shape[-2], 3), dtype=a.dtype)
-        z_array2 = np.zeros(
-            (original_shape[0], 3, original_shape[-1] + 3), dtype=a.dtype
-        )
-
-    # Insert blank cross into raw data
-    b = np.concatenate((a[:, :, : a_half[1]], z_array, a[:, :, a_half[1] :]), axis=-1)
-
-    b = np.concatenate((b[:, : a_half[0], :], z_array2, b[:, a_half[0] :, :]), axis=-2)
-
-    if len(original_shape) == 4:
-        b = b.reshape(
-            original_shape[0],
-            original_shape[1],
-            original_shape[2] + 3,
-            original_shape[3] + 3,
-        )
-
-    return b
-
-def STEM_flag_dict(exp_times_list):
-    """
-    Determines whether a .mib file contains STEM or TEM data and how many
-    frames to skip due to triggering from a list of exposure times.
-
-    Parameters
-    ----------
-    exp_times_list : list
-        List of exposure times extracted from a .mib file.
-
-    Returns
-    -------
-    output : dict
-        Dictionary containing - STEM_flag, scan_X, exposure_time,
-                                number_of_frames_to_skip, flyback_times
-    Example
-    -------
-    {'STEM_flag': 1,
-     'scan_X': 256,
-     'exposure time': 0.0007,
-     'number of frames_to_skip': 136,
-     'flyback_times': [0.0392, 0.0413, 0.012625, 0.042]}
-    """
-    output = {}
-    times_set = set(exp_times_list)
-    # If single exposure times in header, treat as TEM data.
-    if len(times_set) == 1:
-        output['STEM_flag'] = 0
-        output['scan_X'] = None
-        output['exposure time'] = list(times_set)
-        output['number of frames_to_skip'] = None
-        output['flyback_times'] = None
-    # In case exp times not appearing in header treat as TEM data
-    elif len(times_set) == 0:
-
-        output['STEM_flag'] = 0
-        output['scan_X'] = None
-        output['exposure time'] = None
-        output['number of frames_to_skip'] = None
-        output['flyback_times'] = None
-    # Otherwise, treat as STEM data.
-    else:
-        STEM_flag = 1
-        # Check that the smallest time is the majority of the values
-        exp_time = max(times_set, key=exp_times_list.count)
-        if exp_times_list.count(exp_time) < int(0.9 * len(exp_times_list)):
-            logger.debug('Something wrong with the triggering!')
-        peaks = [i for i, e in enumerate(exp_times_list) if e > 5 * exp_time]
-        # Diff between consecutive elements of the array
-        lines = np.ediff1d(peaks)
-        if len(set(lines)) == 1:
-            scan_X = lines[0]
-            frames_to_skip = peaks[0]
-            # if frames_to_skip is 1 less than scan_X we do not need to skip any frames
-            # if frames_to_skip == peaks[0]:
-            #     frames_to_skip = 0
-        else:
-            # Assuming the last element to be the line length
-            scan_X = lines[-1]
-            check = np.ravel(np.where(lines == scan_X, True, False))
-            # Checking line lengths
-            start_ind = np.where(check == False)[0][-1] + 2
-            frames_to_skip = peaks[start_ind]
-
-        flyback_times = list(times_set)
-        flyback_times.remove(exp_time)
-        output['STEM_flag'] = STEM_flag
-        output['scan_X'] = scan_X
-        output['exposure time'] = exp_time
-        output['number of frames_to_skip'] = frames_to_skip
-        output['flyback_times'] = flyback_times
-
-    return output
-
-
-def get_scan_y(nframe, start_frame, scan_x):
-    """Return the number of rows (scan y)."""
-    return floor((nframe - start_frame) / scan_x)
-
-
-def bright_flyback_frame(start_frame, scan_y, scan_x):
-    """Return the indices of flyback frame in a stack (the first column)."""
-    return start_frame + np.arange(scan_y)*scan_x
-
-
-def grid_chunk_offsets(scan_shape):
-    """A generator for grid chunk offsets."""
-    scan_y = scan_shape[0]
-    scan_x = scan_shape[1]
-
-    for syx in product(range(scan_y), range(scan_x)):
-        yield (syx[0], syx[1], 0, 0)
-
-
-def stack_chunk_offsets(scan_shape):
-    """A generator for stack chunk offsets."""
-    scan_yx = scan_shape[0]
-
-    for syx in range(scan_yx):
-        yield (syx, 0, 0)
-
-
-def binned_nav_indices(linear_index, ncol, bw, row_shift=0, col_shift=0):
-    """Get the bin indices from a linear index.
-
-    If I have the 5x5 array below and bin it by 2 (bw):
-
-    -------------------------------
-    |  0  |  1  |  2  |  3  |  4  |
-    -------------------------------
-    |  5  |  6  |  7  |  8  |  9  |
-    -------------------------------
-    |  10 |  11 |  12 |  13 |  14 |
-    -------------------------------
-    |  15 |  16 |  17 |  18 |  19 |
-    -------------------------------
-    |  20 |  21 |  22 |  23 |  24 |
-    -------------------------------
-
-    (the indices are linear)
-
-    the binned array will be a 2x2 array, and if row_shift and col_shift
-    are both 1, the above data will be in the following bin:
-
-    -----------------------------
-    |             |             |
-    |  6,7,11,12  |  8,9,13,14  |
-    |             |             |
-    -----------------------------
-    |             |             |
-    | 16,17,21,22 | 18,19,23,24 |
-    |             |             |
-    -----------------------------
-
-    the row_shift and col_shift is equivalent to the number of cropping
-    from top row and left column, respectively.
-
-    The function returns:
-        - (0, 0) for linear indices 6, 7, 11, 12;
-        - (0, 1) for linear indices 8, 9, 13, 14;
-        - (1, 0) for linear indices 16, 17, 21, 22;
-        - (1, 1) for linear indices 18, 19, 23, 24;
-
-    Parameters
-    ----------
-    linear_index : int
-        the index (linear) of the 2D array to be binned
-    ncol : int
-        the number of column of the 2D array
-    bw : int
-        the width of the bin
-    row_shift, col_shift : int
-        the number of rows and columns to be shifted, equivalent to
-        cropping to the same number of top rows and left columns
-        respectively
-
-    Returns
-    -------
-    binned_row_idx, binned_col_idx
-        the row and column indices of the bin
-    """
-
-    norm_idx = linear_index - col_shift - ncol*row_shift
-
-    binned_row_idx = norm_idx // (ncol*bw)
-    binned_col_idx = (norm_idx % ncol) // bw
-
-    return binned_row_idx, binned_col_idx
-
-def empty_hspy_hdf5(output_path, shape, data_dict=None):
-    """Create an empty hdf5 file following HyperSpy hierarchy with metadata.
-
-    Parameters
-    ----------
-    output_path : str
-        the output hdf5 file
-    shape : tuple
-        the shape of the dataset, with 4 members (scan_y, scan_x, det_y,
-        det_x).
-    data_dict : dict, optional
-        a dictionary contains some values for the metadata
-
-    Returns
-    -------
-    the dataset key where the actual data will be saved.
-
-    """
-    axes_dict = _get_axes_dict(shape)
-
-    # construct metadata dictionary
-    metadata_dict = {"Signal": {}}
-    metadata_dict["Signal"]["flip"] = "True"
-    # this is what pyxem would have set at the end
-    # so skip setting "STEM" or "TEM"
-    metadata_dict["Signal"]["signal_type"] = "electron_diffraction"
-
-    if data_dict is not None:
-        metadata_dict["Signal"]["scan_X"] = data_dict["scan_X"]
-        metadata_dict["Signal"]["frames_number_skipped"] = data_dict["number of frames_to_skip"]
-        # in ms
-        metadata_dict["Signal"]["exposure_time"] = data_dict["exposure time"]
-        metadata_dict["Signal"]["flyback_times"] = data_dict["flyback_times"]
-
-    # fake HyperSpy signal
-    # its content and dims are not important (it is not saved)
-    s = BaseSignal(np.empty((1,2,3,4)),
-                   axes=axes_dict,
-                   metadata=metadata_dict
-                   )
-
-    # this creates a file consistent with HyerSpy signal
-    # "write_dataset=False" to skip writing the fake data
-    # we just want the hierarchy
-    s.save(output_path,
-           overwrite=True,
-           file_format="HSPY",
-           write_dataset=False)
-
-    # inspect the created hdf5 file and return the dataset where "data"
-    # should be saved
-    with h5py.File(output_path, "r") as f:
-        # this should be fixed by Hyperspy
-        expg = f["/Experiments"]
-        # this could depend on "title" in the metadata
-        # and it has one member only
-        dset_name = list(expg.keys())[0]
-
-    return f"/Experiments/{dset_name}/data"
-
-def _get_axes_dict(shape):
-    if len(shape) == 3:
-        # a stack
-        syx = shape[0]
-        dety = shape[1]
-        detx = shape[2]
-
-        # construct HyperSpy axes dictionary
-        ax_syx = {"size": syx, "navigate": True}
-        ax_dy = {"size": dety}
-        ax_dx = {"size": detx}
-
-        return [ax_syx, ax_dy, ax_dx]
-    elif len(shape) == 4:
-        # a grid
-        sy = shape[0]
-        sx = shape[1]
-        dety = shape[2]
-        detx = shape[3]
-
-        # construct HyperSpy axes dictionary
-        ax_sy = {"size": sy, "navigate": True}
-        ax_sx = {"size": sx, "navigate": True}
-        ax_dy = {"size": dety}
-        ax_dx = {"size": detx}
-
-        return [ax_sy, ax_sx, ax_dy, ax_dx]
-
-    msg = "It only supports saving 3D or 4D data"
-    raise ValueError(msg)
-
-#####################################################################################################################
-#############################################   mib_flyback_utils - start   #########################################
-#####################################################################################################################
-
-
-
 
 
 ###########################################################################################################
@@ -567,9 +239,9 @@ with open(info_path, 'r') as f:
             info[tmp[0]] = tmp[-1].split("\n")[0]
             print(tmp[0], tmp[-1].split("\n")[0])
 
-mib_path = eval(info['to_convert_paths'][0])[index]
+path = eval(info['to_convert_paths'][0])[index]
 
-adr_split = mib_path.split('/')
+adr_split = path.split('/')
 tmp_save = []
 tmp_save.append('/')
 tmp_save.extend(adr_split[1:6])
@@ -579,13 +251,14 @@ save_dir = os.path.join(*tmp_save)
 
 # Load data as stack
 
-src_path = mib_path[:-40]
+src_path = path[:-40]
 
-time_stamp = mib_path.split('/')[-1][:15]
+time_stamp = path.split('/')[-1][:15]
 save_path = os.path.join(save_dir, time_stamp)
 if not os.path.exists(save_path):
      os.makedirs(save_path)
     
+# data = file_reader(path, lazy = False)
 no_reshaping = eval(info['no_reshaping'])
 use_fly_back = eval(info['use_fly_back'])
 known_shape = eval(info['known_shape'])
@@ -598,21 +271,38 @@ bin_nav_flag = eval(info['bin_nav_flag'])
 bin_nav_factor = eval(info['bin_nav_factor'])
 reshape = eval(info['reshape'])
 create_json = eval(info['create_json'])
-if create_json:
-    ptycho_config = info['ptycho_config']
-    ptycho_template = info['ptycho_template']
-create_virtual_image = eval(info['create_virtual_image'])
-if create_virtual_image:
-    disk_lower_thresh = eval(info['disk_lower_thresh'])
-    disk_upper_thresh = eval(info['disk_upper_thresh'])
-    mask_path = info['mask_path']
-    DPC_check = eval(info['DPC'])
-    parallax_check = eval(info['parallax'])
+ptycho_config = info['ptycho_config']
+ptycho_template = info['ptycho_template']
+
+
+
+
+# 1-bit
+# mib_path = "/dls/e02/data/2024/mg37328-1/Merlin/Pd_ZnO/20240626_120132/20240626_120126_data.mib"
+
+# 6-bit
+mib_path = path
+
+# 12-bit
+# mib_path = "/dls/e02/data/2023/cm33902-4/Merlin/au_xgrating_ptycho_12cmCL/20230822_135857/20230822_140140_data.mib"
 
 hdf5_path = os.path.join(save_path, f'{time_stamp}_data.hdf5')
 ibf_path = os.path.join(save_path, f'{time_stamp}_iBF.jpg')
 bin_nav_path = os.path.join(save_path, f'{time_stamp}_data_bin_nav_factor_{bin_nav_factor}.hspy')
 bin_sig_path = os.path.join(save_path, f'{time_stamp}_data_bin_sig_factor_{bin_sig_factor}.hspy')
+
+
+#no_reshaping = False
+#use_fly_back = True
+#known_shape = False
+#Scan_X = 256
+#Scan_Y = 256
+#iBF = True
+#bin_sig_flag = True
+#bin_sig_factor = 4
+#bin_nav_flag = True
+#bin_nav_factor = 4
+add_cross = True
 
 
 # check provided reshaping options
@@ -666,17 +356,6 @@ mib_properties = mib_props(mib_path,
                        exposure_time_ns=True,
                        bit_depth=True,
                        )
-
-# check the size of the detector to determine whether or not to add a cross
-if mib_properties['det_x'][0] == 256:
-    print("Single-Medipix 4DSTEM data - No cross added")
-    add_cross = False
-elif mib_properties['det_x'][0] == 512:
-    print("Quad-Medipix 4DSTEM data - Cross added")
-    add_cross = True
-else:
-    print("Warning! The dimensions of diffraction pattern are unusual.")    
-
 
 with open(mib_path, "rb") as mib:
     # determine header size, dtype and detector size from first header
@@ -1091,401 +770,3 @@ with open(mib_path, "rb") as mib:
     if bin_sig_flag:
         f_sig_bin.close()
 
-print("Conversion finished.")
-time.sleep(10)
-        
-meta_path = find_metadat_file(time_stamp, src_path)
-write_vds(save_path+'/'+time_stamp+'_data.hdf5', save_path +'/'+time_stamp+'_vds.h5', metadata_path=meta_path)
-
-
-if create_virtual_image:
-    with h5py.File(meta_path, 'r') as microscope_meta:
-        meta_values = microscope_meta['metadata']
-        print(meta_values['aperture_size'][()])
-        print(meta_values['nominal_camera_length(m)'][()])
-        print(meta_values['ht_value(V)'][()])
-        acc = meta_values['ht_value(V)'][()]
-        nCL = meta_values['nominal_camera_length(m)'][()]
-        aps = meta_values['aperture_size'][()]
-    rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)       
-
-    import time
-    import tifffile
-    import matplotlib.pyplot as plt
-    import py4DSTEM
-    import hyperspy.api as hs
-    print(py4DSTEM.__version__)
-
-    data_path = save_path+'/'+time_stamp+'_data.hdf5'
-    data_name = data_path.split("/")[-1].split(".")[0]
-    save_dir = os.path.dirname(data_path) # directory for saving the results
-    print(meta_path)
-    print(data_path)
-    print(data_name)
-    print(mask_path)
-
-    device = 'cpu'
-
-    if meta_path != '':
-        try:
-            with h5py.File(meta_path,'r') as f:
-                print("----------------------------------------------------------")
-                print(f['metadata']["defocus(nm)"])
-                print(f['metadata']["defocus(nm)"][()])
-                defocus_exp = f['metadata']["defocus(nm)"][()]*10 # Angstrom
-                print("----------------------------------------------------------")
-                print(f['metadata']["ht_value(V)"])
-                print(f['metadata']["ht_value(V)"][()])
-                HT = f['metadata']["ht_value(V)"][()]
-                print("----------------------------------------------------------")
-                print(f['metadata']["step_size(m)"])
-                print(f['metadata']["step_size(m)"][()])
-                scan_step = f['metadata']["step_size(m)"][()] * 1E10 # Angstrom
-                print("----------------------------------------------------------")
-        except:
-            with open(meta_path, 'r') as f:
-                metadata = json.load(f)
-                HT = metadata['process']['common']['source']['energy'][0]
-                print("HT: ", HT)
-                defocus_exp = metadata['experiment']['optics']['lens']['defocus'][0]*1E10
-                print("defocus: ", defocus_exp)
-                scan_step = metadata['process']['common']['scan']['dR'][0]*1E10
-                print("scan step: ", scan_step)
-
-    if mask_path != '':
-        try:
-            with h5py.File(mask_path,'r') as f:
-                mask = f['data']['mask'][()]
-
-        except:
-            with h5py.File(mask_path,'r') as f:
-                mask = f['root']['np.array']['data'][()]
-
-        mask = np.invert(mask)
-        mask = mask.astype(np.float32)
-
-        print(type(mask))
-        print(mask.dtype)
-
-        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-        ax.imshow(mask)
-        fig.tight_layout()
-        plt.savefig(save_dir+"/mask.png")
-
-    ### VERY IMPORTANT VARIABLE ###
-    semiangle = conv_angle * 1000 # mrad
-    ### ####################### ###
-
-    if data_path.split(".")[-1] == "hspy": 
-    # This is for the simulated 4DSTEM data using 'submit_abTEM_4DSTEM_simulation.ipynb'
-    # stored in /dls/science/groups/e02/Ryu/RYU_at_ePSIC/multislice_simulation/submit_abtem/submit_abtem_4DSTEM_simulation.ipynb
-        original_stack = hs.load(data_path)
-        print(original_stack)
-        n_dim = len(original_stack.data.shape)
-        scale = []
-        origin = []
-        unit = []
-        size = []
-
-        for i in range(n_dim):
-            print(original_stack.axes_manager[i].scale, original_stack.axes_manager[i].offset, original_stack.axes_manager[i].units, original_stack.axes_manager[i].size)
-            scale.append(original_stack.axes_manager[i].scale)
-            origin.append(original_stack.axes_manager[i].offset)
-            unit.append(original_stack.axes_manager[i].units)
-            size.append(original_stack.axes_manager[i].size)
-
-        HT = eval(original_stack.metadata["HT"])
-        defocus_exp = eval(original_stack.metadata["defocus"])
-        semiangle = eval(original_stack.metadata["semiangle"])
-        scan_step = scale[0]
-        print("HT: ", HT)
-        print("experimental defocus: ", defocus_exp)
-        print("semiangle: ", semiangle)
-        print("scan step: ", scan_step)
-        original_stack = original_stack.data
-        det_name = 'ePSIC_EDX'
-        data_key = 'Experiments/__unnamed__/data'
-
-
-    elif data_path.split(".")[-1] == "hdf" or data_path.split(".")[-1] == "hdf5" or data_path.split(".")[-1] == "h5":
-        # try:
-        #     original_stack = hs.load(data_path, reader="HSPY", lazy=True)
-        #     print(original_stack)
-        #     original_stack = original_stack.data
-        try:    
-            f = h5py.File(data_path,'r')
-            print(f)
-            original_stack = f['Experiments']['__unnamed__']['data'][:]
-            f.close()
-            det_name = 'ePSIC_EDX'
-            data_key = 'Experiments/__unnamed__/data'
-
-        except:
-            f = h5py.File(data_path,'r')
-            print(f)
-            original_stack = f['data']['frames'][:]
-            f.close()
-            det_name = 'pty_data'
-            data_key = "data/frames"
-
-    elif data_path.split(".")[-1] == "dm4":
-        original_stack = hs.load(data_path)
-        print(original_stack)
-        n_dim = len(original_stack.data.shape)
-        scale = []
-        origin = []
-        unit = []
-        size = []
-
-        for i in range(n_dim):
-            print(original_stack.axes_manager[i].scale, original_stack.axes_manager[i].offset, original_stack.axes_manager[i].units, original_stack.axes_manager[i].size)
-            scale.append(original_stack.axes_manager[i].scale)
-            origin.append(original_stack.axes_manager[i].offset)
-            unit.append(original_stack.axes_manager[i].units)
-            size.append(original_stack.axes_manager[i].size)
-
-        HT = 1000 * original_stack.metadata['Acquisition_instrument']['TEM']['beam_energy']
-        scan_step = scale[0] * 10
-        defocus_exp = eval(info['defocus'])
-        print("HT: ", HT)
-        print("experimental defocus: ", defocus_exp)
-        print("semiangle: ", semiangle)
-        print("scan step: ", scan_step)
-        original_stack = original_stack.data
-        original_stack = original_stack.astype(np.float32)
-        original_stack -= np.min(original_stack)
-        original_stack /= np.max(original_stack)
-        original_stack *= 128.0
-        # det_name = 'ePSIC_EDX'
-        # data_key = 'Experiments/__unnamed__/data' 
-
-    else:
-        print("Wrong data format!")
-
-    original_stack = original_stack.astype(np.float32)
-    print(original_stack.dtype)
-    print(original_stack.shape)
-    print(np.min(original_stack), np.max(original_stack))
-
-    # masking
-    if mask_path != '' and type(mask) == np.ndarray:
-        for i in range(original_stack.shape[0]):
-            for j in range(original_stack.shape[1]):
-                original_stack[i, j] = np.multiply(original_stack[i, j], mask)
-
-    dataset = py4DSTEM.DataCube(data=original_stack)
-    print("original dataset")
-    print(dataset)
-
-    del original_stack
-
-    dataset.get_dp_mean()
-    dataset.get_dp_max()
-
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-    ax.imshow(dataset.tree('dp_mean')[:, :], cmap='jet')
-    fig.tight_layout()
-    plt.savefig(save_dir+"/pacbed.png")
-
-    probe_radius_pixels, probe_qx0, probe_qy0 = dataset.get_probe_size(thresh_lower=disk_lower_thresh, thresh_upper=disk_upper_thresh, N=100, plot=True)
-    plt.savefig(save_dir+"/disk_detection.png")
-
-    dataset.calibration._params['Q_pixel_size'] = semiangle / probe_radius_pixels
-    dataset.calibration._params['Q_pixel_units'] = "mrad"
-    dataset.calibration._params['R_pixel_size'] = scan_step
-    dataset.calibration._params['R_pixel_units'] = "A"
-
-    print(dataset)
-    print(dataset.calibration)
-
-    # Make a virtual bright field and dark field image
-    center = (probe_qx0, probe_qy0)
-    radius_BF = probe_radius_pixels
-    radii_DF = (probe_radius_pixels, int(dataset.Q_Nx/2))
-
-    dataset.get_virtual_image(
-        mode = 'circle',
-        geometry = (center,radius_BF),
-        name = 'bright_field',
-        shift_center = False,
-    )
-    dataset.get_virtual_image(
-        mode = 'annulus',
-        geometry = (center,radii_DF),
-        name = 'dark_field',
-        shift_center = False,
-    )
-
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-    ax[0].imshow(dataset.tree('bright_field')[:, :], cmap="inferno")
-    ax[0].set_title("BF image")
-    ax[1].imshow(dataset.tree('dark_field')[:, :], cmap="inferno")
-    ax[1].set_title("ADF image [%.1f, %.1f] mrad"%(radii_DF[0]*dataset.Q_pixel_size, radii_DF[1]*dataset.Q_pixel_size))
-    fig.tight_layout()
-    plt.savefig(save_dir+"/STEM_image.png")
-    tifffile.imwrite(save_dir+"/BF_image.tif", dataset.tree('bright_field')[:, :])
-    tifffile.imwrite(save_dir+"/ADF_image.tif", dataset.tree('dark_field')[:, :])
-
-    if DPC_check:
-        dpc = py4DSTEM.process.phase.DPC(
-            datacube=dataset,
-            energy = HT,
-        ).preprocess(force_com_rotation=rot_angle)
-        plt.savefig(save_dir+"/DPC_optimization.png")
-
-        dpc.reconstruct(
-            max_iter=8,
-            store_iterations=True,
-            reset=True,
-            gaussian_filter_sigma=0.1,
-            gaussian_filter=True,
-            q_lowpass=None,
-            q_highpass=None
-        ).visualize(
-            iterations_grid='auto',
-            figsize=(16, 10)
-        )
-        plt.savefig(save_dir+"/iDPC_image.png")
-
-        dpc_cor = py4DSTEM.process.phase.DPC(
-            datacube=dataset,
-            energy=HT,
-            verbose=False,
-        ).preprocess(
-            force_com_rotation = np.rad2deg(dpc._rotation_best_rad),
-            force_com_transpose = False,
-        )
-        plt.savefig(save_dir+"/corrected_DPC_optimization.png")
-
-        dpc_cor.reconstruct(
-            max_iter=8,
-            store_iterations=True,
-            reset=True,
-            gaussian_filter_sigma=0.1,
-            gaussian_filter=True,
-            q_lowpass=None,
-            q_highpass=None
-        ).visualize(
-            iterations_grid='auto',
-            figsize=(16, 10)
-        )
-        plt.savefig(save_dir+"/corrected_iDPC_image.png")
-
-        fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-        ax[0].imshow(dpc._com_normalized_y, cmap="bwr")
-        ax[0].set_title("CoMx")
-        ax[1].imshow(dpc._com_normalized_x, cmap="bwr")
-        ax[1].set_title("CoMy")
-        ax[2].imshow(np.sqrt(dpc._com_normalized_y**2 + dpc._com_normalized_x**2), cmap="inferno")
-        ax[2].set_title("Magnitude of CoM")
-        fig.tight_layout()
-        plt.savefig(save_dir+"/CoM_image.png")
-
-
-        fig, ax = plt.subplots(1, 3, figsize=(15, 5))
-        ax[0].imshow(dpc_cor._com_normalized_y, cmap="bwr")
-        ax[0].set_title("CoMx - rotation corrected")
-        ax[1].imshow(dpc_cor._com_normalized_x, cmap="bwr")
-        ax[1].set_title("CoMy - rotation corrected")
-        ax[2].imshow(np.sqrt(dpc_cor._com_normalized_y**2 + dpc_cor._com_normalized_x**2), cmap="inferno")
-        ax[2].set_title("Magnitude of CoM - rotation corrected")
-        fig.tight_layout()
-        plt.savefig(save_dir+"/corrected_CoM_image.png")
-
-
-        fig, ax = plt.subplots(1, 2, figsize=(10, 5))
-        ax[0].imshow(dpc.object_phase, cmap="inferno")
-        ax[0].set_title("iCoM")
-        ax[1].imshow(dpc_cor.object_phase, cmap="inferno")
-        ax[1].set_title("iCoM - rotation corrected")
-        fig.tight_layout()
-        plt.savefig(save_dir+"/iDPC_comparison.png")
-        tifffile.imwrite(save_dir+"/iDPC_corrected.tif", dpc_cor.object_phase)
-
-    if parallax_check:
-        parallax = py4DSTEM.process.phase.Parallax(
-            datacube=dataset,
-            energy = HT,
-            device = device, 
-            verbose = True
-        ).preprocess(
-            normalize_images=True,
-            plot_average_bf=False,
-            edge_blend=8,
-        )
-
-        parallax = parallax.reconstruct(
-            reset=True,
-            regularizer_matrix_size=(1,1),
-            regularize_shifts=True,
-            running_average=True,
-            min_alignment_bin = 16,
-            num_iter_at_min_bin = 2,
-        )
-        plt.savefig(save_dir+"/parallax_rough.png")
-
-        parallax.show_shifts()
-        plt.savefig(save_dir+"/parallax_shift.png")
-
-        parallax.subpixel_alignment(
-            #kde_upsample_factor=2,
-            kde_sigma_px=0.125,
-            plot_upsampled_BF_comparison=True,
-            plot_upsampled_FFT_comparison=True,
-        )
-        plt.savefig(save_dir+"/parallax_subpixel_alignment.png")
-
-        parallax.aberration_fit(
-            plot_CTF_comparison=True,
-        )
-        plt.savefig(save_dir+"/parallax_CTF.png")
-
-        parallax.aberration_correct(figsize=(5, 5))
-        plt.savefig(save_dir+"/parallax_aberration_corrected.png")
-
-        # Get the probe convergence semiangle from the pixel size and estimated radius in pixels
-        semiangle_cutoff_estimated = dataset.calibration.get_Q_pixel_size() * probe_radius_pixels
-        print('semiangle cutoff estimate = ' + str(np.round(semiangle_cutoff_estimated, decimals=1)) + ' mrads')
-
-        # Get the estimated defocus from the parallax reconstruction - note that defocus dF has the opposite sign as the C1 aberration!
-        defocus_estimated = -parallax.aberration_C1
-        print('estimated defocus         = ' + str(np.round(defocus_estimated)) + ' Angstroms')
-
-        rotation_degrees_estimated = np.rad2deg(parallax.rotation_Q_to_R_rads)
-        print('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
-
-
-if create_json:
-    pty_dest = save_path + '/pty_out'
-    pty_dest_2 = save_path + '/pty_out/initial_recon'
-
-    try:
-        os.makedirs(pty_dest)
-    except:
-        print('skipping this folder as it already has pty_out folder')
-    try:
-        os.makedirs(pty_dest_2)
-    except:
-        print('skipping this folder as it already has pty_out/initial folder')
-
-    with h5py.File(meta_path, 'r') as microscope_meta:
-        meta_values = microscope_meta['metadata']
-        print(meta_values['aperture_size'][()])
-        print(meta_values['nominal_camera_length(m)'][()])
-        print(meta_values['ht_value(V)'][()])
-        acc = meta_values['ht_value(V)'][()]
-        nCL = meta_values['nominal_camera_length(m)'][()]
-        aps = meta_values['aperture_size'][()]
-    rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)
-
-    if ptycho_config == '':
-        config_name = 'pty_recon'
-    else:
-        config_name = ptycho_config
-
-    if ptycho_template == '':
-        template_path = '/dls/science/groups/imaging/ePSIC_ptychography/experimental_data/User_example/UserExampleJson.json'
-    else:
-        template_path = ptycho_template
-
-    gen_config(template_path, pty_dest_2, config_name, save_path +'/'+time_stamp+'.hdf', rot_angle, camera_length, 2*conv_angle)

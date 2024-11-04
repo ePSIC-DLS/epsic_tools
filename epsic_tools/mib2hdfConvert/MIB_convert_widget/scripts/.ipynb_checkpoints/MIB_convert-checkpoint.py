@@ -11,6 +11,7 @@ from rsciio.quantumdetector import load_mib_data, parse_exposures
 from rsciio.quantumdetector import file_reader
 import h5py
 import shutil
+import pandas as pd
 
 import ipywidgets
 from ipywidgets.widgets import *
@@ -31,6 +32,22 @@ logger = logging.getLogger(__name__)
 # Make a logger for this module.
 logger = logging.getLogger(__name__)
 import matplotlib.pyplot as plt
+
+def find_metadat_file(timestamp, acquisition_path):
+    metadata_file_paths = []
+    mib_file_paths = []
+        
+    for root, folders, files in os.walk(acquisition_path):
+        for file in files:
+            if file.endswith('hdf'):
+                metadata_file_paths.append(os.path.join(root, file))
+            elif file.endswith('mib'):
+                mib_file_paths.append(os.path.join(root, file))
+    for path in metadata_file_paths:
+        if timestamp == path.split('/')[-1].split('.')[0]:
+            return path
+    logger.debug('No metadata file could be matched.')
+    return 
 
 # ptyrex import
 import json
@@ -138,11 +155,34 @@ def Meta2Config(acc,nCL,aps):
     return rot_angle,camera_length,conv_angle
 
 
-
 # Widgets
 class convert_info_widget():
-    def __init__(self):
-        self._activate()
+
+    meta_keys = ['filename', 'A1_value_(kV)', 'A2_value_(kV)', 'aperture_size',
+       'convergence_semi-angle(rad)', 'current_OLfine', 'deflector_values',
+       'defocus(nm)', 'defocus_per_bit(nm)', 'field_of_view(m)', 'ht_value(V)',
+       'lens_values', 'magnification', 'merlin_camera_length(m)',
+       'nominal_camera_length(m)', 'nominal_scan_rotation', 'set_bit_depth',
+       'set_dwell_time(usec)', 'set_scan_px', 'spot_size', 'step_size(m)',
+       'x_pos(m)', 'x_tilt(deg)', 'y_pos(m)', 'y_tilt(deg)', 'z_pos(m)',
+       'zero_OLfine']
+
+    meta_keys_after = ['filename', '4D_shape', 'A1_value_(kV)', 'A2_value_(kV)',
+       'aperture_size', 'convergence_semi-angle(rad)', 'current_OLfine',
+       'deflector_values', 'defocus(nm)', 'defocus_per_bit(nm)',
+       'field_of_view(m)', 'ht_value(V)', 'lens_values', 'magnification',
+       'merlin_camera_length(m)', 'nominal_camera_length(m)',
+       'nominal_scan_rotation', 'set_bit_depth', 'set_dwell_time(usec)',
+       'set_scan_px', 'spot_size', 'step_size(m)', 'x_pos(m)', 'x_tilt(deg)',
+       'y_pos(m)', 'y_tilt(deg)', 'z_pos(m)', 'zero_OLfine']
+    
+    def __init__(self, only_ptyrex=False, only_virtual=False):
+        if only_ptyrex:
+            self._ptyrex_json()
+        elif only_virtual:
+            self._virtual_images()
+        else:
+            self._activate()
 
     def _paths(self, year, session, subfolder_check, subfolder):
 
@@ -189,18 +229,41 @@ class convert_info_widget():
 
     def _verbose(self, path_verbose):
         if path_verbose:
-            print(*self.to_convert, sep="\n")        
-    
-    def _organize(self, no_reshaping, use_fly_back, known_shape, 
-                  Scan_X, Scan_Y, ADF_check, iBF_check, DPC_check,
-                bin_nav_widget, bin_sig_widget, node_check,
-                create_batch_check, create_info_check):
+            meta_show = {}
+            meta_show["filename"] = []
+            for key in self.meta_keys:
+                meta_show[key] = []
 
+            for path in self.to_convert:
+                src_path = path[:-40]
+                time_stamp = path.split('/')[-1][:15]
+                meta_path = find_metadat_file(time_stamp, src_path)
+                
+                with h5py.File(meta_path, 'r') as microscope_meta:
+                    meta_show['filename'].append(path.split('/')[-1][:15])
+                    for meta_key, meta_val in microscope_meta['metadata'].items():
+                        try:
+                            meta_show[meta_key].append(meta_val[()])
+                        except:
+                            meta_show[meta_key].append('NA')
+
+            self.df = pd.DataFrame(meta_show)
+            self.keys_show = self.df[["filename", 'ht_value(V)', 'aperture_size', "convergence_semi-angle(rad)",  'defocus(nm)', 'magnification', 'step_size(m)', 'nominal_camera_length(m)']]
+
+            return self.keys_show
+                
+    def _organize(self, no_reshaping, use_fly_back, known_shape, 
+                  Scan_X, Scan_Y, bin_nav_widget, bin_sig_widget,
+                  node_check,create_virtual_image,mask_path,disk_lower_thresh,
+                    disk_upper_thresh,DPC_check,parallax_check,
+                  create_batch_check, create_info_check,
+                  create_json, ptycho_config, ptycho_template):
+        
         self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
-        if create_batch_check:
-            self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
-            self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
-            
+        
+        self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
+        self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
+        if create_batch_check:            
             with open (self.bash_script_path, 'w') as f:
                 f.write('#!/usr/bin/env bash\n')
                 f.write('#SBATCH --partition %s\n'%node_check)
@@ -209,14 +272,16 @@ class convert_info_widget():
                 f.write('#SBATCH --tasks-per-node 1\n')
                 f.write('#SBATCH --cpus-per-task 1\n')
                 f.write('#SBATCH --time 05:00:00\n')
-                f.write('#SBATCH --mem 100G\n\n')
+                f.write('#SBATCH --mem 0G\n\n')
 
                 f.write(f"#SBATCH --array=0-{len(self.to_convert)-1}%3\n")
-                f.write(f"#SBATCH --error={self.script_save_path}{os.sep}error_%j.out\n")
-                f.write(f"#SBATCH --output={self.script_save_path}{os.sep}output_%j.out\n")
+                f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
+                f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
 
                 f.write('echo "I am running the array job with task ID $SLURM_ARRAY_TASK_ID"\n')
-                f.write('module load python/epsic3.10\n\n')              
+                f.write('module load python/epsic3.10\n\n')  
+                f.write('export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}\n')
+                f.write('export BLOSC_NTHREADS=$((SLURM_CPUS_PER_TASK * 2))\n')                
                 f.write('sleep 10\n')
                 f.write(f"python {self.python_script_path} {self.info_path} $SLURM_ARRAY_TASK_ID\n")
 
@@ -225,20 +290,6 @@ class convert_info_widget():
 
         if create_info_check:
             self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
-            if iBF_check:
-                iBF = 1
-            else:
-                iBF = 0
-
-            if ADF_check:
-                ADF = 1
-            else:
-                ADF = 0
-
-            if DPC_check:
-                DPC = 1
-            else:
-                DPC = 0
                 
             if bin_sig_widget != 1:
                 bin_sig_flag = 1
@@ -257,8 +308,13 @@ class convert_info_widget():
             if no_reshaping:
                 reshape = 0
             else:
-                reshape = 1    
+                reshape = 1
+                
+            iBF = 1
             
+            if mask_path == '':
+                mask_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/29042024_12bitmask.h5'
+                
             with open (self.info_path, 'w') as f:
                 f.write(
                     f"to_convert_paths = {self.to_convert}\n"
@@ -268,15 +324,65 @@ class convert_info_widget():
                     f"Scan_X = {Scan_X}\n"
                     f"Scan_Y = {Scan_Y}\n"
                     f"iBF = {iBF}\n"
-                    f"ADF = {ADF}\n"
-                    f"DPC = {DPC}\n"
                     f"bin_sig_flag = {bin_sig_flag}\n"
                     f"bin_sig_factor = {bin_sig_factor}\n"
                     f"bin_nav_flag = {bin_nav_flag}\n"
                     f"bin_nav_factor = {bin_nav_factor}\n"
                     f"reshape = {reshape}\n"
+                    f"create_json = {create_json}\n"
+                    f"ptycho_config = {ptycho_config}\n"
+                    f"ptycho_template = {ptycho_template}\n"
+                    f"create_virtual_image = {create_virtual_image}\n"
+                    f"mask_path = {mask_path}\n"
+                    f"disk_lower_thresh = {disk_lower_thresh}\n"
+                    f"disk_upper_thresh = {disk_upper_thresh}\n"
+                    f"DPC = {DPC_check}\n"
+                    f"parallax = {parallax_check}\n"
                         )
+                
             print("conversion info file created: "+self.info_path)
+
+    def _meta_show(self, meta_check, sort_key, search_key, search_value):
+        if meta_check:
+            meta_show = {}
+            meta_show['filename'] = []
+            for key in self.meta_keys_after:
+                meta_show[key] = []  
+                
+            for path, directories, files in os.walk(self.dest_path):
+                for f in files:
+                    if f.endswith('_data.hdf5'):
+                        folder_name = f.replace('_data.hdf5','')
+                        meta_path = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf'
+                        if not os.path.exists(meta_path):
+                            meta_path = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf5'
+
+                        with h5py.File(meta_path, 'r') as microscope_meta:
+                            meta_show['filename'].append(path.split('/')[-1][:15])
+                            for meta_key, meta_val in microscope_meta['metadata'].items():
+                                try:
+                                    meta_show[meta_key].append(meta_val[()])
+                                except:
+                                    meta_show[meta_key].append('NA')
+        
+            self.df_after = pd.DataFrame(meta_show)
+            self.keys_show_after = self.df_after[["filename", '4D_shape', 'ht_value(V)', 'aperture_size', "convergence_semi-angle(rad)",  'defocus(nm)', 'magnification', 'step_size(m)', 'field_of_view(m)', 'nominal_camera_length(m)', 'set_bit_depth']]
+
+            if sort_key != '':
+                try:
+                    return self.keys_show_after.sort_values(sort_key)
+                except:
+                    print("Wrong metadata key!")
+
+            elif search_key != '':
+                try:
+                    return self.keys_show_after.loc[self.keys_show_after[search_key] == eval(search_value)]
+                except:
+                    print("Wrong metadata key! or empty search value!")
+
+            else:
+                return self.keys_show_after
+                
 
     def _ptycho(self, create_ptycho_folder, ptycho_config_name, ptycho_template_path):
         '''This part of the code is designed to automatic generate Ptyrex Json and associated folders, its uses os.walk 
@@ -307,7 +413,6 @@ class convert_info_widget():
                         '''now the objective to get all the data required to fill the Json, we use the folder name to 
                         create the path to the meta data file'''
                         meta_file = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf'
-                        print(meta_file)
 
                         '''we can now open the meta data file itself to check the energy which will give us the rotation angle,
                          the size of the aperture which will tell us the convergence angle, and the camera length which 
@@ -337,9 +442,9 @@ class convert_info_widget():
                             template_path = ptycho_template_path
 
 
-                        gen_config(template_path, pty_dest_2, config_name, meta_file, rot_angle, camera_length, conv_angle)        
-
-                
+                        gen_config(template_path, pty_dest_2, config_name, meta_file, rot_angle, camera_length, 2*conv_angle)
+        
+      
     def _submit(self, submit_check):
         if submit_check:
             sshProcess = subprocess.Popen(['ssh',
@@ -366,7 +471,7 @@ class convert_info_widget():
             for line in  sshProcess.stdout: 
                 print(line,end="")
         
-        
+    
     def _activate(self):
         print('*********************************************************************************')
         print('Make sure that <Submit checkbox> is unchecked before changing any other variables')
@@ -379,17 +484,13 @@ class convert_info_widget():
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
         subfolder = Text(description='Subfolder:', style=st)
         
-        path_verbose = Checkbox(value=False, description="Show the path of each MIB file", style=st)
+        path_verbose = Checkbox(value=False, description="Show the metadata of each MIB file", style=st)
 
         no_reshaping = Checkbox(value=False, description='No reshaping', style=st)
         use_fly_back = Checkbox(value=True, description='Use Fly-back', style=st)
         known_shape = Checkbox(value=False, description='Known_shape', style=st)
         Scan_X = IntText(description='Scan_X: (avaiable for Known_shape)', style=st)
         Scan_Y = IntText(description='Scan_Y: (avaiable for Known_shape)', style=st)
-
-        ADF_check = Checkbox(value=False, description='ADF (Not available yet)', style=st)
-        iBF_check = Checkbox(value=True, description='iBF', style=st)
-        DPC_check = Checkbox(value=False, description='DPC (Not available yet)', style=st)
 
         bin_nav_widget = IntSlider(
                                 value=2,
@@ -417,15 +518,22 @@ class convert_info_widget():
                                 readout_format='d', style=st
                                         )
 
-        create_ptycho_folder = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
-        ptycho_config_name = Text(description='Enter config name (optional) :', style=st)
-        ptycho_template_path = Text(description='Enter template config path (optional) :', style=st)
-
-        node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
-        
         create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
         create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
         submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)
+        
+        create_json = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
+        ptycho_config = Text(description='Enter config name (optional) :', style=st)
+        ptycho_template = Text(description='Enter template config path (optional) :', style=st)
+
+        node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
+        
+        create_virtual_image = Checkbox(value=False, description='Create virtual images', style=st)
+        disk_lower_thresh = FloatText(description='Lower threshold value to detect the disk', value=0.01, style=st)
+        disk_upper_thresh = FloatText(description='Upper threshold value to detect the disk', value=0.15, style=st)
+        mask_path = Text(description='Enter the mask file path (optional) :', style=st)
+        DPC_check = Checkbox(value=False, description='DPC', style=st)
+        parallax_check = Checkbox(value=False, description='Parallax', style=st)
 
         self.path = ipywidgets.interact(self._paths, 
                                           year=year, 
@@ -441,29 +549,195 @@ class convert_info_widget():
                                           known_shape=known_shape, 
                                           Scan_X=Scan_X, 
                                           Scan_Y=Scan_Y,
-                                        ADF_check=ADF_check, 
-                                          iBF_check=iBF_check, 
-                                          DPC_check=DPC_check,
                                         bin_nav_widget=bin_nav_widget, 
                                           bin_sig_widget=bin_sig_widget,
                                           node_check=node_check,
+                                        create_virtual_image=create_virtual_image,
+                                         mask_path=mask_path,
+                                          disk_lower_thresh=disk_lower_thresh,
+                                          disk_upper_thresh=disk_upper_thresh,
+                                         DPC_check=DPC_check,
+                                         parallax_check=parallax_check,
                                         create_batch_check=create_batch_check, 
-                                          create_info_check=create_info_check)
+                                          create_info_check=create_info_check, 
+                                          create_json=create_json, 
+                                          ptycho_config=ptycho_config, 
+                                          ptycho_template=ptycho_template)
         
         self.submit = ipywidgets.interact(self._submit, submit_check=submit_check)
 
-        print("***************************************************************************")
-        print("***************************************************************************")
-        print("***************************************************************************")
-        print("The widgets below are valid only if the MIB conversion process is finished.")
-        print("It will generate a JSON file for the PtyRex reconstruction.")
-        print("***************************************************************************")
+
+    def _ptyrex_json(self):
+        st = {"description_width": "initial"}
+        year = Text(description='Year:', style=st)
+        session = Text(description='Session:', style=st)
+        subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
+        subfolder = Text(description='Subfolder:', style=st)
+
+        meta_check = Checkbox(value=False, description="Show the metadata of converted data", style=st)
+        sort_key = Text(description='Metadata key to sort:', style=st)
+        search_key = Text(description='Metadata key to search:', style=st)
+        search_value = Text(description='Value to search:', style=st)
+        
+        create_ptycho_folder = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
+        ptycho_config_name = Text(description='Enter config name (optional) :', style=st)
+        ptycho_template_path = Text(description='Enter template config path (optional) :', style=st)
+
+        self.path = ipywidgets.interact(self._paths, 
+                                          year=year, 
+                                          session=session,
+                                          subfolder_check=subfolder_check,
+                                          subfolder=subfolder)
+
+        self.meta_show = ipywidgets.interact(self._meta_show,
+                                            meta_check=meta_check,
+                                            sort_key=sort_key,
+                                            search_key=search_key,
+                                            search_value=search_value)
+                
         self.ptycho = ipywidgets.interact(self._ptycho, 
                                       create_ptycho_folder=create_ptycho_folder, 
                                       ptycho_config_name=ptycho_config_name, 
                                       ptycho_template_path=ptycho_template_path)
+        
+    def _virtual_images(self):
+        st = {"description_width": "initial"}
+        year = Text(description='Year:', style=st)
+        session = Text(description='Session:', style=st)
+        subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
+        subfolder = Text(description='Subfolder:', style=st)
 
-    
+        meta_check = Checkbox(value=False, description="Show the metadata of converted data", style=st)
+        sort_key = Text(description='Metadata key to sort:', style=st)
+        search_key = Text(description='Metadata key to search:', style=st)
+        search_value = Text(description='Value to search:', style=st)
+        
+        create_virtual_image = Checkbox(value=False, description='Create virtual images', style=st)
+        disk_lower_thresh = FloatText(description='Lower threshold value to detect the disk', value=0.01, style=st)
+        disk_upper_thresh = FloatText(description='Upper threshold value to detect the disk', value=0.15, style=st)
+        mask_path = Text(description='Enter the mask file path (optional) :', style=st)
+        DPC_check = Checkbox(value=False, description='DPC', style=st)
+        dpc_lpass = FloatText(description='DPC low pass', value=0.00, style=st)
+        dpc_hpass = FloatText(description='DPC high pass', value=0.00, style=st)     
+        parallax_check = Checkbox(value=False, description='Parallax', style=st)
+        
+        node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
+        
+        create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
+        create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
+        submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)
+
+        
+        self.path = ipywidgets.interact(self._paths, 
+                                          year=year, 
+                                          session=session,
+                                          subfolder_check=subfolder_check,
+                                          subfolder=subfolder)
+
+        self.meta_show = ipywidgets.interact(self._meta_show,
+                                            meta_check=meta_check,
+                                            sort_key=sort_key,
+                                            search_key=search_key,
+                                            search_value=search_value)
+        
+        self.virtual_values = ipywidgets.interact(self._virtual,
+                                                     mask_path=mask_path,
+                                                      disk_lower_thresh=disk_lower_thresh,
+                                                      disk_upper_thresh=disk_upper_thresh,
+                                                     DPC_check=DPC_check,
+                                                     dpc_lpass=dpc_lpass,
+                                                     dpc_hpass=dpc_hpass,
+                                                     parallax_check=parallax_check,
+                                                     node_check=node_check,
+                                                     create_batch_check=create_batch_check,
+                                                     create_info_check=create_info_check,
+                                                     submit_check=submit_check)
+        
+
+        
+    def _virtual(self, mask_path, disk_lower_thresh,
+                        disk_upper_thresh, DPC_check,
+                        dpc_lpass, dpc_hpass, parallax_check,
+                        create_batch_check, node_check,
+                        create_info_check, submit_check):
+        
+        converted_files = []
+        for path, directories, files in os.walk(self.dest_path):
+            for f in files:
+                if f.endswith('_data.hdf5'):
+                    folder_name = f.replace('_data.hdf5','')
+                    converted_path = self.dest_path + '/' + folder_name + '/' + f
+                    converted_files.append(converted_path)
+        
+        python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/py4DSTEM_virtual_image.py'
+        bash_script_path = os.path.join(self.script_save_path, 'virtual_submit.sh')
+        info_path = os.path.join(self.script_save_path, 'py4DSTEM_info.txt')
+        
+        if create_batch_check:            
+            with open (bash_script_path, 'w') as f:
+                f.write('#!/usr/bin/env bash\n')
+                f.write('#SBATCH --partition %s\n'%node_check)
+                f.write('#SBATCH --job-name mib_convert\n')
+                f.write('#SBATCH --nodes 1\n')
+                f.write('#SBATCH --tasks-per-node 1\n')
+                f.write('#SBATCH --cpus-per-task 1\n')
+                f.write('#SBATCH --time 05:00:00\n')
+                f.write('#SBATCH --mem 0G\n\n')
+
+                f.write(f"#SBATCH --array=0-{len(converted_files)-1}%3\n")
+                f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
+                f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
+
+                f.write('module load python/epsic3.10\n\n')            
+                f.write(f"python {python_script_path} {info_path} $SLURM_ARRAY_TASK_ID\n")
+
+            print("sbatch file created: "+bash_script_path)
+            print("submission python file: "+python_script_path)        
+
+        if mask_path == '':
+            mask_path = '/dls_sw/e02/software/MIB_convert_widget_beta/beta_ver3/scripts/29042024_12bitmask.h5'
+            
+        if create_info_check:
+            with open (info_path, 'w') as f:
+                f.write(
+                    f"to_convert_paths = {converted_files}\n"
+                    f"mask_path = {mask_path}\n"
+                    f"disk_lower_thresh = {disk_lower_thresh}\n"
+                    f"disk_upper_thresh = {disk_upper_thresh}\n"
+                    f"DPC = {DPC_check}\n"
+                    f"dpc_lpass = {dpc_lpass}\n"
+                    f"dpc_hpass = {dpc_hpass}\n"
+                    f"parallax = {parallax_check}\n"
+                    f"device = cpu\n"
+                        )
+
+            print("conversion info file created: "+info_path)    
+            
+        if submit_check:
+            sshProcess = subprocess.Popen(['ssh',
+                               '-tt',
+                               'wilson'],
+                               stdin=subprocess.PIPE, 
+                               stdout = subprocess.PIPE,
+                               universal_newlines=True,
+                               bufsize=0)
+            sshProcess.stdin.write("ls .\n")
+            sshProcess.stdin.write("echo END\n")
+            sshProcess.stdin.write(f"sbatch {bash_script_path}\n")
+            sshProcess.stdin.write("uptime\n")
+            sshProcess.stdin.write("logout\n")
+            sshProcess.stdin.close()
+            
+            
+            for line in sshProcess.stdout:
+                if line == "END\n":
+                    break
+                print(line,end="")
+            
+            #to catch the lines up to logout
+            for line in  sshProcess.stdout: 
+                print(line,end="")
+
     def _check_differences(self, source_path, destination_path):
         """Checks for .mib files associated with a specified session that have
         not yet been converted to .hdf5.

@@ -259,7 +259,11 @@ class convert_info_widget():
                   create_batch_check, create_info_check,
                   create_json, ptycho_config, ptycho_template):
         
-        self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
+        self.python_script_path = '/dls_sw/e02/software/MIB_convert_widget_beta/beta_ver3/scripts/MIB_convert_submit.py'
+        # self.python_script_path = '/dls/science/groups/e02/Ryu/epsic_code/MIB_convert/test/scripts/MIB_convert_submit.py'
+        #self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
+        #self.python_script_path = '/dls/science/groups/e02/Ryu/epsic_code/MIB_convert/MIB_convert_widget_beta/scripts/MIB_convert_submit.py'
+        #self.python_script_path = '/dls_sw/e02/software/MIB_convert_widget_beta/beta_ver2/scripts/MIB_convert_submit.py'
         
         self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
         self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
@@ -313,7 +317,7 @@ class convert_info_widget():
             iBF = 1
             
             if mask_path == '':
-                mask_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/29042024_12bitmask.h5'
+                mask_path = '/dls_sw/e02/software/MIB_convert_widget_beta/beta_ver3/scripts/29042024_12bitmask.h5'
                 
             with open (self.info_path, 'w') as f:
                 f.write(
@@ -669,7 +673,7 @@ class convert_info_widget():
                     converted_path = self.dest_path + '/' + folder_name + '/' + f
                     converted_files.append(converted_path)
         
-        python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/py4DSTEM_virtual_image.py'
+        python_script_path = '/dls_sw/e02/software/MIB_convert_widget_beta/beta_ver3/scripts/py4DSTEM_virtual_image.py'
         bash_script_path = os.path.join(self.script_save_path, 'virtual_submit.sh')
         info_path = os.path.join(self.script_save_path, 'py4DSTEM_info.txt')
         
