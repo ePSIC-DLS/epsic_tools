@@ -252,14 +252,14 @@ class convert_info_widget():
 
             return self.keys_show
                 
-    def _organize(self, no_reshaping, use_fly_back, known_shape, 
+    def _organize(self, auto_reshape, no_reshaping, use_fly_back, known_shape, 
                   Scan_X, Scan_Y, bin_nav_widget, bin_sig_widget,
                   node_check,create_virtual_image,mask_path,disk_lower_thresh,
                     disk_upper_thresh,DPC_check,parallax_check,
                   create_batch_check, create_info_check,
                   create_json, ptycho_config, ptycho_template):
         
-        self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
+        self.python_script_path = '/home/hgl95221/Desktop/Ryu/python_library/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
         
         self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
         self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
@@ -318,6 +318,7 @@ class convert_info_widget():
             with open (self.info_path, 'w') as f:
                 f.write(
                     f"to_convert_paths = {self.to_convert}\n"
+                    f"auto_reshape = {auto_reshape}\n"
                     f"no_reshaping = {no_reshaping}\n"
                     f"use_fly_back = {use_fly_back}\n"
                     f"known_shape = {known_shape}\n"
@@ -486,8 +487,9 @@ class convert_info_widget():
         
         path_verbose = Checkbox(value=False, description="Show the metadata of each MIB file", style=st)
 
+        auto_reshape = Checkbox(value=True, description='Auto reshape', style=st)
         no_reshaping = Checkbox(value=False, description='No reshaping', style=st)
-        use_fly_back = Checkbox(value=True, description='Use Fly-back', style=st)
+        use_fly_back = Checkbox(value=False, description='Use Fly-back', style=st)
         known_shape = Checkbox(value=False, description='Known_shape', style=st)
         Scan_X = IntText(description='Scan_X: (avaiable for Known_shape)', style=st)
         Scan_Y = IntText(description='Scan_Y: (avaiable for Known_shape)', style=st)
@@ -544,6 +546,7 @@ class convert_info_widget():
         self.verbose = ipywidgets.interact(self._verbose, path_verbose=path_verbose)
         
         self.values = ipywidgets.interact(self._organize,
+                                          auto_reshape=auto_reshape,
                                           no_reshaping=no_reshaping, 
                                         use_fly_back=use_fly_back, 
                                           known_shape=known_shape, 
@@ -669,7 +672,7 @@ class convert_info_widget():
                     converted_path = self.dest_path + '/' + folder_name + '/' + f
                     converted_files.append(converted_path)
         
-        python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/py4DSTEM_virtual_image.py'
+        python_script_path = '/home/hgl95221/Desktop/Ryu/python_library/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/py4DSTEM_virtual_image.py'
         bash_script_path = os.path.join(self.script_save_path, 'virtual_submit.sh')
         info_path = os.path.join(self.script_save_path, 'py4DSTEM_info.txt')
         
@@ -695,7 +698,7 @@ class convert_info_widget():
             print("submission python file: "+python_script_path)        
 
         if mask_path == '':
-            mask_path = '/dls_sw/e02/software/MIB_convert_widget_beta/beta_ver3/scripts/29042024_12bitmask.h5'
+            mask_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/29042024_12bitmask.h5'
             
         if create_info_check:
             with open (info_path, 'w') as f:

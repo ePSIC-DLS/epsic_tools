@@ -586,6 +586,7 @@ save_path = os.path.join(save_dir, time_stamp)
 if not os.path.exists(save_path):
      os.makedirs(save_path)
     
+auto_reshape = eval(info['auto_reshape'])
 no_reshaping = eval(info['no_reshaping'])
 use_fly_back = eval(info['use_fly_back'])
 known_shape = eval(info['known_shape'])
@@ -621,8 +622,9 @@ print(no_reshaping, use_fly_back, known_shape)
 print('**********')
 
 # check provided reshaping options
-if sum([bool(no_reshaping), bool(use_fly_back), bool(known_shape)]) != 1:
-    msg = (f"Only one of the options 'no_reshaping' ({no_reshaping}), "
+if sum([bool(auto_reshape), bool(no_reshaping), bool(use_fly_back), bool(known_shape)]) != 1:
+    msg = (f"Only one of the options 'auto_reshape' ({auto_reshape}), "
+           f"'no_reshaping' ({no_reshaping}) or 'known_shape' "
            f"'use_fly_back' ({use_fly_back}) or 'known_shape' "
            f"({known_shape}) should be True.")
     raise ValueError(msg)
@@ -666,6 +668,57 @@ mib_properties = mib_props(mib_path,
                        exposure_time_ns=True,
                        bit_depth=True,
                        )
+
+if auto_reshape:
+    if mib_properties['sequence_number'][-1] == 262144:
+        no_reshaping = False
+        use_fly_back = True
+        known_shape = False
+        print("Going to use the 'Fly-back' option")
+        print("The scan shape will be 512*512")
+    elif mib_properties['sequence_number'][-1] == 261632:
+        no_reshaping = False
+        use_fly_back = False
+        known_shape = True
+        Scan_X = 512
+        Scan_Y = 511
+        print("Going to use the 'known_shape' option")
+        print("The scan shape will be 512*511")
+    elif mib_properties['sequence_number'][-1] == 65536:
+        no_reshaping = False
+        use_fly_back = True
+        known_shape = False
+        print("Going to use the 'Fly-back' option")
+        print("The scan shape will be 256*256")
+    elif mib_properties['sequence_number'][-1] == 65280:
+        no_reshaping = False
+        use_fly_back = False
+        known_shape = True
+        Scan_X = 256
+        Scan_Y = 255
+        print("Going to use the 'known_shape' option")
+        print("The scan shape will be 256*255")
+    elif mib_properties['sequence_number'][-1] == 16384:
+        no_reshaping = False
+        use_fly_back = True
+        known_shape = False
+        print("Going to use the 'Fly-back' option")
+        print("The scan shape will be 128*128")
+    elif mib_properties['sequence_number'][-1] == 16256:
+        no_reshaping = False
+        use_fly_back = False
+        known_shape = True
+        Scan_X = 128
+        Scan_Y = 127
+        print("Going to use the 'known_shape' option")
+        print("The scan shape will be 128*127")
+    else:
+        no_reshaping = True
+        use_fly_back = False
+        known_shape = False
+        print("A proper scan shape was not detected")
+        print("The scan shape will be %d*1"%(mib_properties['sequence_number'][-1]))
+        
 
 # check the size of the detector to determine whether or not to add a cross
 if mib_properties['det_x'][0] == 256:
@@ -1454,7 +1507,11 @@ if create_virtual_image:
         rotation_degrees_estimated = np.rad2deg(parallax.rotation_Q_to_R_rads)
         print('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
 
-
+        with open(save_dir+"/parallax_estimates.txt", 'w') as fp:
+            fp.write('semiangle cutoff estimate = ' + str(np.round(semiangle_cutoff_estimated, decimals=1)) + ' mrads\n')
+            fp.write('estimated defocus         = ' + str(np.round(defocus_estimated)) + ' Angstroms\n')
+            fp.write('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
+            
 if create_json:
     pty_dest = save_path + '/pty_out'
     pty_dest_2 = save_path + '/pty_out/initial_recon'

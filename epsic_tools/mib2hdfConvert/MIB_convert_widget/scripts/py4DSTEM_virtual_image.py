@@ -425,7 +425,7 @@ if eval(info["parallax"]):
     plt.savefig(save_dir+"/parallax_shift.png")
 
     parallax.subpixel_alignment(
-        #kde_upsample_factor=2,
+        kde_upsample_factor=2.0,
         kde_sigma_px=0.125,
         plot_upsampled_BF_comparison=True,
         plot_upsampled_FFT_comparison=True,
