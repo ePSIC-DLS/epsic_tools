@@ -1376,8 +1376,10 @@ if create_virtual_image:
     ax[1].set_title("ADF image [%.1f, %.1f] mrad"%(radii_DF[0]*dataset.Q_pixel_size, radii_DF[1]*dataset.Q_pixel_size))
     fig.tight_layout()
     plt.savefig(save_dir+"/STEM_image.png")
-    tifffile.imwrite(save_dir+"/BF_image.tif", dataset.tree('bright_field')[:, :])
-    tifffile.imwrite(save_dir+"/ADF_image.tif", dataset.tree('dark_field')[:, :])
+    vBF = dataset.tree('bright_field')[:, :]
+    vADF = dataset.tree('dark_field')[:, :]
+    # tifffile.imwrite(save_dir+"/BF_image.tif", dataset.tree('bright_field')[:, :])
+    # tifffile.imwrite(save_dir+"/ADF_image.tif", dataset.tree('dark_field')[:, :])
 
     if DPC_check:
         dpc = py4DSTEM.process.phase.DPC(
@@ -1453,9 +1455,11 @@ if create_virtual_image:
         ax[1].set_title("iCoM - rotation corrected")
         fig.tight_layout()
         plt.savefig(save_dir+"/iDPC_comparison.png")
-        tifffile.imwrite(save_dir+"/iDPC_corrected.tif", dpc_cor.object_phase)
+        # tifffile.imwrite(save_dir+"/iDPC_corrected.tif", dpc_cor.object_phase)
 
     if parallax_check:
+        print("rebin by 2, implemented for parallax to reduce the memory usage")
+        dataset.bin_Q(2) 
         parallax = py4DSTEM.process.phase.Parallax(
             datacube=dataset,
             energy = HT,
@@ -1507,10 +1511,31 @@ if create_virtual_image:
         rotation_degrees_estimated = np.rad2deg(parallax.rotation_Q_to_R_rads)
         print('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
 
-        with open(save_dir+"/parallax_estimates.txt", 'w') as fp:
-            fp.write('semiangle cutoff estimate = ' + str(np.round(semiangle_cutoff_estimated, decimals=1)) + ' mrads\n')
-            fp.write('estimated defocus         = ' + str(np.round(defocus_estimated)) + ' Angstroms\n')
-            fp.write('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
+        # with open(save_dir+"/parallax_estimates.txt", 'w') as fp:
+        #     fp.write('semiangle cutoff estimate = ' + str(np.round(semiangle_cutoff_estimated, decimals=1)) + ' mrads\n')
+        #     fp.write('estimated defocus         = ' + str(np.round(defocus_estimated)) + ' Angstroms\n')
+        #     fp.write('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
+            
+    with h5py.File(save_dir+"/"+time_stamp+"_py4DSTEM_processed_data.hdf5", 'w') as vi_save:
+        vi_save.create_dataset('data_path', data=data_path)
+        vi_save.create_dataset('defocus(nm)', data=defocus_exp)
+        vi_save.create_dataset('ht_value(V)', data=acc)
+        vi_save.create_dataset('nominal_camera_length(m)', data=nCL)
+        vi_save.create_dataset('aperture_size', data=aps)
+        vi_save.create_dataset('convergence_angle(mrad)', data=semiangle)
+        vi_save.create_dataset('pixel_size(Å)', data=scan_step)
+        vi_save.create_dataset('vBF', data=vBF)
+        vi_save.create_dataset('vADF', data=vADF)
+        if eval(info["DPC"]):
+            vi_save.create_dataset('CoMx', data=dpc._com_normalized_y)
+            vi_save.create_dataset('CoMy', data=dpc._com_normalized_x)
+            vi_save.create_dataset('iDPC', data=dpc_cor.object_phase)
+            
+        if eval(info["parallax"]):
+            vi_save.create_dataset('parallax', data=parallax._recon_phase_corrected)
+            vi_save.create_dataset('parallax_estimated_defocus(Å)', data=defocus_estimated)
+            vi_save.create_dataset('parallax_estimated_rotation(deg)', data=rotation_degrees_estimated)
+        
             
 if create_json:
     pty_dest = save_path + '/pty_out'

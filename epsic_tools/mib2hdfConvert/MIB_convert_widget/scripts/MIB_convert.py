@@ -259,7 +259,7 @@ class convert_info_widget():
                   create_batch_check, create_info_check,
                   create_json, ptycho_config, ptycho_template):
         
-        self.python_script_path = '/home/hgl95221/Desktop/Ryu/python_library/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
+        self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
         
         self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
         self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
@@ -272,7 +272,10 @@ class convert_info_widget():
                 f.write('#SBATCH --tasks-per-node 1\n')
                 f.write('#SBATCH --cpus-per-task 1\n')
                 f.write('#SBATCH --time 05:00:00\n')
-                f.write('#SBATCH --mem 0G\n\n')
+                if create_virtual_image:
+                    f.write('#SBATCH --mem 192G\n\n')
+                else:
+                    f.write('#SBATCH --mem 64G\n\n')
 
                 f.write(f"#SBATCH --array=0-{len(self.to_convert)-1}%3\n")
                 f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
@@ -438,7 +441,7 @@ class convert_info_widget():
 
                         '''TODO: set up some standard ptyREX config files to reference at different energies'''
                         if ptycho_template_path == '':
-                            template_path = '/dls/science/groups/imaging/ePSIC_ptychography/experimental_data/User_example/UserExampleJson.json'
+                            template_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/UserExampleJson.json'
                         else:
                             template_path = ptycho_template_path
 
@@ -672,7 +675,7 @@ class convert_info_widget():
                     converted_path = self.dest_path + '/' + folder_name + '/' + f
                     converted_files.append(converted_path)
         
-        python_script_path = '/home/hgl95221/Desktop/Ryu/python_library/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/py4DSTEM_virtual_image.py'
+        python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/py4DSTEM_virtual_image.py'
         bash_script_path = os.path.join(self.script_save_path, 'virtual_submit.sh')
         info_path = os.path.join(self.script_save_path, 'py4DSTEM_info.txt')
         
@@ -685,7 +688,7 @@ class convert_info_widget():
                 f.write('#SBATCH --tasks-per-node 1\n')
                 f.write('#SBATCH --cpus-per-task 1\n')
                 f.write('#SBATCH --time 05:00:00\n')
-                f.write('#SBATCH --mem 0G\n\n')
+                f.write('#SBATCH --mem 192G\n\n')
 
                 f.write(f"#SBATCH --array=0-{len(converted_files)-1}%3\n")
                 f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
