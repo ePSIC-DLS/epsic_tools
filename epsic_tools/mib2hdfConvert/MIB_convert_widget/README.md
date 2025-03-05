@@ -1,10 +1,10 @@
 # MIB conversion
 - The format of raw 4DSTEM data is '.mib'
 - After acquiring the data, the mib files must be converted into the 'hdf5' files using 'MIB_conversion/MIB_convert.ipynb'
-- hdf5 files can be read using 'H5PY' or 'HyperSpy' ([Example](https://github.com/jinseuk56/User-Notebooks/blob/master/ePSIC_Standard_Notebooks/automatic_Au_xgrating_calibration/au_xgrating_cal_submit.ipynb))
+- hdf5 files can be read using 'H5PY' or 'HyperSpy' ([Example](https://github.com/jinseuk56/User-Notebooks/blob/master/ePSIC_Standard_Notebooks/automatic_Au_xgrating_calibration/au_xgrating_cal_submit.ipynb))  
 ![MIB_convert](img/mib_conversion.png)
 - Currently, when the data is acquired simultaneously with EDX, the scan shape must be manually specified using 'known_shape' widget (make sure that 'Use Fly-back' is unchecked in this case) - the scan shape must be (Scan_X, Scan_Y) = (Scan_X, Scan_X-1)
-- But, in most cases, 'Auto reshape' will determine the scan shape, so you don't have to use other options for reshaping
+- But, in most cases, 'Auto reshape' will determine the scan shape, so you don't have to use other options for reshaping  
 ![MIB_convert](img/known_shape.png)
 - The necessary options to specify are normally:  
     - 'Year'
@@ -14,12 +14,12 @@
     - 'Create slurm batch file'
     - 'Create conversion info file'
     - 'Submit a slurm job'
-- 'Create virtual images' is made for atomic resolution 4DSTEM data, so it's unlikely to work properly for pencil beam 4DSTEM data
-- 'Create virtual images', 'DPC' and 'Parallax' use the relevant methods of py4DSTEM
+- 'Create virtual images' is made for atomic resolution 4DSTEM data, so it's unlikely to work properly for pencil beam 4DSTEM data  
+- 'Create virtual images', 'DPC' and 'Parallax' use the relevant methods of py4DSTEM  
 ![MIB_convert](img/mib_virtual.png)
-- 'Create a ptychography subfolder' will generate a PtyREX parameter file for each 4DSTEM data
+- 'Create a ptychography subfolder' will generate a PtyREX parameter file for each 4DSTEM data  
 ![MIB_convert](img/mib_ptyrex.png)
-- The other individual cells in the notebook are made for previously converted 4DSTEM data
+- The other individual cells in the notebook are made for previously converted 4DSTEM data  
 ![MIB_convert](img/mib_other_cells.png)
 
 
@@ -34,6 +34,8 @@ if checked and no subfolder name is specified, all MIB files in 'Merlin' folder 
 subfolder name, it has a higher priority than the widget above
 ### Show the path of each MIB file
 if checked, the paths of the MIB files that will be converted are shown
+### Auto reshape
+if checked, the scan region will be automatically reshaped
 ### No reshaping
 if checked, the scan region will not be reshaped into 2D scan dimensions
 ### Use Fly-back
