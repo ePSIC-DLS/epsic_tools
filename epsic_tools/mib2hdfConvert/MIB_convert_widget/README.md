@@ -18,6 +18,7 @@
 - 'Create virtual images', 'DPC' and 'Parallax' use the relevant methods of py4DSTEM
 ![MIB_convert](img/mib_virtual.png)
 - 'Create a ptychography subfolder' will generate a PtyREX parameter file for each 4DSTEM data
+![MIB_convert](img/mib_ptyrex.png)
 - The other individual cells in the notebook are made for previously converted 4DSTEM data
 ![MIB_convert](img/mib_other_cells.png)
 
