@@ -4,7 +4,7 @@ import time
 import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
-import h5py as h5
+import h5py
 import json
 import tifffile
 import py4DSTEM
@@ -100,6 +100,7 @@ with open(info_path, 'r') as f:
 data_path = eval(info['to_convert_paths'][0])[index]
 meta_path = data_path[:-10]+".hdf"
 data_name = data_path.split("/")[-1].split(".")[0]
+time_stamp = data_name[:-5]
 if info["mask_path"] == '':
     mask_path = '/dls/science/groups/e02/Ryu/epsic_code/MIB_convert/develop/scripts/29042024_12bitmask.h5'
 else:
@@ -114,7 +115,7 @@ device = info["device"]
 
 if meta_path != '':
     try:
-        with h5.File(meta_path,'r') as f:
+        with h5py.File(meta_path,'r') as f:
             print("----------------------------------------------------------")
             print(f['metadata']["defocus(nm)"])
             print(f['metadata']["defocus(nm)"][()])
@@ -148,11 +149,11 @@ if meta_path != '':
 
 if mask_path != '':
     try:
-        with h5.File(mask_path,'r') as f:
+        with h5py.File(mask_path,'r') as f:
             mask = f['data']['mask'][()]
 
     except:
-        with h5.File(mask_path,'r') as f:
+        with h5py.File(mask_path,'r') as f:
             mask = f['root']['np.array']['data'][()]
     
     mask = np.invert(mask)
@@ -207,7 +208,7 @@ elif data_path.split(".")[-1] == "hdf" or data_path.split(".")[-1] == "hdf5" or 
     #     print(original_stack)
     #     original_stack = original_stack.data
     try:    
-        f = h5.File(data_path,'r')
+        f = h5py.File(data_path,'r')
         print(f)
         original_stack = f['Experiments']['__unnamed__']['data'][:]
         f.close()
@@ -215,7 +216,7 @@ elif data_path.split(".")[-1] == "hdf" or data_path.split(".")[-1] == "hdf5" or 
         data_key = 'Experiments/__unnamed__/data'
     
     except:
-        f = h5.File(data_path,'r')
+        f = h5py.File(data_path,'r')
         print(f)
         original_stack = f['data']['frames'][:]
         f.close()
@@ -318,9 +319,10 @@ ax[1].imshow(dataset.tree('dark_field')[:, :], cmap="inferno")
 ax[1].set_title("ADF image [%.1f, %.1f] mrad"%(radii_DF[0]*dataset.Q_pixel_size, radii_DF[1]*dataset.Q_pixel_size))
 fig.tight_layout()
 plt.savefig(save_dir+"/STEM_image.png")
-tifffile.imwrite(save_dir+"/BF_image.tif", dataset.tree('bright_field')[:, :])
-tifffile.imwrite(save_dir+"/ADF_image.tif", dataset.tree('dark_field')[:, :])
-
+# tifffile.imwrite(save_dir+"/BF_image.tif", dataset.tree('bright_field')[:, :])
+# tifffile.imwrite(save_dir+"/ADF_image.tif", dataset.tree('dark_field')[:, :])
+vBF = dataset.tree('bright_field')[:, :]
+vADF = dataset.tree('dark_field')[:, :]
 
 if eval(info["DPC"]):
     dpc = py4DSTEM.process.phase.DPC(
@@ -396,16 +398,19 @@ if eval(info["DPC"]):
     ax[1].set_title("iCoM - rotation corrected")
     fig.tight_layout()
     plt.savefig(save_dir+"/iDPC_comparison.png")
-    tifffile.imwrite(save_dir+"/iDPC_corrected.tif", dpc_cor.object_phase)
+    # tifffile.imwrite(save_dir+"/iDPC_corrected.tif", dpc_cor.object_phase)
 
     
 if eval(info["parallax"]):
+    print("rebin by 2, implemented for parallax to reduce the memory usage")
+    dataset.bin_Q(2) 
     parallax = py4DSTEM.process.phase.Parallax(
         datacube=dataset,
         energy = HT,
         device = device, 
         verbose = True
     ).preprocess(
+        threshold_intensity=eval(info["disk_upper_thresh"]),
         normalize_images=True,
         plot_average_bf=False,
         edge_blend=8,
@@ -425,7 +430,7 @@ if eval(info["parallax"]):
     plt.savefig(save_dir+"/parallax_shift.png")
 
     parallax.subpixel_alignment(
-        #kde_upsample_factor=2,
+        # kde_upsample_factor=2.0,
         kde_sigma_px=0.125,
         plot_upsampled_BF_comparison=True,
         plot_upsampled_FFT_comparison=True,
@@ -450,3 +455,31 @@ if eval(info["parallax"]):
 
     rotation_degrees_estimated = np.rad2deg(parallax.rotation_Q_to_R_rads)
     print('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
+    
+#     tifffile.imwrite(save_dir+"/parallax_aberration_corrected.tif", parallax.recon_phase_corrected)
+    
+#     with open(save_dir+"/parallax_estimates.txt", 'w') as fp:
+#         fp.write('semiangle cutoff estimate = ' + str(np.round(semiangle_cutoff_estimated, decimals=1)) + ' mrads\n')
+#         fp.write('estimated defocus         = ' + str(np.round(defocus_estimated)) + ' Angstroms\n')
+#         fp.write('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
+
+
+with h5py.File(save_dir+"/"+time_stamp+"_py4DSTEM_processed_data.hdf5", 'w') as vi_save:
+    vi_save.create_dataset('data_path', data=data_path)
+    vi_save.create_dataset('defocus(nm)', data=defocus_exp)
+    vi_save.create_dataset('ht_value(V)', data=acc)
+    vi_save.create_dataset('nominal_camera_length(m)', data=nCL)
+    vi_save.create_dataset('aperture_size', data=aps)
+    vi_save.create_dataset('convergence_angle(mrad)', data=semiangle)
+    vi_save.create_dataset('pixel_size(Å)', data=scan_step)
+    vi_save.create_dataset('vBF', data=vBF)
+    vi_save.create_dataset('vADF', data=vADF)
+    if eval(info["DPC"]):
+        vi_save.create_dataset('CoMx', data=dpc._com_normalized_y)
+        vi_save.create_dataset('CoMy', data=dpc._com_normalized_x)
+        vi_save.create_dataset('iDPC', data=dpc_cor.object_phase)
+
+    if eval(info["parallax"]):
+        vi_save.create_dataset('parallax', data=parallax._recon_phase_corrected)
+        vi_save.create_dataset('parallax_estimated_defocus(Å)', data=defocus_estimated)
+        vi_save.create_dataset('parallax_estimated_rotation(deg)', data=rotation_degrees_estimated)

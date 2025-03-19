@@ -586,6 +586,7 @@ save_path = os.path.join(save_dir, time_stamp)
 if not os.path.exists(save_path):
      os.makedirs(save_path)
     
+auto_reshape = eval(info['auto_reshape'])
 no_reshaping = eval(info['no_reshaping'])
 use_fly_back = eval(info['use_fly_back'])
 known_shape = eval(info['known_shape'])
@@ -621,8 +622,9 @@ print(no_reshaping, use_fly_back, known_shape)
 print('**********')
 
 # check provided reshaping options
-if sum([bool(no_reshaping), bool(use_fly_back), bool(known_shape)]) != 1:
-    msg = (f"Only one of the options 'no_reshaping' ({no_reshaping}), "
+if sum([bool(auto_reshape), bool(no_reshaping), bool(use_fly_back), bool(known_shape)]) != 1:
+    msg = (f"Only one of the options 'auto_reshape' ({auto_reshape}), "
+           f"'no_reshaping' ({no_reshaping}) or 'known_shape' "
            f"'use_fly_back' ({use_fly_back}) or 'known_shape' "
            f"({known_shape}) should be True.")
     raise ValueError(msg)
@@ -666,6 +668,57 @@ mib_properties = mib_props(mib_path,
                        exposure_time_ns=True,
                        bit_depth=True,
                        )
+
+if auto_reshape:
+    if mib_properties['sequence_number'][-1] == 262144:
+        no_reshaping = False
+        use_fly_back = True
+        known_shape = False
+        print("Going to use the 'Fly-back' option")
+        print("The scan shape will be 512*512")
+    elif mib_properties['sequence_number'][-1] == 261632:
+        no_reshaping = False
+        use_fly_back = False
+        known_shape = True
+        Scan_X = 512
+        Scan_Y = 511
+        print("Going to use the 'known_shape' option")
+        print("The scan shape will be 512*511")
+    elif mib_properties['sequence_number'][-1] == 65536:
+        no_reshaping = False
+        use_fly_back = True
+        known_shape = False
+        print("Going to use the 'Fly-back' option")
+        print("The scan shape will be 256*256")
+    elif mib_properties['sequence_number'][-1] == 65280:
+        no_reshaping = False
+        use_fly_back = False
+        known_shape = True
+        Scan_X = 256
+        Scan_Y = 255
+        print("Going to use the 'known_shape' option")
+        print("The scan shape will be 256*255")
+    elif mib_properties['sequence_number'][-1] == 16384:
+        no_reshaping = False
+        use_fly_back = True
+        known_shape = False
+        print("Going to use the 'Fly-back' option")
+        print("The scan shape will be 128*128")
+    elif mib_properties['sequence_number'][-1] == 16256:
+        no_reshaping = False
+        use_fly_back = False
+        known_shape = True
+        Scan_X = 128
+        Scan_Y = 127
+        print("Going to use the 'known_shape' option")
+        print("The scan shape will be 128*127")
+    else:
+        no_reshaping = True
+        use_fly_back = False
+        known_shape = False
+        print("A proper scan shape was not detected")
+        print("The scan shape will be %d*1"%(mib_properties['sequence_number'][-1]))
+        
 
 # check the size of the detector to determine whether or not to add a cross
 if mib_properties['det_x'][0] == 256:
@@ -1323,8 +1376,10 @@ if create_virtual_image:
     ax[1].set_title("ADF image [%.1f, %.1f] mrad"%(radii_DF[0]*dataset.Q_pixel_size, radii_DF[1]*dataset.Q_pixel_size))
     fig.tight_layout()
     plt.savefig(save_dir+"/STEM_image.png")
-    tifffile.imwrite(save_dir+"/BF_image.tif", dataset.tree('bright_field')[:, :])
-    tifffile.imwrite(save_dir+"/ADF_image.tif", dataset.tree('dark_field')[:, :])
+    vBF = dataset.tree('bright_field')[:, :]
+    vADF = dataset.tree('dark_field')[:, :]
+    # tifffile.imwrite(save_dir+"/BF_image.tif", dataset.tree('bright_field')[:, :])
+    # tifffile.imwrite(save_dir+"/ADF_image.tif", dataset.tree('dark_field')[:, :])
 
     if DPC_check:
         dpc = py4DSTEM.process.phase.DPC(
@@ -1400,9 +1455,11 @@ if create_virtual_image:
         ax[1].set_title("iCoM - rotation corrected")
         fig.tight_layout()
         plt.savefig(save_dir+"/iDPC_comparison.png")
-        tifffile.imwrite(save_dir+"/iDPC_corrected.tif", dpc_cor.object_phase)
+        # tifffile.imwrite(save_dir+"/iDPC_corrected.tif", dpc_cor.object_phase)
 
     if parallax_check:
+        print("rebin by 2, implemented for parallax to reduce the memory usage")
+        dataset.bin_Q(2) 
         parallax = py4DSTEM.process.phase.Parallax(
             datacube=dataset,
             energy = HT,
@@ -1454,7 +1511,32 @@ if create_virtual_image:
         rotation_degrees_estimated = np.rad2deg(parallax.rotation_Q_to_R_rads)
         print('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
 
-
+        # with open(save_dir+"/parallax_estimates.txt", 'w') as fp:
+        #     fp.write('semiangle cutoff estimate = ' + str(np.round(semiangle_cutoff_estimated, decimals=1)) + ' mrads\n')
+        #     fp.write('estimated defocus         = ' + str(np.round(defocus_estimated)) + ' Angstroms\n')
+        #     fp.write('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
+            
+    with h5py.File(save_dir+"/"+time_stamp+"_py4DSTEM_processed_data.hdf5", 'w') as vi_save:
+        vi_save.create_dataset('data_path', data=data_path)
+        vi_save.create_dataset('defocus(nm)', data=defocus_exp)
+        vi_save.create_dataset('ht_value(V)', data=acc)
+        vi_save.create_dataset('nominal_camera_length(m)', data=nCL)
+        vi_save.create_dataset('aperture_size', data=aps)
+        vi_save.create_dataset('convergence_angle(mrad)', data=semiangle)
+        vi_save.create_dataset('pixel_size(Å)', data=scan_step)
+        vi_save.create_dataset('vBF', data=vBF)
+        vi_save.create_dataset('vADF', data=vADF)
+        if eval(info["DPC"]):
+            vi_save.create_dataset('CoMx', data=dpc._com_normalized_y)
+            vi_save.create_dataset('CoMy', data=dpc._com_normalized_x)
+            vi_save.create_dataset('iDPC', data=dpc_cor.object_phase)
+            
+        if eval(info["parallax"]):
+            vi_save.create_dataset('parallax', data=parallax._recon_phase_corrected)
+            vi_save.create_dataset('parallax_estimated_defocus(Å)', data=defocus_estimated)
+            vi_save.create_dataset('parallax_estimated_rotation(deg)', data=rotation_degrees_estimated)
+        
+            
 if create_json:
     pty_dest = save_path + '/pty_out'
     pty_dest_2 = save_path + '/pty_out/initial_recon'

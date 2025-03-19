@@ -252,12 +252,11 @@ class convert_info_widget():
 
             return self.keys_show
                 
-    def _organize(self, no_reshaping, use_fly_back, known_shape, 
+    def _organize(self, auto_reshape, no_reshaping, use_fly_back, known_shape, 
                   Scan_X, Scan_Y, bin_nav_widget, bin_sig_widget,
-                  node_check,create_virtual_image,mask_path,disk_lower_thresh,
-                    disk_upper_thresh,DPC_check,parallax_check,
-                  create_batch_check, create_info_check,
-                  create_json, ptycho_config, ptycho_template):
+                  node_check,n_jobs,create_virtual_image,mask_path,disk_lower_thresh,
+                  disk_upper_thresh,DPC_check,parallax_check,
+                  create_batch_check,create_info_check):
         
         self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
         
@@ -272,9 +271,12 @@ class convert_info_widget():
                 f.write('#SBATCH --tasks-per-node 1\n')
                 f.write('#SBATCH --cpus-per-task 1\n')
                 f.write('#SBATCH --time 05:00:00\n')
-                f.write('#SBATCH --mem 0G\n\n')
+                if create_virtual_image:
+                    f.write('#SBATCH --mem 192G\n\n')
+                else:
+                    f.write('#SBATCH --mem 64G\n\n')
 
-                f.write(f"#SBATCH --array=0-{len(self.to_convert)-1}%3\n")
+                f.write(f"#SBATCH --array=0-{len(self.to_convert)-1}%{n_jobs}\n")
                 f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
                 f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
 
@@ -318,6 +320,7 @@ class convert_info_widget():
             with open (self.info_path, 'w') as f:
                 f.write(
                     f"to_convert_paths = {self.to_convert}\n"
+                    f"auto_reshape = {auto_reshape}\n"
                     f"no_reshaping = {no_reshaping}\n"
                     f"use_fly_back = {use_fly_back}\n"
                     f"known_shape = {known_shape}\n"
@@ -329,9 +332,6 @@ class convert_info_widget():
                     f"bin_nav_flag = {bin_nav_flag}\n"
                     f"bin_nav_factor = {bin_nav_factor}\n"
                     f"reshape = {reshape}\n"
-                    f"create_json = {create_json}\n"
-                    f"ptycho_config = {ptycho_config}\n"
-                    f"ptycho_template = {ptycho_template}\n"
                     f"create_virtual_image = {create_virtual_image}\n"
                     f"mask_path = {mask_path}\n"
                     f"disk_lower_thresh = {disk_lower_thresh}\n"
@@ -437,7 +437,7 @@ class convert_info_widget():
 
                         '''TODO: set up some standard ptyREX config files to reference at different energies'''
                         if ptycho_template_path == '':
-                            template_path = '/dls/science/groups/imaging/ePSIC_ptychography/experimental_data/User_example/UserExampleJson.json'
+                            template_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/UserExampleJson.json'
                         else:
                             template_path = ptycho_template_path
 
@@ -486,8 +486,9 @@ class convert_info_widget():
         
         path_verbose = Checkbox(value=False, description="Show the metadata of each MIB file", style=st)
 
+        auto_reshape = Checkbox(value=True, description='Auto reshape', style=st)
         no_reshaping = Checkbox(value=False, description='No reshaping', style=st)
-        use_fly_back = Checkbox(value=True, description='Use Fly-back', style=st)
+        use_fly_back = Checkbox(value=False, description='Use Fly-back', style=st)
         known_shape = Checkbox(value=False, description='Known_shape', style=st)
         Scan_X = IntText(description='Scan_X: (avaiable for Known_shape)', style=st)
         Scan_Y = IntText(description='Scan_Y: (avaiable for Known_shape)', style=st)
@@ -521,12 +522,15 @@ class convert_info_widget():
         create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
         create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
         submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)
-        
-        create_json = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
-        ptycho_config = Text(description='Enter config name (optional) :', style=st)
-        ptycho_template = Text(description='Enter template config path (optional) :', style=st)
 
         node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
+        n_jobs = IntSlider(value=3, min=1, max=12, step=1,
+                            description='Number of multiple slurm jobs:',
+                            disabled=False,
+                            continuous_update=False,
+                            orientation='horizontal',
+                            readout=True,
+                            readout_format='d', style=st)
         
         create_virtual_image = Checkbox(value=False, description='Create virtual images', style=st)
         disk_lower_thresh = FloatText(description='Lower threshold value to detect the disk', value=0.01, style=st)
@@ -544,6 +548,7 @@ class convert_info_widget():
         self.verbose = ipywidgets.interact(self._verbose, path_verbose=path_verbose)
         
         self.values = ipywidgets.interact(self._organize,
+                                          auto_reshape=auto_reshape,
                                           no_reshaping=no_reshaping, 
                                         use_fly_back=use_fly_back, 
                                           known_shape=known_shape, 
@@ -552,6 +557,7 @@ class convert_info_widget():
                                         bin_nav_widget=bin_nav_widget, 
                                           bin_sig_widget=bin_sig_widget,
                                           node_check=node_check,
+                                          n_jobs=n_jobs,
                                         create_virtual_image=create_virtual_image,
                                          mask_path=mask_path,
                                           disk_lower_thresh=disk_lower_thresh,
@@ -559,10 +565,7 @@ class convert_info_widget():
                                          DPC_check=DPC_check,
                                          parallax_check=parallax_check,
                                         create_batch_check=create_batch_check, 
-                                          create_info_check=create_info_check, 
-                                          create_json=create_json, 
-                                          ptycho_config=ptycho_config, 
-                                          ptycho_template=ptycho_template)
+                                          create_info_check=create_info_check)
         
         self.submit = ipywidgets.interact(self._submit, submit_check=submit_check)
 
@@ -682,7 +685,7 @@ class convert_info_widget():
                 f.write('#SBATCH --tasks-per-node 1\n')
                 f.write('#SBATCH --cpus-per-task 1\n')
                 f.write('#SBATCH --time 05:00:00\n')
-                f.write('#SBATCH --mem 0G\n\n')
+                f.write('#SBATCH --mem 192G\n\n')
 
                 f.write(f"#SBATCH --array=0-{len(converted_files)-1}%3\n")
                 f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
@@ -695,7 +698,7 @@ class convert_info_widget():
             print("submission python file: "+python_script_path)        
 
         if mask_path == '':
-            mask_path = '/dls_sw/e02/software/MIB_convert_widget_beta/beta_ver3/scripts/29042024_12bitmask.h5'
+            mask_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/29042024_12bitmask.h5'
             
         if create_info_check:
             with open (info_path, 'w') as f:
