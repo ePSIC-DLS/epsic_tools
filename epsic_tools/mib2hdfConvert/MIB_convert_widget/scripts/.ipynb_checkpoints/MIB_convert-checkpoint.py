@@ -254,10 +254,9 @@ class convert_info_widget():
                 
     def _organize(self, auto_reshape, no_reshaping, use_fly_back, known_shape, 
                   Scan_X, Scan_Y, bin_nav_widget, bin_sig_widget,
-                  node_check,create_virtual_image,mask_path,disk_lower_thresh,
-                    disk_upper_thresh,DPC_check,parallax_check,
-                  create_batch_check, create_info_check,
-                  create_json, ptycho_config, ptycho_template):
+                  node_check,n_jobs,create_virtual_image,mask_path,disk_lower_thresh,
+                  disk_upper_thresh,DPC_check,parallax_check,
+                  create_batch_check,create_info_check):
         
         self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
         
@@ -277,7 +276,7 @@ class convert_info_widget():
                 else:
                     f.write('#SBATCH --mem 64G\n\n')
 
-                f.write(f"#SBATCH --array=0-{len(self.to_convert)-1}%3\n")
+                f.write(f"#SBATCH --array=0-{len(self.to_convert)-1}%{n_jobs}\n")
                 f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
                 f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
 
@@ -333,9 +332,6 @@ class convert_info_widget():
                     f"bin_nav_flag = {bin_nav_flag}\n"
                     f"bin_nav_factor = {bin_nav_factor}\n"
                     f"reshape = {reshape}\n"
-                    f"create_json = {create_json}\n"
-                    f"ptycho_config = {ptycho_config}\n"
-                    f"ptycho_template = {ptycho_template}\n"
                     f"create_virtual_image = {create_virtual_image}\n"
                     f"mask_path = {mask_path}\n"
                     f"disk_lower_thresh = {disk_lower_thresh}\n"
@@ -526,12 +522,15 @@ class convert_info_widget():
         create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
         create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
         submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)
-        
-        create_json = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
-        ptycho_config = Text(description='Enter config name (optional) :', style=st)
-        ptycho_template = Text(description='Enter template config path (optional) :', style=st)
 
         node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
+        n_jobs = IntSlider(value=3, min=1, max=12, step=1,
+                            description='Number of multiple slurm jobs:',
+                            disabled=False,
+                            continuous_update=False,
+                            orientation='horizontal',
+                            readout=True,
+                            readout_format='d', style=st)
         
         create_virtual_image = Checkbox(value=False, description='Create virtual images', style=st)
         disk_lower_thresh = FloatText(description='Lower threshold value to detect the disk', value=0.01, style=st)
@@ -558,6 +557,7 @@ class convert_info_widget():
                                         bin_nav_widget=bin_nav_widget, 
                                           bin_sig_widget=bin_sig_widget,
                                           node_check=node_check,
+                                          n_jobs=n_jobs,
                                         create_virtual_image=create_virtual_image,
                                          mask_path=mask_path,
                                           disk_lower_thresh=disk_lower_thresh,
@@ -565,10 +565,7 @@ class convert_info_widget():
                                          DPC_check=DPC_check,
                                          parallax_check=parallax_check,
                                         create_batch_check=create_batch_check, 
-                                          create_info_check=create_info_check, 
-                                          create_json=create_json, 
-                                          ptycho_config=ptycho_config, 
-                                          ptycho_template=ptycho_template)
+                                          create_info_check=create_info_check)
         
         self.submit = ipywidgets.interact(self._submit, submit_check=submit_check)
 
