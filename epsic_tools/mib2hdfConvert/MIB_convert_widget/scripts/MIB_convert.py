@@ -109,7 +109,7 @@ def Meta2Config(acc,nCL,aps):
         else:
             print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
     elif acc == 200e3:
-        rot_angle = 90
+        rot_angle = -77.585
         print('Rotation angle = ' + str(rot_angle) +' Warning: This rotation angle need further calibration')
         if aps == 1:
             conv_angle = 37.7e-3
@@ -176,11 +176,13 @@ class convert_info_widget():
        'set_scan_px', 'spot_size', 'step_size(m)', 'x_pos(m)', 'x_tilt(deg)',
        'y_pos(m)', 'y_tilt(deg)', 'z_pos(m)', 'zero_OLfine']
     
-    def __init__(self, only_ptyrex=False, only_virtual=False):
+    def __init__(self, only_ptyrex=False, only_virtual=False, ptyrex_submit=False):
         if only_ptyrex:
             self._ptyrex_json()
         elif only_virtual:
             self._virtual_images()
+        elif ptyrex_submit:
+            self._ptyrex_submit()
         else:
             self._activate()
 
@@ -809,3 +811,150 @@ class convert_info_widget():
                 mib_to_convert.append(mib_path)
     
         return mib_to_convert
+    
+    def _ptyrex_paths(self, year, session, subfolder_check, subfolder):
+        self.json_files = []
+        if subfolder == '':
+            self.script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/scripts'
+        else:
+            self.script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}/scripts'
+
+        if subfolder == '' and subfolder_check:
+            print("**************************************************")
+            print("'subfolder' is not speicified")
+            print("All MIB files in 'Merlin' folder will be converted")
+            print("**************************************************")
+        
+        self.json_sub_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}'
+        print("source_path: ", self.json_sub_path)
+        if os.path.exists(self.json_sub_path):
+            test_string = 'autoptycho_is_done.txt'
+            cur_string_length = 1000   
+            for p, d, files in os.walk(self.json_sub_path):
+                # look at the files and see if there are any json files there
+                for f in files:
+                    if f.endswith('json'):
+                        tmp_string = os.path.join(p, f)
+                        #print(tmp_string)
+                        tmp_string_length = len(tmp_string)
+                        if tmp_string_length <= cur_string_length:
+                            cur_string_length = tmp_string_length
+                            #print(os.path.isfile(os.path.join(str(p), test_string)))
+                            if os.path.isfile(os.path.join(str(p), test_string)) == False:
+                                self.json_files.append(os.path.join(str(p), str(f)))
+            print(f'\n{self.json_files}\n')
+            self._create_ptyrex_bash_submit(session)#,create_batch_check)
+            #self._ptyrex_ssh_submit()
+        else:
+            print('Path specified does not exist!')
+            src_path_flag = False
+
+
+    def _create_ptyrex_bash_submit(self,session):#,create_batch_check):
+        self.bash_ptyrex_path = []
+        print(f'\n{self.json_files}\n')
+        print(len(self.json_files))
+        counter = 0
+        for x in self.json_files:
+            print(f'\n{x}\n')
+            index = x.find('/pty_out')
+            tmp_string = x[index-6:index]
+            self.bash_ptyrex_path.append(os.path.join(self.script_save_path, f'{tmp_string}_ptyrex_submit.sh'))
+            print(self.bash_ptyrex_path[counter])
+            if 1:            
+                with open (self.bash_ptyrex_path[counter], 'w') as f:
+                    f.write('#!/usr/bin/env bash\n')
+                    f.write('#SBATCH --partition=cs05r\n')
+                    f.write('#SBATCH --job-name=ptyrex_recon\n')
+                    f.write('#SBATCH --nodes 1\n')
+                    f.write('#SBATCH --tasks-per-node=4\n')
+                    f.write('#SBATCH --cpus-per-task 1\n')
+                    f.write('#SBATCH --gpus-per-node=4\n')
+                    f.write('#SBATCH --time 00:30:00\n')
+                    f.write('#SBATCH --mem 0G\n\n')
+                    f.write('#SBATCH --constraint=NVIDIA_Pascal\n')
+                    
+                    f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
+                    f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
+
+                    f.write(f"cd /home/ejr78941/ptyrex_temp_5/PtyREX")
+                     
+                    f.write('\n\nmodule load python/cuda11.7\n\n')  
+                    f.write('module load hdf5-plugin/1.12\n\n')  
+                    
+                    f.write(f"mpirun -np 4 ptyrex_recon -c {self.json_files[counter]}\n")
+                
+            print("sbatch file created: "+ self.bash_ptyrex_path[counter])
+            counter = counter + 1
+    
+    def _create_flagging_text_files(self,submit_ptyrex_job):
+        if submit_ptyrex_job:    
+            #assuming the paths given are the json_paths
+            test_string = 'autoptycho_is_done.txt'
+            default_string = 'this data set has been auto reconstructed already and therefore will skipped in all proceeding auto recons, please detele to restore auto functionality'
+	    #flagging_files = []
+            for x in self.json_files:
+                a = x.find('initial_recon/') + len('initial_recon/')
+                flagging_files = (x[:a]+test_string)
+                with open (flagging_files, 'w') as f:
+            	    f.write(default_string)
+                f.close()
+            print(flagging_files)
+     
+    def _ptyrex_ssh_submit(self, submit_ptyrex_job):
+        counter = 0
+        if submit_ptyrex_job:
+            for x in self.bash_ptyrex_path:
+                sshProcess = subprocess.Popen(['ssh',
+                                   '-tt',
+                                   'wilson'],
+                                   stdin=subprocess.PIPE, 
+                                   stdout = subprocess.PIPE,
+                                   universal_newlines=True,
+                                   bufsize=0)
+                sshProcess.stdin.write("ls .\n")
+                sshProcess.stdin.write("echo END\n")
+                sshProcess.stdin.write(f"sbatch {x}\n")
+                sshProcess.stdin.write("uptime\n")
+                sshProcess.stdin.write("logout\n")
+                sshProcess.stdin.close()
+            
+            
+                for line in sshProcess.stdout:
+                    if line == "END\n":
+                        break
+                    print(line,end="")
+            
+                #to catch the lines up to logout
+                for line in  sshProcess.stdout: 
+                    print(line,end="")
+        self._create_flagging_text_files(submit_ptyrex_job)            
+
+    def _ptyrex_submit(self):
+        st = {"description_width": "initial"}
+        year = Text(description='Year:', style=st)
+        session = Text(description='Session:', style=st)
+        subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
+        subfolder = Text(description='Subfolder:', style=st)
+
+        create_batch_check = Checkbox(value=False, description="Create ptyrex submission script", style=st)
+        sort_key = Text(description='Metadata key to sort:', style=st)
+        search_key = Text(description='Metadata key to search:', style=st)
+        search_value = Text(description='Value to search:', style=st)
+
+        submit_ptyrex_job = Checkbox(value=False, description="Submit ptyrex jobs", style=st)
+
+        self.ptyrex_paths = ipywidgets.interact(self._ptyrex_paths, 
+                                          year=year, 
+                                          session=session,
+                                          subfolder_check=subfolder_check,
+                                          subfolder=subfolder)
+
+        #self.create_ptyrex_bash_submit = ipywidgets.interact(self._create_ptyrex_bash_submit,
+        #                                    session=session,create_batch_check=create_batch_check)
+
+        self.ptyrex_ssh_submit = ipywidgets.interact(self._ptyrex_ssh_submit,
+                                            session=session,submit_ptyrex_job=submit_ptyrex_job)
+
+
+
