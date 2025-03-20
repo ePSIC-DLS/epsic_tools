@@ -182,6 +182,7 @@ if data_path.split(".")[-1] == "hspy":
     unit = []
     size = []
     
+    
     for i in range(n_dim):
         print(original_stack.axes_manager[i].scale, original_stack.axes_manager[i].offset, original_stack.axes_manager[i].units, original_stack.axes_manager[i].size)
         scale.append(original_stack.axes_manager[i].scale)
@@ -222,6 +223,19 @@ elif data_path.split(".")[-1] == "hdf" or data_path.split(".")[-1] == "hdf5" or 
         f.close()
         det_name = 'pty_data'
         data_key = "data/frames"
+    
+    #performing a check to see if the data in single chip or quad chip
+    n_dim = np.shape(original_stack)
+    print("checking number merlin chips used \n")
+    if n_dim[3] == 256:
+        chip = 1   
+    else:
+        chip = 4
+    print("... the number of chips used is " + str(chip)+"\n")
+    
+    if chip == 1:
+        mask = mask[0:256,0:256]
+        print("subsection of the mask has been taken from top left hand corner\n")
 
 elif data_path.split(".")[-1] == "dm4":
     original_stack = hs.load(data_path)

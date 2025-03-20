@@ -456,12 +456,18 @@ def gen_config(template_path, dest_path, config_name, meta_file_path, rotation_a
     pty_expt['base_dir'] = dest_path
     pty_expt['process']['save_dir'] = dest_path
     pty_expt['experiment']['data']['data_path'] = data_path
+    pty_expt['experiment']['experiment_ID'] = config_name
 
     pty_expt['process']['common']['scan']['rotation'] = rotation_angle
 
     # pty_expt['process']['common']['scan']['N'] = scan_shape
     pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
     pty_expt['experiment']['optics']['lens']['alpha'] = conv_angle
+    
+    #edit the json in order to perform auto ptycho
+    pty_expt['process']['common']['scan']['region'] = [0.0,1.0,0.0,1.0,1,1]
+    pty_expt['process']['PIE']['MultiSlice']['slices'] = 1
+    pty_expt['process']['PIE']['iterations'] = 25
 
     with h5py.File(meta_file_path, 'r') as microscope_meta:
         meta_values = microscope_meta['metadata']
@@ -503,7 +509,7 @@ def Meta2Config(acc,nCL,aps):
         else:
             print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
     elif acc == 200e3:
-        rot_angle = 90
+        rot_angle = -77.585
         print('Rotation angle = ' + str(rot_angle) +' Warning: This rotation angle need further calibration')
         if aps == 1:
             conv_angle = 37.7e-3
@@ -598,11 +604,18 @@ bin_sig_factor = eval(info['bin_sig_factor'])
 bin_nav_flag = eval(info['bin_nav_flag'])
 bin_nav_factor = eval(info['bin_nav_factor'])
 reshape = eval(info['reshape'])
-create_json = eval(info['create_json'])
+try:
+    print('stuff')
+    create_json = eval(info['create_json'])
+except:
+    create_json = False
 if create_json:
     ptycho_config = info['ptycho_config']
     ptycho_template = info['ptycho_template']
-create_virtual_image = eval(info['create_virtual_image'])
+try:
+    create_virtual_image = eval(info['create_virtual_image'])
+except:
+    create_virtual_image = False
 if create_virtual_image:
     disk_lower_thresh = eval(info['disk_lower_thresh'])
     disk_upper_thresh = eval(info['disk_upper_thresh'])
