@@ -1,5 +1,5 @@
 import numpy as np
-#import pyxem as pxm
+import pyxem as pxm
 import h5py
 import matplotlib.pyplot as plt
 import os
@@ -7,6 +7,7 @@ import os
 def make_mask(flat_field, hot_pix_factor, show_mask=True, dest_h5_path=None, show_hist=False):
     """
     Creates mask for Merlin Medipix 
+    
     Parameters:
     _____________
     flat_field: str
@@ -66,6 +67,7 @@ def make_mask(flat_field, hot_pix_factor, show_mask=True, dest_h5_path=None, sho
 def add_to_mask(mask, pix_list, save_path=None):
     """
     Adds an arbitrary list of pixels to a mask.
+    
     Parameters
     __________
     mask: pyxem ElectronDiffraction2D
