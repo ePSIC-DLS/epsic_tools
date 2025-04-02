@@ -10,4 +10,4 @@ from epsic_tools.toolbox import ptycho_utils
 from epsic_tools.toolbox import notebook_utils
 from epsic_tools.iris_S3 import ePSIC_S3
 from epsic_tools.toolbox import stem_utils
-
+from epsic_tools.toolbox import load_k3_data
