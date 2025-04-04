@@ -34,14 +34,11 @@ if checked and no subfolder name is specified, all MIB files in 'Merlin' folder 
 subfolder name, it has a higher priority than the widget above
 ### Show the path of each MIB file
 if checked, the paths of the MIB files that will be converted are shown
-### Auto reshape
-if checked, the scan region will be automatically reshaped
-### No reshaping
-if checked, the scan region will not be reshaped into 2D scan dimensions
-### Use Fly-back
-if checked, the scan region will be completely recovered.
-### Known_shape
-if checked, the scan region will be reshaped as you want (if possible)
+### Choose a reshaping option
+__Auto reshape__: if checked, the scan region will be automatically reshaped  
+__No reshaping__: if checked, the scan region will not be reshaped into 2D scan dimensions  
+__Flyback__: if checked, the scan region will be completely recovered.  
+__Known shape__: if checked, the scan region will be reshaped as you want (if possible)
 ### Scan_X
 x-axis dimension of the scan region for the 'Known_shape' option
 ### Scan_Y
