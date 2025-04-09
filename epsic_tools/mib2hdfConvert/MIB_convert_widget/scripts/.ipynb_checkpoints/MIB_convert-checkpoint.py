@@ -350,7 +350,7 @@ class convert_info_widget():
                     f"bin_sig_factor = {bin_sig_factor}\n"
                     f"bin_nav_flag = {bin_nav_flag}\n"
                     f"bin_nav_factor = {bin_nav_factor}\n"
-                    f"reshape = {reshape}\n"
+                    f"reshaping = {reshaping}\n"
                     f"create_virtual_image = {create_virtual_image}\n"
                     f"mask_path = {mask_path}\n"
                     f"disk_lower_thresh = {disk_lower_thresh}\n"
