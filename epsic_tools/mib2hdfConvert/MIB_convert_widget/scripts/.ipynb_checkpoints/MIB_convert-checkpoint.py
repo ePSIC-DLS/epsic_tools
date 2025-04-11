@@ -109,7 +109,7 @@ def Meta2Config(acc,nCL,aps):
         else:
             print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
     elif acc == 200e3:
-        rot_angle = 90
+        rot_angle = -77.585
         print('Rotation angle = ' + str(rot_angle) +' Warning: This rotation angle need further calibration')
         if aps == 1:
             conv_angle = 37.7e-3
@@ -176,11 +176,13 @@ class convert_info_widget():
        'set_scan_px', 'spot_size', 'step_size(m)', 'x_pos(m)', 'x_tilt(deg)',
        'y_pos(m)', 'y_tilt(deg)', 'z_pos(m)', 'zero_OLfine']
     
-    def __init__(self, only_ptyrex=False, only_virtual=False):
+    def __init__(self, only_ptyrex=False, only_virtual=False, ptyrex_submit=False):
         if only_ptyrex:
             self._ptyrex_json()
         elif only_virtual:
             self._virtual_images()
+        elif ptyrex_submit:
+            self._ptyrex_submit()
         else:
             self._activate()
 
@@ -226,6 +228,8 @@ class convert_info_widget():
         self.to_convert = []
         if subfolder != '' or subfolder_check==True:
             self.to_convert = self._check_differences(self.src_path, self.dest_path)
+            
+        self.to_convert.sort()
 
     def _verbose(self, path_verbose):
         if path_verbose:
@@ -252,8 +256,7 @@ class convert_info_widget():
 
             return self.keys_show
                 
-    def _organize(self, auto_reshape, no_reshaping, use_fly_back, known_shape, 
-                  Scan_X, Scan_Y, bin_nav_widget, bin_sig_widget,
+    def _organize(self, reshaping,Scan_X, Scan_Y,bin_nav_widget,bin_sig_widget,
                   node_check,n_jobs,create_virtual_image,mask_path,disk_lower_thresh,
                   disk_upper_thresh,DPC_check,parallax_check,
                   create_batch_check,create_info_check):
@@ -307,12 +310,28 @@ class convert_info_widget():
                 bin_nav_flag = 0
                 bin_nav_factor = bin_nav_widget
 
-            if no_reshaping:
-                reshape = 0
+            if reshaping == "Auto reshape":
+                auto_reshape = True
+                no_reshaping = False
+                use_fly_back = False
+                known_shape = False
+            elif reshaping == "Flyback":
+                auto_reshape = False
+                no_reshaping = False
+                use_fly_back = True
+                known_shape = False
+            elif reshaping == "Known shape":
+                auto_reshape = False
+                no_reshaping = False
+                use_fly_back = False
+                known_shape = True
             else:
-                reshape = 1
+                auto_reshape = False
+                no_reshaping = True
+                use_fly_back = False
+                known_shape = False
                 
-            iBF = 1
+            iBF = True
             
             if mask_path == '':
                 mask_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/29042024_12bitmask.h5'
@@ -331,7 +350,7 @@ class convert_info_widget():
                     f"bin_sig_factor = {bin_sig_factor}\n"
                     f"bin_nav_flag = {bin_nav_flag}\n"
                     f"bin_nav_factor = {bin_nav_factor}\n"
-                    f"reshape = {reshape}\n"
+                    f"reshaping = {reshaping}\n"
                     f"create_virtual_image = {create_virtual_image}\n"
                     f"mask_path = {mask_path}\n"
                     f"disk_lower_thresh = {disk_lower_thresh}\n"
@@ -390,59 +409,62 @@ class convert_info_widget():
            converted data meta file and known dictionary of parameters it is possible fill out the json file
            frederick allars 09-05-2024'''
         if create_ptycho_folder:
-            hdf_files = []
+            files_tmp = []
             '''use os.walk to find the date time when the data was collected which corresponds to its folder and file names within the subfolder'''
             for path, directories, files in os.walk(self.dest_path):
-                for f in files:
-                    if f.endswith('_data.hdf5'):
-                        folder_name = f.replace('_data.hdf5','')
+                if files != []:
+                    files_tmp.extend(files)
+            files_tmp.sort()
+            for f in files_tmp:
+                if f.endswith('_data.hdf5'):
+                    folder_name = f.replace('_data.hdf5','')
 
-                        '''create folders with standard names and skip if they already exist otherwise an error is incurred'''
-                        pty_dest = self.dest_path + '/' + folder_name + '/' + 'pty_out'
-                        pty_dest_2 = self.dest_path + '/' + folder_name + '/' + 'pty_out/initial_recon'
-                        print(pty_dest)
-                        try:
-                            os.makedirs(pty_dest)
-                        except:
-                            print('skipping this folder as it already has pty_out folder')
-                        try:
-                            os.makedirs(pty_dest_2)
-                        except:
-                            print('skipping this folder as it already has pty_out/initial folder')
+                    '''create folders with standard names and skip if they already exist otherwise an error is incurred'''
+                    pty_dest = self.dest_path + '/' + folder_name + '/' + 'pty_out'
+                    pty_dest_2 = self.dest_path + '/' + folder_name + '/' + 'pty_out/initial_recon'
+                    print(pty_dest)
+                    try:
+                        os.makedirs(pty_dest)
+                    except:
+                        print('skipping this folder as it already has pty_out folder')
+                    try:
+                        os.makedirs(pty_dest_2)
+                    except:
+                        print('skipping this folder as it already has pty_out/initial folder')
 
-                        '''now the objective to get all the data required to fill the Json, we use the folder name to 
-                        create the path to the meta data file'''
-                        meta_file = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf'
+                    '''now the objective to get all the data required to fill the Json, we use the folder name to 
+                    create the path to the meta data file'''
+                    meta_file = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf'
 
-                        '''we can now open the meta data file itself to check the energy which will give us the rotation angle,
-                         the size of the aperture which will tell us the convergence angle, and the camera length which 
-                         we can guess from the nomial camera length with approximate k factor in this case 1.5'''
+                    '''we can now open the meta data file itself to check the energy which will give us the rotation angle,
+                     the size of the aperture which will tell us the convergence angle, and the camera length which 
+                     we can guess from the nomial camera length with approximate k factor in this case 1.5'''
 
-                        '''TODO add py4DSTEM code which automatic guess the camera length from the subset of the collected diffraction patterns'''
-                        with h5py.File(meta_file, 'r') as microscope_meta:
-                            meta_values = microscope_meta['metadata']
-                            print(meta_values['aperture_size'][()])
-                            print(meta_values['nominal_camera_length(m)'][()])
-                            print(meta_values['ht_value(V)'][()])
-                            acc = meta_values['ht_value(V)'][()]
-                            nCL = meta_values['nominal_camera_length(m)'][()]
-                            aps = meta_values['aperture_size'][()]
-                        rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)
+                    '''TODO add py4DSTEM code which automatic guess the camera length from the subset of the collected diffraction patterns'''
+                    with h5py.File(meta_file, 'r') as microscope_meta:
+                        meta_values = microscope_meta['metadata']
+                        print(meta_values['aperture_size'][()])
+                        print(meta_values['nominal_camera_length(m)'][()])
+                        print(meta_values['ht_value(V)'][()])
+                        acc = meta_values['ht_value(V)'][()]
+                        nCL = meta_values['nominal_camera_length(m)'][()]
+                        aps = meta_values['aperture_size'][()]
+                    rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)
 
-                        '''check that the config_name parameter has been filled if not give it a default name'''
-                        if ptycho_config_name == '':
-                            config_name = 'pty_recon'
-                        else:
-                            config_name = ptycho_config_name
+                    '''check that the config_name parameter has been filled if not give it a default name'''
+                    if ptycho_config_name == '':
+                        config_name = 'pty_recon'
+                    else:
+                        config_name = ptycho_config_name
 
-                        '''TODO: set up some standard ptyREX config files to reference at different energies'''
-                        if ptycho_template_path == '':
-                            template_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/UserExampleJson.json'
-                        else:
-                            template_path = ptycho_template_path
+                    '''TODO: set up some standard ptyREX config files to reference at different energies'''
+                    if ptycho_template_path == '':
+                        template_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/UserExampleJson.json'
+                    else:
+                        template_path = ptycho_template_path
 
 
-                        gen_config(template_path, pty_dest_2, config_name, meta_file, rot_angle, camera_length, 2*conv_angle)
+                    gen_config(template_path, pty_dest_2, config_name, meta_file, rot_angle, camera_length, 2*conv_angle)
         
       
     def _submit(self, submit_check):
@@ -486,10 +508,13 @@ class convert_info_widget():
         
         path_verbose = Checkbox(value=False, description="Show the metadata of each MIB file", style=st)
 
-        auto_reshape = Checkbox(value=True, description='Auto reshape', style=st)
-        no_reshaping = Checkbox(value=False, description='No reshaping', style=st)
-        use_fly_back = Checkbox(value=False, description='Use Fly-back', style=st)
-        known_shape = Checkbox(value=False, description='Known_shape', style=st)
+        
+        reshaping = Select(options=['Auto reshape', 'Flyback', 'Known shape', 'No reshaping'],
+                            value='Auto reshape',
+                            rows=4,
+                            description='Choose a reshaping option',
+                            disabled=False, style=st)
+        
         Scan_X = IntText(description='Scan_X: (avaiable for Known_shape)', style=st)
         Scan_Y = IntText(description='Scan_Y: (avaiable for Known_shape)', style=st)
 
@@ -548,10 +573,7 @@ class convert_info_widget():
         self.verbose = ipywidgets.interact(self._verbose, path_verbose=path_verbose)
         
         self.values = ipywidgets.interact(self._organize,
-                                          auto_reshape=auto_reshape,
-                                          no_reshaping=no_reshaping, 
-                                        use_fly_back=use_fly_back, 
-                                          known_shape=known_shape, 
+                                          reshaping=reshaping,
                                           Scan_X=Scan_X, 
                                           Scan_Y=Scan_Y,
                                         bin_nav_widget=bin_nav_widget, 
@@ -809,3 +831,147 @@ class convert_info_widget():
                 mib_to_convert.append(mib_path)
     
         return mib_to_convert
+    
+    def _ptyrex_paths(self, year, session, subfolder_check, subfolder):
+        self.json_files = []
+        if subfolder == '':
+            self.script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/scripts'
+        else:
+            self.script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}/scripts'
+
+        if subfolder == '' and subfolder_check:
+            print("**************************************************")
+            print("'subfolder' is not speicified")
+            print("All MIB files in 'Merlin' folder will be converted")
+            print("**************************************************")
+        
+        self.json_sub_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}'
+        print("source_path: ", self.json_sub_path)
+        if os.path.exists(self.json_sub_path):
+            test_string = 'autoptycho_is_done.txt'
+            cur_string_length = 1000   
+            for p, d, files in os.walk(self.json_sub_path):
+                # look at the files and see if there are any json files there
+                for f in files:
+                    if f.endswith('json'):
+                        tmp_string = os.path.join(p, f)
+                        #print(tmp_string)
+                        tmp_string_length = len(tmp_string)
+                        if tmp_string_length <= cur_string_length:
+                            cur_string_length = tmp_string_length
+                            #print(os.path.isfile(os.path.join(str(p), test_string)))
+                            if os.path.isfile(os.path.join(str(p), test_string)) == False:
+                                self.json_files.append(os.path.join(str(p), str(f)))
+            print(f'\n{self.json_files}\n')
+            self._create_ptyrex_bash_submit(session)#,create_batch_check)
+            #self._ptyrex_ssh_submit()
+        else:
+            print('Path specified does not exist!')
+            src_path_flag = False
+
+
+    def _create_ptyrex_bash_submit(self,session):#,create_batch_check):
+        self.bash_ptyrex_path = []
+        print(f'\n{self.json_files}\n')
+        print(len(self.json_files))
+        counter = 0
+        for x in self.json_files:
+            print(f'\n{x}\n')
+            index = x.find('/pty_out')
+            tmp_string = x[index-6:index]
+            self.bash_ptyrex_path.append(os.path.join(self.script_save_path, f'{tmp_string}_ptyrex_submit.sh'))
+            print(self.bash_ptyrex_path[counter])
+            if 1:            
+                with open (self.bash_ptyrex_path[counter], 'w') as f:
+                    f.write('#!/usr/bin/env bash\n')
+                    f.write('#SBATCH --partition=cs05r\n')
+                    f.write('#SBATCH --job-name=ptyrex_recon\n')
+                    f.write('#SBATCH --nodes 1\n')
+                    f.write('#SBATCH --tasks-per-node=4\n')
+                    f.write('#SBATCH --cpus-per-task 1\n')
+                    f.write('#SBATCH --gpus-per-node=4\n')
+                    f.write('#SBATCH --time 00:30:00\n')
+                    f.write('#SBATCH --mem 0G\n\n')
+                    f.write('#SBATCH --constraint=NVIDIA_Pascal\n')
+                    
+                    f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
+                    f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
+
+                    f.write(f"cd /home/ejr78941/ptyrex_temp_5/PtyREX")
+                     
+                    f.write('\n\nmodule load python/cuda11.7\n\n')  
+                    f.write('module load hdf5-plugin/1.12\n\n')  
+                    
+                    f.write(f"mpirun -np 4 ptyrex_recon -c {self.json_files[counter]}\n")
+                
+            print("sbatch file created: "+ self.bash_ptyrex_path[counter])
+            counter = counter + 1
+    
+    def _create_flagging_text_files(self,submit_ptyrex_job):
+        if submit_ptyrex_job:    
+            #assuming the paths given are the json_paths
+            test_string = 'autoptycho_is_done.txt'
+            default_string = 'this data set has been auto reconstructed already and therefore will skipped in all proceeding auto recons, please detele to restore auto functionality'
+	    #flagging_files = []
+            for x in self.json_files:
+                a = x.find('initial_recon/') + len('initial_recon/')
+                flagging_files = (x[:a]+test_string)
+                with open (flagging_files, 'w') as f:
+            	    f.write(default_string)
+                f.close()
+            print(flagging_files)
+     
+    def _ptyrex_ssh_submit(self, submit_ptyrex_job):
+        counter = 0
+        if submit_ptyrex_job:
+            for x in self.bash_ptyrex_path:
+                sshProcess = subprocess.Popen(['ssh',
+                                   '-tt',
+                                   'wilson'],
+                                   stdin=subprocess.PIPE, 
+                                   stdout = subprocess.PIPE,
+                                   universal_newlines=True,
+                                   bufsize=0)
+                sshProcess.stdin.write("ls .\n")
+                sshProcess.stdin.write("echo END\n")
+                sshProcess.stdin.write(f"sbatch {x}\n")
+                sshProcess.stdin.write("uptime\n")
+                sshProcess.stdin.write("logout\n")
+                sshProcess.stdin.close()
+            
+            
+                for line in sshProcess.stdout:
+                    if line == "END\n":
+                        break
+                    print(line,end="")
+            
+                #to catch the lines up to logout
+                for line in  sshProcess.stdout: 
+                    print(line,end="")
+        self._create_flagging_text_files(submit_ptyrex_job)            
+
+    def _ptyrex_submit(self):
+        st = {"description_width": "initial"}
+        year = Text(description='Year:', style=st)
+        session = Text(description='Session:', style=st)
+        subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
+        subfolder = Text(description='Subfolder:', style=st)
+
+        create_batch_check = Checkbox(value=False, description="Create ptyrex submission script", style=st)
+        sort_key = Text(description='Metadata key to sort:', style=st)
+        search_key = Text(description='Metadata key to search:', style=st)
+        search_value = Text(description='Value to search:', style=st)
+
+        submit_ptyrex_job = Checkbox(value=False, description="Submit ptyrex jobs", style=st)
+
+        self.ptyrex_paths = ipywidgets.interact(self._ptyrex_paths, 
+                                          year=year, 
+                                          session=session,
+                                          subfolder_check=subfolder_check,
+                                          subfolder=subfolder)
+
+        #self.create_ptyrex_bash_submit = ipywidgets.interact(self._create_ptyrex_bash_submit,
+        #                                    session=session,create_batch_check=create_batch_check)
+
+        self.ptyrex_ssh_submit = ipywidgets.interact(self._ptyrex_ssh_submit,
+                                            session=session,submit_ptyrex_job=submit_ptyrex_job)
