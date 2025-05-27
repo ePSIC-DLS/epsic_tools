@@ -603,7 +603,7 @@ bin_sig_flag = eval(info['bin_sig_flag'])
 bin_sig_factor = eval(info['bin_sig_factor'])
 bin_nav_flag = eval(info['bin_nav_flag'])
 bin_nav_factor = eval(info['bin_nav_factor'])
-reshaping = eval(info['reshaping'])
+reshaping = info['reshaping']
 try:
     print('stuff')
     create_json = eval(info['create_json'])

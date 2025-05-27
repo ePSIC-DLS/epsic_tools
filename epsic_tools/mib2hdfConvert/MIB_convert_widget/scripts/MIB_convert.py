@@ -310,7 +310,7 @@ class convert_info_widget():
                 bin_nav_flag = 0
                 bin_nav_factor = bin_nav_widget
 
-            if reshaping == "Auto reshape":
+            if reshaping == "Auto_reshape":
                 auto_reshape = True
                 no_reshaping = False
                 use_fly_back = False
@@ -320,7 +320,7 @@ class convert_info_widget():
                 no_reshaping = False
                 use_fly_back = True
                 known_shape = False
-            elif reshaping == "Known shape":
+            elif reshaping == "Known_shape":
                 auto_reshape = False
                 no_reshaping = False
                 use_fly_back = False
@@ -509,8 +509,8 @@ class convert_info_widget():
         path_verbose = Checkbox(value=False, description="Show the metadata of each MIB file", style=st)
 
         
-        reshaping = Select(options=['Auto reshape', 'Flyback', 'Known shape', 'No reshaping'],
-                            value='Auto reshape',
+        reshaping = Select(options=['Auto_reshape', 'Flyback', 'Known_shape', 'No_reshaping'],
+                            value='Auto_reshape',
                             rows=4,
                             description='Choose a reshaping option',
                             disabled=False, style=st)
