@@ -594,7 +594,7 @@ src_path.append('/')
 src_path.extend(adr_split[:-2])
 src_path = os.path.join(*src_path) + "/"
 
-time_stamp = adr_split[-2]
+time_stamp = adr_split[-1].split('_data')[0]
 save_path = os.path.join(save_dir, time_stamp)
 if not os.path.exists(save_path):
      os.makedirs(save_path)
