@@ -575,19 +575,26 @@ with open(info_path, 'r') as f:
 
 mib_path = eval(info['to_convert_paths'][0])[index]
 
-adr_split = mib_path.split('/')
+adr_split = mib_path.split("/")
+for i in range(len(adr_split)):
+    if adr_split[i] == "Merlin":
+        break
+
 tmp_save = []
 tmp_save.append('/')
-tmp_save.extend(adr_split[1:6])
+tmp_save.extend(adr_split[:i])
 tmp_save.append('processing')
-tmp_save.extend(adr_split[6:8])
+tmp_save.extend(adr_split[i:-2])
 save_dir = os.path.join(*tmp_save)
 
 # Load data as stack
 
-src_path = mib_path[:-40]
+src_path = []
+src_path.append('/')
+src_path.extend(adr_split[:-2])
+src_path = os.path.join(*src_path) + "/"
 
-time_stamp = mib_path.split('/')[-1][:15]
+time_stamp = adr_split[-2]
 save_path = os.path.join(save_dir, time_stamp)
 if not os.path.exists(save_path):
      os.makedirs(save_path)
