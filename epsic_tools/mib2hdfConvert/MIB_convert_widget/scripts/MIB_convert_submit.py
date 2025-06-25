@@ -441,7 +441,6 @@ def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed_
         with h5py.File(os.path.join(dest_path, os.path.basename(metadata_path)), 'r+', libver='latest') as f:
             f.create_virtual_dataset(vds_key, layout)
             f['/data/mask'] = h5py.ExternalLink('/dls_sw/e02/medipix_mask/Merlin_12bit_mask.h5', "/data/mask")
-            f['metadata']['4D_shape'] = tuple(sh)
 
     return
 

@@ -20,9 +20,21 @@ from epsic_tools.toolbox import radial_profile
 import os
 from sklearn.neighbors import KDTree
 
-
-
 from scipy import constants as pc
+
+import sys
+sys.path.append('/dls_sw/i13-1/scripts/ptyrex/ptyrex_3p1/')
+import ptyrex
+# from ptyrex import np
+from ptyrex import tb
+from ptyrex import h5py
+import os
+# import utils
+
+import logging
+logger = logging.getLogger()
+logger.disabled = True
+logging.getLogger('matplotlib').setLevel(logging.CRITICAL)
 
 
 def e_lambda(e_0):
@@ -46,6 +58,7 @@ def e_lambda(e_0):
 def plot_ptyREX_output(json_path, save_fig=None, crop=False):
     """
     To save the ptyREX recon output
+    
     Parameters
     ----------
     json_path: str
@@ -140,6 +153,7 @@ def crop_recon_obj(json_file):
 
 def get_fft(obj_arr, crop = None, apply_hann = False):
     """
+    
     Parameters
     ----------
     obj_arr: numpy.ndarray
@@ -177,6 +191,7 @@ def get_fft(obj_arr, crop = None, apply_hann = False):
 
 def get_json_pixelSize(json_file):
     """
+    
     Parameters
     ----------
     json_file: str
@@ -208,6 +223,7 @@ def get_json_pixelSize(json_file):
 
 def json_to_dict(json_path):
     """
+    
     Parameters
     ----------
     json_path: str
@@ -533,6 +549,7 @@ def plot_sub_region_json(img, json_file):
 
 def get_error(file_path):
     """
+    
     Parameters
     ----------
     file_path: str
@@ -598,6 +615,7 @@ def get_hdf5_object_modulus(h5_file, params):
 
 def get_probe_array(file_path):
     """
+    
     Parameters
     ----------
     file_path: str
@@ -628,6 +646,7 @@ def get_probe_array(file_path):
 
 def get_obj_array(file_path):
     """
+    
     Parameters
     ----------
     file_path: str
@@ -795,6 +814,7 @@ def get_RMSE(dist_list):
 def kdtree_NN(experiment, truth, search_rad):
     """
     Runs sklearn KDTree proximity algorithm on the data
+    
     Parameters
     ___________
     experiment: list
@@ -879,6 +899,7 @@ def kdtree_NN(experiment, truth, search_rad):
 def duplicate_json(source_json_path, new_json_path, param_to_change = None):
     """
     This gets a source json file and duplicates it, changing a parameter if declared
+    
     Parameters
     ____________
     source_json_path: str
@@ -949,3 +970,291 @@ def _get_path(bad_list):
     else:
         pass
     return path
+
+def preprocess(json_dir, json_name):
+    pty_data, pty_model, pty_params = load(json_dir, json_name)
+    probe_width, s_factor = get_sampling(pty_model, pty_params)
+    s_probe = get_full_illumination(pty_model)
+    plotter(pty_data, pty_model, pty_params, probe_width, s_factor, s_probe)
+    
+def plotter(pty_data, pty_model, pty_params, probe_width, s_factor, s_probe):
+    plt.figure(figsize=[15,15])
+    angular_sensitivity = np.arctan(1/(probe_width/pty_params.dx[:,0])) * (180/np.pi)
+    plt.suptitle('Ptychography pre analysis\n Sampling factor = %f\n Angular sensitivity = %f' %(s_factor,angular_sensitivity))
+    plt.gray()
+
+    ar_sz = pty_model.probe.func.shape
+    d_theta = pty_model.detector.pp[0] / pty_model.detector.dist
+    print("d_theta", d_theta)
+    x_positions = np.arange(0,ar_sz[0],50)
+    x_labels = np.int32(x_positions * pty_params.dx[:,0] * 1e9)
+    plt.subplot(2,2,1)
+    plt.imshow(np.squeeze(np.abs(pty_model.probe.func)))
+    plt.xticks(x_positions, x_labels)
+    plt.yticks(x_positions, x_labels)
+    plt.title('Probe real-space [nm]')
+
+    x_positions = np.arange(0,ar_sz[0],50)
+    x_labels = np.int32(x_positions * d_theta * 1e3)
+    plt.subplot(2,2,2)
+    plt.imshow(np.log(np.abs(np.fft.fftshift(np.fft.fft2(np.squeeze(pty_model.probe.func))))))
+    plt.xticks(x_positions, x_labels)
+    plt.yticks(x_positions, x_labels)
+    plt.title('Probe reciprocal-space [mrad]')
+
+    plt.subplot(2,2,3)
+    plt.title('Synthetic probe real-space [nm]')
+    plt.imshow(np.abs(s_probe))
+
+    data_sum = np.sum(pty_data.raw,(0))
+    # mask = (1-np.fft.fftshift(pty_model.detector.dead_pix))
+
+    plt.subplot(2,2,4)
+    data_im = np.log(data_sum)
+    data_im[data_sum==0] = 0
+
+    # data_im *= mask
+    # pty_model.detector.dead_pix[pty_model.detector.dead_pix==True] = 1
+    # pty_model.detector.dead_pix[pty_model.detector.dead_pix==False] = 0
+
+    plt.imshow(data_im)
+    plt.xticks(x_positions, x_labels)
+    plt.yticks(x_positions, x_labels)
+    plt.title('Summed data [mrad]')
+    plt.show()
+    
+    data_max = np.amax(pty_data.pro)
+    print(data_max)
+    pty_data.pro[pty_data.pro>(data_max-1)] = 0
+
+    print(pty_model.scan.sz)
+    print(pty_model.scan.N)
+    print(pty_model.scan.positions.shape)
+    print(pty_data.raw.shape)
+    data = np.reshape(pty_data.raw,[pty_model.scan.N[0],pty_model.scan.N[1],pty_data.raw.shape[-2],pty_data.raw.shape[-1]])
+    # data = tb.bsx_times(data, mask)
+    data_sum = np.sum(data,(0,1))
+    #data_sum *= mask
+    ap = np.abs(ptyrex.core.toolbox.genAp(data.shape[-2:],20))
+    stxm_full = np.sum(data,(-2,-1))
+    stxm_bf = np.sum(ptyrex.core.toolbox.bsx_times(data, ap),(-2,-1))
+    stxm_df = np.sum(ptyrex.core.toolbox.bsx_times(data, (1-ap)),(-2,-1))
+    
+    plt.figure(figsize=[10,10])
+    plt.subplot(2,2,1)
+    plt.title('Brightfield')
+    plt.imshow(stxm_bf)
+    plt.subplot(2,2,2)
+    plt.title('Darkfield')
+    plt.imshow(stxm_df)
+    plt.subplot(2,2,3)
+    plt.title('Histogram [log]')
+    plt.hist(data.flatten(),bins=np.amax(data))
+    plt.yscale('log')
+    plt.subplot(2,2,4)
+    plt.title('Data summed')
+    plt.imshow(np.log(data_sum))
+    plt.show()
+
+def load(json_dir, json_name):
+#     pty_data, pty_model, pty_params = ptyrex.reconstruct.launcher.configure_pty(['', json_dir, json_name, 0000, 0])
+    pty_data, pty_model, pty_params = ptyrex.reconstruct.launcher.configure_pty(['', json_dir, json_name, 0000, 0])
+    pty_plot = ptyrex.display.plotting.Plot()
+    pty_plot.start_plotting_service('none')
+    pty_data, pty_model = ptyrex.reconstruct.launcher.data_loader(pty_data, pty_model, pty_params)
+    pty_data, pty_model, pty_params, pty_plot = ptyrex.reconstruct.core.setup.expt_config_process(pty_data, pty_model, pty_params, pty_plot)
+    pty_data.load(pty_model.scan.valid_frames, range(len(pty_model.scan.valid_frames)), pty_model.detector.bin)
+
+    return pty_data, pty_model, pty_params
+
+def get_sampling(pty_model, pty_params):
+    dx = pty_params.dx[:,0]
+    det_n = pty_model.probe.func.shape[-2]
+    conv = pty_model.probe.conv
+    alpha = conv /2
+    defocus = pty_model.probe.defocus[0]
+    scan_n = np.copy(pty_model.scan.sz)
+    scan_n[0] = np.uint32(np.ceil(scan_n[0] / pty_model.scan.region[-2]))
+    scan_n[1] = np.uint32(np.ceil(scan_n[1] / pty_model.scan.region[-1]))
+
+    scan_dr = pty_model.scan.step[0]*dx
+
+    probe_width = np.abs(2*alpha*defocus)
+    s_factor = ptyrex.core.toolbox.get_sampling_factor(dx*det_n, probe_width, scan_n[0], scan_dr)
+    angular_sensitivity = np.arctan(1/(probe_width/dx)) * (180/np.pi)
+
+    p_overlap = probe_width/scan_dr
+    p_sampling = det_n/ (probe_width/dx)
+
+    print("s_factor", s_factor)
+    print("p_overlap", p_overlap)
+    print("p_sampling", p_sampling)
+    print("angular_sensitivity", angular_sensitivity)
+    
+    return probe_width, s_factor
+
+def get_full_illumination(pty_model):
+    probe = np.squeeze(pty_model.probe.func)
+    positions = np.squeeze(pty_model.scan.positions)
+    s_probe = ptyrex.core.toolbox.syn_probe(probe, positions)
+    return s_probe
+
+# def plot():
+#     plt.figure(figsize=[15,15])
+#     angular_sensitivity = np.arctan(1/(probe_width/dx)) * (180/np.pi)
+#     plt.suptitle('Ptychography pre analysis\n Sampling factor = %f\n Angular sensitivity = %f' %(s_factor,angular_sensitivity))
+#     plt.gray()
+
+#     ar_sz = probe.shape
+#     d_theta = pty_model.detector.pp[0] / pty_model.detector.dist
+#     print("d_theta", d_theta)
+#     x_positions = np.arange(0,ar_sz[0],50)
+#     x_labels = np.int32(x_positions * dx * 1e9)
+#     plt.subplot(2,2,1)
+#     plt.imshow(np.abs(probe))
+#     plt.xticks(x_positions, x_labels)
+#     plt.yticks(x_positions, x_labels)
+#     plt.title('Probe real-space [nm]')
+
+#     x_positions = np.arange(0,ar_sz[0],50)
+#     x_labels = np.int32(x_positions * d_theta * 1e3)
+#     plt.subplot(2,2,2)
+#     plt.imshow(np.log(np.abs(np.fft.fftshift(np.fft.fft2(probe)))))
+#     plt.xticks(x_positions, x_labels)
+#     plt.yticks(x_positions, x_labels)
+#     plt.title('Probe reciprocal-space [mrad]')
+
+#     plt.subplot(2,2,3)
+#     plt.title('Synthetic probe real-space [nm]')
+#     plt.imshow(np.abs(s_probe))
+
+#     data_sum = np.sum(pty_data.raw,(0))
+#     # mask = (1-np.fft.fftshift(pty_model.detector.dead_pix))
+
+#     plt.subplot(2,2,4)
+#     data_im = np.log(data_sum)
+#     data_im[data_sum==0] = 0
+#     # data_im *= mask
+
+#     # pty_model.detector.dead_pix[pty_model.detector.dead_pix==True] = 1
+#     # pty_model.detector.dead_pix[pty_model.detector.dead_pix==False] = 0
+
+#     plt.imshow(data_im)
+#     plt.xticks(x_positions, x_labels)
+#     plt.yticks(x_positions, x_labels)
+#     plt.title('Summed data [mrad]')
+#     plt.show()
+
+def gen_config(template_dir, config_name, meta_file_path, rotation_angle, camera_length, conv_angle):
+    config_file = template_dir + '/' + config_name + '.json'
+    
+    with open(template_dir + '/template.json','r') as template_file:
+        pty_expt = json.load(template_file)
+    data_path = meta_file_path
+    
+    pty_expt['experiment']['data']['data_path'] = data_path
+    
+    pty_expt['process']['common']['scan']['rotation'] = rotation_angle
+    
+    
+    # pty_expt['process']['common']['scan']['N'] = scan_shape
+    pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
+    pty_expt['experiment']['optics']['lens']['alpha'] = conv_angle
+    
+    
+    with h5py.File(meta_file_path,'r') as microscope_meta:
+        meta_values = microscope_meta['metadata']
+        pty_expt['process']['common']['scan']['N'] = [int(meta_values['4D_shape'][:2][0]), int(meta_values['4D_shape'][:2][1])]
+        # pty_expt['experiment']['detector']['position'] = 
+        pty_expt['process']['common']['source']['energy'] = [float(np.array(meta_values['ht_value(V)']))]
+#         pty_expt['experiment']['detector']['position'] = [0, 0, float(np.array(meta_values['nominal_camera_length (m)']))]
+        pty_expt['process']['common']['scan']['dR'] = [float(np.array(meta_values['step_size(m)'])), float(np.array(meta_values['step_size(m)']))]
+        # pty_expt['experiment']['optics']['lens']['alpha'] = 2 * float(np.array(meta_values['convergence_semi-angle(rad)']))
+        pty_expt['experiment']['optics']['lens']['defocus'] = [float(np.array(meta_values['defocus(nm)'])*1e-9), float(np.array(meta_values['defocus(nm)'])*1e-9)]
+        pty_expt['process']['save_prefix'] = config_name
+#     with h5py.File(data_path,'r') as vds_meta:
+#         pass
+# #         pty_expt['process']['common']['scan']['shape'] = vds_meta['/scan_shape'][:2]
+    
+    with open(config_file,'w') as f:
+        json.dump(pty_expt, f, indent=4)
+    
+def loader(expt_id, data_id, base_dir, data_filename):
+    raw_data_path = base_dir + data_filename
+    template_file = base_dir
+    microscope_metafile = base_dir + data_id + '.hdf'
+#     with h5py.File(microscope_metafile,'r') as microscope_meta:
+#         print(microscope_meta['metadata'].keys()) 
+        
+    pty_expt = {}
+    microscope_metafile = base_dir + data_id + '.hdf'
+    with h5py.File(microscope_metafile,'r') as microscope_meta:
+#     for entry in microscope_meta['metadata']:
+#         print(microscope_meta['metadata'][entry], np.array(microscope_meta['metadata'][entry]))
+        meta_values = microscope_meta['metadata']
+        pty_expt['institute'] = 'dls'
+        pty_expt['instrument'] = 'e02'
+        pty_expt['datetime'] = ''
+        pty_expt['expt_id'] = expt_id
+        pty_expt['data_id'] = data_id
+
+        pty_expt['source'] = {}
+        pty_expt['source']['radiation'] = 'electron'
+        pty_expt['source']['energy'] = float(np.array(meta_values['ht_value (V)']))
+
+        pty_expt['detector'] = {}
+        pty_expt['detector']['name'] = 'merlin'
+        pty_expt['detector']['bit_depth'] = 6
+        pty_expt['detector']['shape'] = [515, 515]
+        pty_expt['detector']['pixel_pitch'] = [55e-6, 55e-6]
+        pty_expt['detector']['position'] = [0, 0, float(np.array(meta_values['nominal_camera_length (m)']))]
+        pty_expt['detector']['optic_axis'] = [256, 256] 
+
+        pty_expt['scan'] = {}
+        pty_expt['scan']['element'] = 'beam'
+        pty_expt['scan']['type'] = 'tv'
+        pty_expt['scan']['fast_axis'] = 1
+        pty_expt['scan']['step'] = [float(np.array(meta_values['step_size'])), float(np.array(meta_values['step_size']))]
+        pty_expt['scan']['shape'] = [255, 255]
+        pty_expt['scan']['path'] = ''
+
+        pty_expt['data'] = {}
+        pty_expt['data']['path'] = '/dls/e02/data/2020/cm26481-1/processing/Merlin/20201012 130552/pty_data_20201012_125924.h5'
+        pty_expt['data']['key'] = '/data/frames'
+
+
+        #pty_expt['data']['path'] = raw_data_path
+        # pty_expt['data']['key'] = 'Experiments/MOS2_30kV_Pty3_40Mx_15cm_8C.hdr/data'
+    #     pty_expt['data']['key'] = 'Experiments/__unnamed__/data'
+
+
+        pty_expt['optics'] = {}
+        pty_expt['optics']['type'] = 'lens'
+#         pty_expt['optics']['alpha'] = float(np.array(meta_values['convergence semi-angle (rad)']))
+#         pty_expt['optics']['defocus'] = float(np.array(meta_values['defocus (nm)'])*1e-9)
+        
+    with open(base_dir + 'pty_meta_' + data_id + '.json','w') as f:
+        json.dump(pty_expt, f, indent=4)
+        
+    scan = ptyrex.core.model.scan.Scan()
+    scan.type = pty_expt['scan']['type']
+    scan.step = pty_expt['scan']['step']
+    scan.sz = pty_expt['scan']['shape']
+    scan.fast_axis = pty_expt['scan']['fast_axis']
+    scan.create()
+    
+    with h5py.File(raw_data_path,'r') as f:
+        data_full = np.array(f['Experiments/__unnamed__/data'])
+        print("4D shape:", data_full.shape)
+        data_full = np.reshape(data_full,[np.prod(data_full.shape[:2]), data_full.shape[-2], data_full.shape[-1]])
+        print("3D shape:", data_full.shape)
+        
+    data_key = 'data/frames'
+    scan_key = 'data/scan'
+    filename = base_dir + 'pty_data_'+ data_id +'.h5'
+    with h5py.File(filename,'w') as f:
+        f.create_dataset(data_key, data = data_full, compression='gzip')
+        f.create_dataset(scan_key, data = scan.positions)
+        #Should add mask entry
+        #Think about flux readout (anode plate, ADF detector?)
+    print(filename)
