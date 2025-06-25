@@ -478,7 +478,7 @@ if eval(info["parallax"]):
 #         fp.write('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
 
 
-with h5py.File(save_dir+"/"+time_stamp+"_py4DSTEM_processed_data.hdf5", 'w') as vi_save:
+with h5py.File(save_dir+"/"+time_stamp+"_py4DSTEM_processed.hdf5", 'w') as vi_save:
     vi_save.create_dataset('data_path', data=data_path)
     vi_save.create_dataset('defocus(nm)', data=defocus_exp)
     vi_save.create_dataset('ht_value(V)', data=acc)

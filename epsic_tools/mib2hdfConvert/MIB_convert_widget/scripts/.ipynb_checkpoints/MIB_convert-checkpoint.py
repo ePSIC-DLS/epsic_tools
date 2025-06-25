@@ -186,7 +186,7 @@ class convert_info_widget():
         else:
             self._activate()
 
-    def _paths(self, year, session, subfolder_check, subfolder):
+    def _paths(self, basedir, year, session, subfolder_check, subfolder):
 
         if subfolder == '' and subfolder_check:
             print("**************************************************")
@@ -194,7 +194,7 @@ class convert_info_widget():
             print("All MIB files in 'Merlin' folder will be converted")
             print("**************************************************")
         
-        self.src_path = f'/dls/e02/data/{year}/{session}/Merlin/{subfolder}'
+        self.src_path = f'/{basedir}/{year}/{session}/Merlin/{subfolder}'
         print("source_path: ", self.src_path)
         if os.path.exists(self.src_path):
             mib_files = []
@@ -210,16 +210,16 @@ class convert_info_widget():
             print('Path specified does not exist!')
             src_path_flag = False
 
-        self.dest_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}'
+        self.dest_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
         print("destination_path: "+self.dest_path)
         if not os.path.exists(self.dest_path) and src_path_flag:
             os.makedirs(self.dest_path)
             print("created: "+self.dest_path)
 
         if subfolder == '':
-            self.script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/scripts'
+            self.script_save_path = f'/{basedir}/{year}/{session}/processing/Merlin/scripts'
         else:
-            self.script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}/scripts'
+            self.script_save_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts'
         print("script_save_path: "+self.script_save_path)
         if not os.path.exists(self.script_save_path) and src_path_flag:
             os.makedirs(self.script_save_path)
@@ -260,8 +260,8 @@ class convert_info_widget():
                   node_check,n_jobs,create_virtual_image,mask_path,disk_lower_thresh,
                   disk_upper_thresh,DPC_check,parallax_check,
                   create_batch_check,create_info_check):
-        
-        self.python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/MIB_convert_submit.py'
+
+        self.python_script_path = '/home/hgl95221/Desktop/RYU_at_ePSIC/MIB_convert/develop/scripts/MIB_convert_submit.py'
         
         self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
         self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
@@ -310,7 +310,7 @@ class convert_info_widget():
                 bin_nav_flag = 0
                 bin_nav_factor = bin_nav_widget
 
-            if reshaping == "Auto reshape":
+            if reshaping == "Auto_reshape":
                 auto_reshape = True
                 no_reshaping = False
                 use_fly_back = False
@@ -320,7 +320,7 @@ class convert_info_widget():
                 no_reshaping = False
                 use_fly_back = True
                 known_shape = False
-            elif reshaping == "Known shape":
+            elif reshaping == "Known_shape":
                 auto_reshape = False
                 no_reshaping = False
                 use_fly_back = False
@@ -500,6 +500,7 @@ class convert_info_widget():
         print('*********************************************************************************')
         
         st = {"description_width": "initial"}
+        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
         year = Text(description='Year:', style=st)
         session = Text(description='Session:', style=st)
         
@@ -509,8 +510,8 @@ class convert_info_widget():
         path_verbose = Checkbox(value=False, description="Show the metadata of each MIB file", style=st)
 
         
-        reshaping = Select(options=['Auto reshape', 'Flyback', 'Known shape', 'No reshaping'],
-                            value='Auto reshape',
+        reshaping = Select(options=['Auto_reshape', 'Flyback', 'Known_shape', 'No_reshaping'],
+                            value='Auto_reshape',
                             rows=4,
                             description='Choose a reshaping option',
                             disabled=False, style=st)
@@ -564,7 +565,8 @@ class convert_info_widget():
         DPC_check = Checkbox(value=False, description='DPC', style=st)
         parallax_check = Checkbox(value=False, description='Parallax', style=st)
 
-        self.path = ipywidgets.interact(self._paths, 
+        self.path = ipywidgets.interact(self._paths,
+                                          basedir=basedir,
                                           year=year, 
                                           session=session,
                                           subfolder_check=subfolder_check,
@@ -594,6 +596,7 @@ class convert_info_widget():
 
     def _ptyrex_json(self):
         st = {"description_width": "initial"}
+        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
         year = Text(description='Year:', style=st)
         session = Text(description='Session:', style=st)
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
@@ -608,7 +611,8 @@ class convert_info_widget():
         ptycho_config_name = Text(description='Enter config name (optional) :', style=st)
         ptycho_template_path = Text(description='Enter template config path (optional) :', style=st)
 
-        self.path = ipywidgets.interact(self._paths, 
+        self.path = ipywidgets.interact(self._paths,
+                                          basedir=basedir,
                                           year=year, 
                                           session=session,
                                           subfolder_check=subfolder_check,
@@ -627,6 +631,7 @@ class convert_info_widget():
         
     def _virtual_images(self):
         st = {"description_width": "initial"}
+        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
         year = Text(description='Year:', style=st)
         session = Text(description='Session:', style=st)
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
@@ -653,7 +658,8 @@ class convert_info_widget():
         submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)
 
         
-        self.path = ipywidgets.interact(self._paths, 
+        self.path = ipywidgets.interact(self._paths,
+                                          basedir=basedir,
                                           year=year, 
                                           session=session,
                                           subfolder_check=subfolder_check,
@@ -694,7 +700,7 @@ class convert_info_widget():
                     converted_path = self.dest_path + '/' + folder_name + '/' + f
                     converted_files.append(converted_path)
         
-        python_script_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/py4DSTEM_virtual_image.py'
+        python_script_path = '/home/hgl95221/Desktop/RYU_at_ePSIC/MIB_convert/develop/scripts/py4DSTEM_virtual_image.py'
         bash_script_path = os.path.join(self.script_save_path, 'virtual_submit.sh')
         info_path = os.path.join(self.script_save_path, 'py4DSTEM_info.txt')
         
@@ -832,12 +838,12 @@ class convert_info_widget():
     
         return mib_to_convert
     
-    def _ptyrex_paths(self, year, session, subfolder_check, subfolder):
+    def _ptyrex_paths(self, basedir, year, session, subfolder_check, subfolder):
         self.json_files = []
         if subfolder == '':
-            self.script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/scripts'
+            self.script_save_path = f'/{basedir}/{year}/{session}/processing/Merlin/scripts'
         else:
-            self.script_save_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}/scripts'
+            self.script_save_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts'
 
         if subfolder == '' and subfolder_check:
             print("**************************************************")
@@ -845,7 +851,7 @@ class convert_info_widget():
             print("All MIB files in 'Merlin' folder will be converted")
             print("**************************************************")
         
-        self.json_sub_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}'
+        self.json_sub_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
         print("source_path: ", self.json_sub_path)
         if os.path.exists(self.json_sub_path):
             test_string = 'autoptycho_is_done.txt'
@@ -952,6 +958,7 @@ class convert_info_widget():
 
     def _ptyrex_submit(self):
         st = {"description_width": "initial"}
+        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
         year = Text(description='Year:', style=st)
         session = Text(description='Session:', style=st)
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
@@ -964,7 +971,8 @@ class convert_info_widget():
 
         submit_ptyrex_job = Checkbox(value=False, description="Submit ptyrex jobs", style=st)
 
-        self.ptyrex_paths = ipywidgets.interact(self._ptyrex_paths, 
+        self.ptyrex_paths = ipywidgets.interact(self._ptyrex_paths,
+                                          basedir=basedir,
                                           year=year, 
                                           session=session,
                                           subfolder_check=subfolder_check,
