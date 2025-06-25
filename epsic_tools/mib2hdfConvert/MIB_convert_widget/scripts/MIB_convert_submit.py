@@ -442,6 +442,8 @@ def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed_
             f.create_virtual_dataset(vds_key, layout)
             f['/data/mask'] = h5py.ExternalLink('/dls_sw/e02/medipix_mask/Merlin_12bit_mask.h5', "/data/mask")
             f['metadata']['4D_shape'] = tuple(sh)
+            # this points to invalid link in Windows, removing it
+            del f['/experiment:NXentry']
         
     return
 
