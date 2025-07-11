@@ -738,6 +738,9 @@ if auto_reshape:
         print("A proper scan shape was not detected")
         print("The scan shape will be %d*1"%(mib_properties['sequence_number'][-1]))
 
+if no_reshaping == True:
+    iBF = False
+    bin_nav_flag = 0
 
 # check the size of the detector to determine whether or not to add a cross
 if mib_properties['det_x'][0] == 256:
