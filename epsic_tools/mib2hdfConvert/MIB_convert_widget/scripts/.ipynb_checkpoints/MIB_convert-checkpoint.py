@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+import sys
+import pprint
 import hyperspy.api as hs
 print(f"hyperspy version: {hs.__version__}")
 import pyxem as pxm
@@ -12,14 +14,19 @@ from rsciio.quantumdetector import file_reader
 import h5py
 import shutil
 import pandas as pd
+import datetime
 
 import ipywidgets
 from ipywidgets.widgets import *
-import sys
 import os
 import glob
 import logging
 import subprocess
+import nbformat
+import yaml
+import json
+import re
+
 
 formatter = logging.Formatter("%(asctime)s    %(process)5d %(processName)-12s %(threadName)-12s                   %(levelname)-8s %(pathname)s:%(lineno)d %(message)s")
 for handler in logging.getLogger().handlers:
@@ -49,8 +56,6 @@ def find_metadat_file(timestamp, acquisition_path):
     logger.debug('No metadata file could be matched.')
     return 
 
-# ptyrex import
-import json
 
 def gen_config(template_path, dest_path, config_name, meta_file_path, rotation_angle, camera_length, conv_angle):
     config_file = dest_path + '/' + config_name + '.json'
@@ -155,8 +160,91 @@ def Meta2Config(acc,nCL,aps):
     return rot_angle,camera_length,conv_angle
 
 
+# ----------------------------------------------------------------------------------------
+class NotebookHelper:
+    """
+    This workflow takes a notebook. 
+    """
+
+    def __init__(self, notebook_paths, notebook_name):
+        self.__notebook_paths = notebook_paths
+        self.__notebook_name = notebook_name
+
+    # ------------------------------------------------------------------
+    # Method to get settings from notebook cell.
+    def get_settings(self, cell_index):
+        """
+        Get settings from a notebook cell. 
+        """
+
+        ipynb_filename = os.path.join(self.__notebook_paths , f"{self.__notebook_name}.ipynb")
+
+
+        # Read the notebook into memory.
+        with open(ipynb_filename, "r") as stream:
+            notebook = nbformat.read(stream, as_version=4)
+
+        source = notebook["cells"][cell_index]["source"].strip()
+
+        if len(source) == 0:
+            raise RuntimeError(
+                f"notebook {self.__notebook_name} cell {cell_index} is blank"
+            )
+
+        # Replace some markdown things that might be in there.
+        source = re.sub(r"^(```yaml)(\n)?", "", source)
+        source = re.sub(r"^(```json)(\n)?", "", source)
+        source = re.sub(r"^(```)(\n)?", "", source)
+        source = re.sub(r"(\n)?(```)$", "", source)
+
+        if source[0] == "{":
+            try:
+                settings_dicts = json.loads(source)
+            except Exception:
+                raise RuntimeError(
+                    f"notebook {self.__notebook_name} cell {cell_index} failed to parse as json"
+                )
+        else:
+            try:
+                settings_dicts = yaml.safe_load(source)
+            except Exception:
+                raise RuntimeError(
+                    f"notebook {self.__notebook_name} cell {cell_index} failed to parse as yaml"
+                )
+
+        return settings_dicts
+
+
+    def set_settings(self, new_settings, save_path, blank_cell_index=2):
+        """
+        Set settings to new values and saves a new version of notebook.
+        """
+#TODO: here the loading of notebook is repeated - maybe have it as a separate function?
+        ipynb_filename = os.path.join(self.__notebook_paths , f"{self.__notebook_name}.ipynb")
+
+        # Read the notebook into memory.
+        with open(ipynb_filename, "r") as stream:
+            notebook = nbformat.read(stream, as_version=4)
+#TODO: Check here not to overwrite the dictionary
+
+        source = []
+        for key, value in new_settings.items():
+            if type(value) is dict:
+                source.append(f"{key}='{value['value']}'\n")
+            else:
+                source.append(f"{key}='{value}'\n") 
+        source = ''.join(source)
+        notebook["cells"][blank_cell_index]["source"] = source
+        nbformat.write(notebook, save_path)
+        return
+#TODO: Bring submit option / code here
+
+
 # Widgets
 class convert_info_widget():
+    
+    software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
+    # software_basedir = '/home/hgl95221/Desktop/RYU_at_ePSIC/MIB_convert/develop/scripts/'
 
     meta_keys = ['filename', 'A1_value_(kV)', 'A2_value_(kV)', 'aperture_size',
        'convergence_semi-angle(rad)', 'current_OLfine', 'deflector_values',
@@ -176,13 +264,21 @@ class convert_info_widget():
        'set_scan_px', 'spot_size', 'step_size(m)', 'x_pos(m)', 'x_tilt(deg)',
        'y_pos(m)', 'y_tilt(deg)', 'z_pos(m)', 'zero_OLfine']
     
-    def __init__(self, only_ptyrex=False, only_virtual=False, ptyrex_submit=False):
-        if only_ptyrex:
+    def __init__(self, ptyrex_json=False, 
+                       virtual_image=False, 
+                       ptyrex_submit=False, 
+                       au_calibration_submit=False,
+                       radial_transformation_submit=False):
+        if ptyrex_json:
             self._ptyrex_json()
-        elif only_virtual:
+        elif virtual_image:
             self._virtual_images()
         elif ptyrex_submit:
             self._ptyrex_submit()
+        elif au_calibration_submit:
+            self._au_calibration_submit()
+        elif radial_transformation_submit:
+            self._radial_transformation_submit()
         else:
             self._activate()
 
@@ -261,7 +357,7 @@ class convert_info_widget():
                   disk_upper_thresh,DPC_check,parallax_check,
                   create_batch_check,create_info_check):
 
-        self.python_script_path = '/home/hgl95221/Desktop/RYU_at_ePSIC/MIB_convert/develop/scripts/MIB_convert_submit.py'
+        self.python_script_path = self.software_basedir + 'MIB_convert_submit.py'
         
         self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
         self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
@@ -334,7 +430,7 @@ class convert_info_widget():
             iBF = True
             
             if mask_path == '':
-                mask_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/29042024_12bitmask.h5'
+                mask_path = self.software_basedir + '29042024_12bitmask.h5'
                 
             with open (self.info_path, 'w') as f:
                 f.write(
@@ -459,7 +555,7 @@ class convert_info_widget():
 
                     '''TODO: set up some standard ptyREX config files to reference at different energies'''
                     if ptycho_template_path == '':
-                        template_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/UserExampleJson.json'
+                        template_path = self.software_basedir + 'UserExampleJson.json'
                     else:
                         template_path = ptycho_template_path
 
@@ -550,7 +646,7 @@ class convert_info_widget():
         submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)
 
         node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
-        n_jobs = IntSlider(value=3, min=1, max=12, step=1,
+        n_jobs = IntSlider(value=3, min=1, max=9, step=1,
                             description='Number of multiple slurm jobs:',
                             disabled=False,
                             continuous_update=False,
@@ -651,6 +747,14 @@ class convert_info_widget():
         dpc_hpass = FloatText(description='DPC high pass', value=0.00, style=st)     
         parallax_check = Checkbox(value=False, description='Parallax', style=st)
         
+        n_jobs = IntSlider(value=3, min=1, max=9, step=1,
+                    description='Number of multiple slurm jobs:',
+                    disabled=False,
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='d', style=st)
+        
         node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
         
         create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
@@ -673,12 +777,13 @@ class convert_info_widget():
         
         self.virtual_values = ipywidgets.interact(self._virtual,
                                                      mask_path=mask_path,
-                                                      disk_lower_thresh=disk_lower_thresh,
-                                                      disk_upper_thresh=disk_upper_thresh,
+                                                     disk_lower_thresh=disk_lower_thresh,
+                                                     disk_upper_thresh=disk_upper_thresh,
                                                      DPC_check=DPC_check,
                                                      dpc_lpass=dpc_lpass,
                                                      dpc_hpass=dpc_hpass,
                                                      parallax_check=parallax_check,
+                                                     n_jobs=n_jobs,
                                                      node_check=node_check,
                                                      create_batch_check=create_batch_check,
                                                      create_info_check=create_info_check,
@@ -689,7 +794,7 @@ class convert_info_widget():
     def _virtual(self, mask_path, disk_lower_thresh,
                         disk_upper_thresh, DPC_check,
                         dpc_lpass, dpc_hpass, parallax_check,
-                        create_batch_check, node_check,
+                        create_batch_check, n_jobs, node_check,
                         create_info_check, submit_check):
         
         converted_files = []
@@ -700,7 +805,7 @@ class convert_info_widget():
                     converted_path = self.dest_path + '/' + folder_name + '/' + f
                     converted_files.append(converted_path)
         
-        python_script_path = '/home/hgl95221/Desktop/RYU_at_ePSIC/MIB_convert/develop/scripts/py4DSTEM_virtual_image.py'
+        python_script_path = self.software_basedir + 'py4DSTEM_virtual_image.py'
         bash_script_path = os.path.join(self.script_save_path, 'virtual_submit.sh')
         info_path = os.path.join(self.script_save_path, 'py4DSTEM_info.txt')
         
@@ -715,7 +820,7 @@ class convert_info_widget():
                 f.write('#SBATCH --time 05:00:00\n')
                 f.write('#SBATCH --mem 192G\n\n')
 
-                f.write(f"#SBATCH --array=0-{len(converted_files)-1}%3\n")
+                f.write(f"#SBATCH --array=0-{len(converted_files)-1}%{n_jobs}\n")
                 f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
                 f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
 
@@ -726,7 +831,7 @@ class convert_info_widget():
             print("submission python file: "+python_script_path)        
 
         if mask_path == '':
-            mask_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/29042024_12bitmask.h5'
+            mask_path = self.software_basedir + '29042024_12bitmask.h5'
             
         if create_info_check:
             with open (info_path, 'w') as f:
@@ -768,7 +873,308 @@ class convert_info_widget():
             #to catch the lines up to logout
             for line in  sshProcess.stdout: 
                 print(line,end="")
+                
+                
+    def _au_calibration_submit(self):
+        st = {"description_width": "initial"}
+        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
+        year = Text(description='Year:', style=st)
+        session = Text(description='Session:', style=st)
+        au_cal_folder = Text(description='Au data folder name:', style=st)
+        
+        pixel_size_factor = FloatText(description='Multi. factor for the initial pixel size guess', value=1.0, style=st)
+        ring_det_range = IntText(description='Pixel range to detect a diffraction ring', value=8, style=st)
+        
+        n_jobs = IntSlider(value=3, min=1, max=9, step=1,
+                            description='Number of multiple slurm jobs:',
+                            disabled=False,
+                            continuous_update=False,
+                            orientation='horizontal',
+                            readout=True,
+                            readout_format='d', style=st)
+        
+        node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
+        
+        create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
+        submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)        
+        
+        self.au_calibration_values = ipywidgets.interact(self._au_calibration,
+                                                        basedir=basedir,
+                                                        year=year,
+                                                        session=session,
+                                                        au_cal_folder=au_cal_folder,
+                                                        pixel_size_factor=pixel_size_factor,
+                                                        ring_det_range=ring_det_range,
+                                                        n_jobs=n_jobs,
+                                                        node_check=node_check,
+                                                        create_batch_check=create_batch_check,
+                                                        submit_check=submit_check)
+        
+        
+    def _au_calibration(self, basedir, year, session, au_cal_folder, 
+                        pixel_size_factor, ring_det_range, n_jobs,
+                       node_check, create_batch_check, submit_check):
+        
+        current = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+        starting_notebook_path = self.software_basedir
+        starting_notebook_name = 'au_xgrating_cal_submit'
+        nb = NotebookHelper(starting_notebook_path, starting_notebook_name)
 
+        old_settings = nb.get_settings(1) # settings should be cell index 1
+        old_settings = old_settings.split(' ')
+        old_keys = [i.split('=')[0] for i in old_settings]
+        old_vals = [i.split('=')[1] for i in old_settings]
+        old_dict = dict(zip(old_keys, old_vals))
+
+        # Specify the root directory for the Merlin folders
+        merlin_root = basedir+ '/' + year + '/' + session + '/processing/Merlin/' + au_cal_folder
+        hdf5_file_paths = glob.glob(merlin_root+ '/*/*.hdf5', recursive=True)
+
+        # Output the paths
+        hdf5_file_paths.sort()
+        print(len(hdf5_file_paths))
+        print(*hdf5_file_paths, sep="\n")
+
+        if create_batch_check:
+            code_path = merlin_root + '/cluster_logs'
+            if not os.path.exists(code_path):
+                os.mkdir(code_path)
+                
+            # make some changes in new setting
+            # log files from the cluster jobs and the bash script will be saved here:
+            new_notebook_paths_list = []
+            for file in hdf5_file_paths:
+                # update the settings
+                new_setting = old_dict.copy()
+                new_setting['file_path'] = file
+                new_setting['save_path_name'] = 'automatic_Au_calibration'
+                new_setting['pixel_size_factor'] = pixel_size_factor
+                new_setting['ring_det_range'] = ring_det_range
+
+                save_path = os.path.join(os.path.dirname(file), new_setting['save_path_name'])
+                if not os.path.exists(save_path):
+                    os.mkdir(save_path)
+
+                new_notebook_path = os.path.join(save_path, 'submitted_notebook.ipynb')
+                nb.set_settings(new_setting, new_notebook_path)
+                new_notebook_paths_list.append(new_notebook_path)
+
+
+            note_book_path_file = os.path.join(code_path, 'notebook_list.txt')
+            with open (note_book_path_file, 'w') as f:
+                f.write('\n'.join(new_notebook_paths_list))
+            
+            bash_script_path = os.path.join(code_path, 'cluster_submit.sh')
+            with open (bash_script_path, 'w') as f:
+                f.write('#!/usr/bin/env bash\n')
+                f.write('#SBATCH --partition %s\n'%node_check)
+                f.write('#SBATCH --job-name epsic_notebook\n')
+                f.write('#SBATCH --time 02:00:00\n')
+                f.write('#SBATCH --nodes 1\n')
+                f.write('#SBATCH --tasks-per-node 1\n')
+                f.write('#SBATCH --mem 0G\n')
+
+                f.write(f"#SBATCH --array=0-{len(new_notebook_paths_list)-1}%{n_jobs}\n")
+                f.write(f"#SBATCH --error={code_path}{os.sep}logs_{current}{os.sep}error_%j.out\n")
+                f.write(f"#SBATCH --output={code_path}{os.sep}logs_{current}{os.sep}output_%j.out\n")
+                f.write(f"module load python/epsic3.10\n")
+                f.write(f"mapfile -t paths_array < {note_book_path_file}\n")
+
+                f.write('echo ${paths_array[$SLURM_ARRAY_TASK_ID]}\n')
+                f.write('jupyter nbconvert --to notebook --inplace --ClearMetadataPreprocessor.enabled=True ${paths_array[$SLURM_ARRAY_TASK_ID]}\n')
+                f.write('jupyter nbconvert --to notebook --allow-errors --execute ${paths_array[$SLURM_ARRAY_TASK_ID]}')
+            
+            print("sbatch file created: "+bash_script_path)
+        if submit_check:
+            sshProcess = subprocess.Popen(['ssh',
+                                           '-tt',
+                                           'wilson'],
+                                           stdin=subprocess.PIPE, 
+                                           stdout = subprocess.PIPE,
+                                           universal_newlines=True,
+                                           bufsize=0)
+            sshProcess.stdin.write("ls .\n")
+            sshProcess.stdin.write("echo END\n")
+            sshProcess.stdin.write(f"sbatch {bash_script_path}\n")
+            sshProcess.stdin.write("uptime\n")
+            sshProcess.stdin.write("logout\n")
+            sshProcess.stdin.close()
+
+
+            for line in sshProcess.stdout:
+                if line == "END\n":
+                    break
+                print(line,end="")
+
+            #to catch the lines up to logout
+            for line in  sshProcess.stdout: 
+                print(line,end="")
+        
+        
+    def _radial_transformation_submit(self):
+        st = {"description_width": "initial"}
+        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
+        year = Text(description='Year:', style=st)
+        session = Text(description='Session:', style=st)
+        subfolder = Text(description='Subfolder:', style=st)
+        au_cal_folder = Text(description='Au data folder name:', style=st)
+        
+        R_Q_ROTATION = FloatText(description='Angle between R and Q (optional)', value=0.0, style=st)
+        
+        also_rpl = Checkbox(value=False, description='Save the results also as .rpl (optional)', style=st)
+        mask_path = Text(description='Enter the mask file path (optional) :', style=st)
+        
+        fast_origin = Checkbox(value=True, description='Perform a fast centre finding', style=st)
+        
+        n_jobs = IntSlider(value=3, min=1, max=9, step=1,
+                            description='Number of multiple slurm jobs:',
+                            disabled=False,
+                            continuous_update=False,
+                            orientation='horizontal',
+                            readout=True,
+                            readout_format='d', style=st)
+        
+        node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
+        
+        create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
+        create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
+        submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)        
+        
+        self.radial_transformation_values = ipywidgets.interact(self._radial_transformation,
+                                                        basedir=basedir,
+                                                        year=year,
+                                                        session=session,
+                                                        subfolder=subfolder,
+                                                        au_cal_folder=au_cal_folder,
+                                                        R_Q_ROTATION=R_Q_ROTATION,
+                                                        also_rpl=also_rpl,
+                                                        mask_path=mask_path,
+                                                        fast_origin=fast_origin, 
+                                                        n_jobs=n_jobs,
+                                                        node_check=node_check,
+                                                        create_info_check=create_info_check,        
+                                                        create_batch_check=create_batch_check,
+                                                        submit_check=submit_check)
+    
+    
+    
+    def _radial_transformation(self, basedir, year, session, subfolder, au_cal_folder,
+                              R_Q_ROTATION, also_rpl, mask_path, fast_origin,
+                              n_jobs, node_check, create_info_check, 
+                              create_batch_check, submit_check):
+
+        script_path = self.software_basedir + 'apply_elliptical_correction_polardatacube.py'
+        YEAR = year
+        VISIT = session
+        sub = subfolder
+        au_calib_name = au_cal_folder
+        base_dir = f'{basedir}/{YEAR}/{VISIT}/processing/Merlin'
+        au_calib_dir = f'{basedir}/{YEAR}/{VISIT}/processing/Merlin/{au_calib_name}/' # The whole path can be manually specified
+
+        au_calib_list = glob.glob(au_calib_dir+'/*/*.json', recursive=True)
+        if au_calib_list == []:
+            print("No calibration data exists")
+            print("Please check the directory path again")
+        else:
+            print("Calibration data list")
+            print(*au_calib_list, sep='\n')
+
+        # (optional) Angle between the real space dimensions and the reciprocal space dimensions
+        # R_Q_ROTATION = eval(R_Q_ROTATION) 
+
+        also_rpl = also_rpl # if 'True', the results will also be saved in '.rpl' format
+
+        # mask_path = mask_path # if you would like to apply a certain mask to the diffraction patterns
+
+        fast_origin = fast_origin # if not 'True', the process includes the Bragg peak finding (the centre positions could be more accurate, but it needs more time)
+        
+        file_adrs = glob.glob(base_dir+'/'+sub+'/*/*/*_data.hdf5', recursive=True)
+        if file_adrs == []:
+            file_adrs = glob.glob(base_dir+'/'+sub+'/*/*_data.hdf5', recursive=True)
+            if file_adrs == []:
+                file_adrs = glob.glob(base_dir+'/'+sub+'/*_data.hdf5', recursive=True)
+                if file_adrs == []:
+                    print("Please make sure that the base directory and subfolder name are correct.")
+
+        print(len(file_adrs))
+        print(*file_adrs, sep='\n')
+        
+        data_labels = []
+        for adr in file_adrs:
+            datetime = adr.split('/')[-2]
+            if os.path.exists(os.path.dirname(adr) + "/" + datetime + "_azimuthal_data_centre.png"):
+                continue
+            else:
+                data_labels.append(sub+'/'+adr.split('/')[-2])
+
+        # print(len(data_labels))
+        # print(*data_labels, sep='\n')
+
+        if create_info_check:
+            code_path = base_dir + '/' + sub + '/cluster_logs'
+            if not os.path.exists(code_path):
+                os.mkdir(code_path)
+                
+            info_path = os.path.join(code_path, 'transformation_info.txt')
+            with open (info_path, 'w') as f:
+                f.write(
+                    f"basedir = {basedir}\n"
+                    f"YEAR = {YEAR}\n"
+                    f"VISIT = {VISIT}\n"
+                    f"sub = {sub}\n"
+                    f"data_labels = {data_labels}\n"
+                    f"au_calib_dir = {au_calib_dir}\n"
+                    f"R_Q_ROTATION = {R_Q_ROTATION}\n"
+                    f"also_rpl = {also_rpl}\n"
+                    f"mask_path = {mask_path}\n"
+                    f"fast_origin = {fast_origin}\n"
+                        )
+            print("conversion info file created: "+info_path)
+
+        if create_batch_check:
+            bash_script_path = os.path.join(code_path, 'cluster_submit.sh')
+            with open(bash_script_path, 'w') as f:
+                f.write("#!/usr/bin/env bash\n")
+                f.write('#SBATCH --partition %s\n'%node_check)
+                f.write("#SBATCH --job-name=rad_trans\n")
+                f.write("#SBATCH --nodes=1\n")
+                f.write("#SBATCH --ntasks-per-node=4\n")
+                f.write("#SBATCH --cpus-per-task=1\n")
+                f.write("#SBATCH --time=2:00:00\n")
+                f.write("#SBATCH --mem=128G\n")
+                f.write("#SBATCH --output=%s/%%j.out\n"%code_path)
+                f.write("#SBATCH --error=%s/%%j.error\n\n"%code_path)
+                f.write(f"#SBATCH --array=0-{len(data_labels)-1}%{n_jobs}\n")
+
+                f.write("module load python/epsic3.10\n")
+                f.write(f'python {script_path} {info_path} $SLURM_ARRAY_TASK_ID\n')
+            print("sbatch file created: "+bash_script_path)
+            
+        
+        if submit_check:
+            sshProcess = subprocess.Popen(['ssh',
+                                           '-tt',
+                                           'wilson'],
+                                           stdin=subprocess.PIPE, 
+                                           stdout = subprocess.PIPE,
+                                           universal_newlines=True,
+                                           bufsize=0)
+            sshProcess.stdin.write("echo END\n")
+            sshProcess.stdin.write("sbatch "+bash_script_path+"\n")
+            sshProcess.stdin.write("uptime\n")
+            sshProcess.stdin.write("logout\n")
+            sshProcess.stdin.close()        
+
+            for line in sshProcess.stdout:
+                if line == "END\n":
+                    break
+                print(line,end="")
+
+            #to catch the lines up to logout
+            for line in  sshProcess.stdout: 
+                print(line,end="")    
+                
+                
     def _check_differences(self, source_path, destination_path):
         """Checks for .mib files associated with a specified session that have
         not yet been converted to .hdf5.
@@ -983,3 +1389,6 @@ class convert_info_widget():
 
         self.ptyrex_ssh_submit = ipywidgets.interact(self._ptyrex_ssh_submit,
                                             session=session,submit_ptyrex_job=submit_ptyrex_job)
+
+
+
