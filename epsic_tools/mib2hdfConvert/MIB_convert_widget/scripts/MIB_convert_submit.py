@@ -382,11 +382,11 @@ def _get_axes_dict(shape):
 #############################################   Functions - Start   #######################################
 ###########################################################################################################
 
-    
+
 def find_metadat_file(timestamp, acquisition_path):
     metadata_file_paths = []
     mib_file_paths = []
-        
+
     for root, folders, files in os.walk(acquisition_path):
         for file in files:
             if file.endswith('hdf'):
@@ -397,7 +397,7 @@ def find_metadat_file(timestamp, acquisition_path):
         if timestamp == path.split('/')[-1].split('.')[0]:
             return path
     logger.debug('No metadata file could be matched.')
-    return 
+    return
 
 def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed__/data', vds_key = '/data/frames', metadata_path = ''):
     if metadata_path is None:
@@ -409,12 +409,12 @@ def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed_
         except KeyError:
             logger.debug('Key provided for the input data file not correct')
             return
-    
+
         layout = h5py.VirtualLayout(shape=tuple((np.prod(sh[:2]), sh[-2], sh[-1])), dtype = np.uint16)
         for i in range(sh[0]):
             for j in range(sh[1]):
                 layout[i * sh[1] + j] = vsource[i, j, :, :]
-            
+
         with h5py.File(writing_h5_path, 'w', libver='latest') as f:
             f.create_virtual_dataset(vds_key, layout)
     else:
@@ -422,7 +422,7 @@ def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed_
         src_path = metadata_path
         dest_path = os.path.dirname(writing_h5_path)
         shutil.copy(src_path, dest_path)
-        
+
         # Open the metadata dest file and add links
         try:
             with h5py.File(source_h5_path,'r') as f:
@@ -432,19 +432,16 @@ def write_vds(source_h5_path, writing_h5_path, entry_key='Experiments/__unnamed_
         except KeyError:
             logger.debug('Key provided for the input data file not correct')
             return
-    
+
         layout = h5py.VirtualLayout(shape=tuple((np.prod(sh[:2]), sh[-2], sh[-1])), dtype = np.uint16)
         for i in range(sh[0]):
             for j in range(sh[1]):
                 layout[i * sh[1] + j] = vsource[i, j, :, :]
-        logger.debug('Adding vds to: ' + os.path.join(dest_path, os.path.basename(metadata_path)))    
+        logger.debug('Adding vds to: ' + os.path.join(dest_path, os.path.basename(metadata_path)))
         with h5py.File(os.path.join(dest_path, os.path.basename(metadata_path)), 'r+', libver='latest') as f:
             f.create_virtual_dataset(vds_key, layout)
             f['/data/mask'] = h5py.ExternalLink('/dls_sw/e02/medipix_mask/Merlin_12bit_mask.h5', "/data/mask")
-            f['metadata']['4D_shape'] = tuple(sh)
-            # this points to invalid link in Windows, removing it
-            del f['/experiment:NXentry']
-        
+
     return
 
 
@@ -465,7 +462,7 @@ def gen_config(template_path, dest_path, config_name, meta_file_path, rotation_a
     # pty_expt['process']['common']['scan']['N'] = scan_shape
     pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
     pty_expt['experiment']['optics']['lens']['alpha'] = conv_angle
-    
+
     #edit the json in order to perform auto ptycho
     pty_expt['process']['common']['scan']['region'] = [0.0,1.0,0.0,1.0,1,1]
     pty_expt['process']['PIE']['MultiSlice']['slices'] = 1
@@ -490,7 +487,7 @@ def gen_config(template_path, dest_path, config_name, meta_file_path, rotation_a
 def Meta2Config(acc,nCL,aps):
     '''This function converts the meta data from the 4DSTEM data set into parameters to be used in a ptyREX json file'''
 
-    '''The rotation angles noted here are from ptychographic reconstructions which have been successful. see the 
+    '''The rotation angles noted here are from ptychographic reconstructions which have been successful. see the
     following directory for example reconstruction from which these values are derived:
      /dls/science/groups/imaging/ePSIC_ptychography/experimental_data'''
     if acc == 80e3:
@@ -577,23 +574,30 @@ with open(info_path, 'r') as f:
 
 mib_path = eval(info['to_convert_paths'][0])[index]
 
-adr_split = mib_path.split('/')
+adr_split = mib_path.split("/")
+for i in range(len(adr_split)):
+    if adr_split[i] == "Merlin":
+        break
+
 tmp_save = []
 tmp_save.append('/')
-tmp_save.extend(adr_split[1:6])
+tmp_save.extend(adr_split[:i])
 tmp_save.append('processing')
-tmp_save.extend(adr_split[6:8])
+tmp_save.extend(adr_split[i:-2])
 save_dir = os.path.join(*tmp_save)
 
 # Load data as stack
 
-src_path = mib_path[:-40]
+src_path = []
+src_path.append('/')
+src_path.extend(adr_split[:-2])
+src_path = os.path.join(*src_path) + "/"
 
-time_stamp = mib_path.split('/')[-1][:15]
+time_stamp = adr_split[-1].split('_data')[0]
 save_path = os.path.join(save_dir, time_stamp)
 if not os.path.exists(save_path):
      os.makedirs(save_path)
-    
+
 auto_reshape = eval(info['auto_reshape'])
 no_reshaping = eval(info['no_reshaping'])
 use_fly_back = eval(info['use_fly_back'])
@@ -605,7 +609,7 @@ bin_sig_flag = eval(info['bin_sig_flag'])
 bin_sig_factor = eval(info['bin_sig_factor'])
 bin_nav_flag = eval(info['bin_nav_flag'])
 bin_nav_factor = eval(info['bin_nav_factor'])
-reshaping = eval(info['reshaping'])
+reshaping = info['reshaping']
 try:
     print('stuff')
     create_json = eval(info['create_json'])
@@ -733,7 +737,10 @@ if auto_reshape:
         known_shape = False
         print("A proper scan shape was not detected")
         print("The scan shape will be %d*1"%(mib_properties['sequence_number'][-1]))
-        
+
+if no_reshaping == True:
+    iBF = False
+    bin_nav_flag = 0
 
 # check the size of the detector to determine whether or not to add a cross
 if mib_properties['det_x'][0] == 256:
@@ -743,7 +750,7 @@ elif mib_properties['det_x'][0] == 512:
     print("Quad-Medipix 4DSTEM data - Cross added")
     add_cross = True
 else:
-    print("Warning! The dimensions of diffraction pattern are unusual.")    
+    print("Warning! The dimensions of diffraction pattern are unusual.")
 
 
 with open(mib_path, "rb") as mib:
@@ -912,8 +919,12 @@ with open(mib_path, "rb") as mib:
                 # construct only the frame
                 arr = np.frombuffer(frame[header_size:], dtype=dtype_be)
 
+                # convert from big-endian to little-endian
+                arr_le = arr.byteswap()
+                arr_le = arr_le.view(arr_le.dtype.newbyteorder())
+
                 # reshape to 2D for flipping
-                resh = arr.reshape(det_y, det_x)
+                resh = arr_le.reshape(det_y, det_x)
 
                 # flip it to match those from pyxem (but why?)
                 resh = np.flipud(resh)
@@ -1161,7 +1172,7 @@ with open(mib_path, "rb") as mib:
 
 print("Conversion finished.")
 time.sleep(10)
-        
+
 meta_path = find_metadat_file(time_stamp, src_path)
 write_vds(save_path+'/'+time_stamp+'_data.hdf5', save_path +'/'+time_stamp+'_vds.h5', metadata_path=meta_path)
 
@@ -1175,7 +1186,7 @@ if create_virtual_image:
         acc = meta_values['ht_value(V)'][()]
         nCL = meta_values['nominal_camera_length(m)'][()]
         aps = meta_values['aperture_size'][()]
-    rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)       
+    rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)
 
     import time
     import tifffile
@@ -1244,7 +1255,7 @@ if create_virtual_image:
     semiangle = conv_angle * 1000 # mrad
     ### ####################### ###
 
-    if data_path.split(".")[-1] == "hspy": 
+    if data_path.split(".")[-1] == "hspy":
     # This is for the simulated 4DSTEM data using 'submit_abTEM_4DSTEM_simulation.ipynb'
     # stored in /dls/science/groups/e02/Ryu/RYU_at_ePSIC/multislice_simulation/submit_abtem/submit_abtem_4DSTEM_simulation.ipynb
         original_stack = hs.load(data_path)
@@ -1280,7 +1291,7 @@ if create_virtual_image:
         #     original_stack = hs.load(data_path, reader="HSPY", lazy=True)
         #     print(original_stack)
         #     original_stack = original_stack.data
-        try:    
+        try:
             f = h5py.File(data_path,'r')
             print(f)
             original_stack = f['Experiments']['__unnamed__']['data'][:]
@@ -1325,7 +1336,7 @@ if create_virtual_image:
         original_stack /= np.max(original_stack)
         original_stack *= 128.0
         # det_name = 'ePSIC_EDX'
-        # data_key = 'Experiments/__unnamed__/data' 
+        # data_key = 'Experiments/__unnamed__/data'
 
     else:
         print("Wrong data format!")
@@ -1474,11 +1485,11 @@ if create_virtual_image:
 
     if parallax_check:
         print("rebin by 2, implemented for parallax to reduce the memory usage")
-        dataset.bin_Q(2) 
+        dataset.bin_Q(2)
         parallax = py4DSTEM.process.phase.Parallax(
             datacube=dataset,
             energy = HT,
-            device = device, 
+            device = device,
             verbose = True
         ).preprocess(
             normalize_images=True,
@@ -1530,8 +1541,8 @@ if create_virtual_image:
         #     fp.write('semiangle cutoff estimate = ' + str(np.round(semiangle_cutoff_estimated, decimals=1)) + ' mrads\n')
         #     fp.write('estimated defocus         = ' + str(np.round(defocus_estimated)) + ' Angstroms\n')
         #     fp.write('estimated rotation        = ' + str(np.round(rotation_degrees_estimated)) + ' deg')
-            
-    with h5py.File(save_dir+"/"+time_stamp+"_py4DSTEM_processed_data.hdf5", 'w') as vi_save:
+
+    with h5py.File(save_dir+"/"+time_stamp+"_py4DSTEM_processed.hdf5", 'w') as vi_save:
         vi_save.create_dataset('data_path', data=data_path)
         vi_save.create_dataset('defocus(nm)', data=defocus_exp)
         vi_save.create_dataset('ht_value(V)', data=acc)
@@ -1545,13 +1556,13 @@ if create_virtual_image:
             vi_save.create_dataset('CoMx', data=dpc._com_normalized_y)
             vi_save.create_dataset('CoMy', data=dpc._com_normalized_x)
             vi_save.create_dataset('iDPC', data=dpc_cor.object_phase)
-            
+
         if eval(info["parallax"]):
             vi_save.create_dataset('parallax', data=parallax._recon_phase_corrected)
             vi_save.create_dataset('parallax_estimated_defocus(Å)', data=defocus_estimated)
             vi_save.create_dataset('parallax_estimated_rotation(deg)', data=rotation_degrees_estimated)
-        
-            
+
+
 if create_json:
     pty_dest = save_path + '/pty_out'
     pty_dest_2 = save_path + '/pty_out/initial_recon'
