@@ -27,6 +27,8 @@ import yaml
 import json
 import re
 
+import traceback
+
 
 formatter = logging.Formatter("%(asctime)s    %(process)5d %(processName)-12s %(threadName)-12s                   %(levelname)-8s %(pathname)s:%(lineno)d %(message)s")
 for handler in logging.getLogger().handlers:
@@ -56,8 +58,24 @@ def find_metadat_file(timestamp, acquisition_path):
     logger.debug('No metadata file could be matched.')
     return 
 
+def gen_config(template_path, dest_path, config_name, meta_file_path, factor=1.7, overwrite = False, verbose=False):
+    '''
+    A function to generate json file for PtyREX recontrsution for data collected on E02 using the meta data .hdf5
+    files in the /dls/e02/data directory. Is one of many functions designed allow automated ptyrex reconstruction
+    via notebook see _ptycho, Meta2Config.
+    :param template_path: path of the prexisting json which is being copied and being used as template
+    :param dest_path: the destination of the outputted json file
+    :param config_name: name of the json file being outputted
+    :param meta_file_path: hdf5 meta data file which cointains the information needed to fill out the json file
+    :param factor: a scaling factor used for manualy setting the camera length
+    :param overwrite: if true overwrites any existing json file which exist in the pty_out/inital folder with
+    the same config_name
+    :param verbose: If true prints out most of the text, while if false gives minial printout
+    :return: None
+    frederick allars 18-08-2025
+    '''
 
-def gen_config(template_path, dest_path, config_name, meta_file_path, rotation_angle, camera_length, conv_angle):
+
     config_file = dest_path + '/' + config_name + '.json'
 
     with open(template_path, 'r') as template_file:
@@ -68,29 +86,44 @@ def gen_config(template_path, dest_path, config_name, meta_file_path, rotation_a
     pty_expt['process']['save_dir'] = dest_path
     pty_expt['experiment']['data']['data_path'] = data_path
 
-    pty_expt['process']['common']['scan']['rotation'] = rotation_angle
-
-    # pty_expt['process']['common']['scan']['N'] = scan_shape
-    pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
-    pty_expt['experiment']['optics']['lens']['alpha'] = conv_angle
-
     with h5py.File(meta_file_path, 'r') as microscope_meta:
         meta_values = microscope_meta['metadata']
+        acc = meta_values['ht_value(V)'][()]
+        nCL = meta_values['nominal_camera_length(m)'][()]
+        aps = meta_values['aperture_size'][()]
+
+        '''detemine the rotation angle and camera length from the HT value (accerlation voltage) and nomial camera length,
+        also determine the convergence angle from the aperture size used'''
+        rotation_angle, camera_length, conv_angle = Meta2Config(acc, nCL, aps, factor, verbose)
+
+        pty_expt['process']['common']['scan']['rotation'] = rotation_angle
+        pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
+        pty_expt['experiment']['optics']['lens']['alpha'] = conv_angle * 2
         pty_expt['process']['common']['scan']['N'] = [int(meta_values['4D_shape'][:2][0]),
-                                                      int(meta_values['4D_shape'][:2][1])]
+                                                          int(meta_values['4D_shape'][:2][1])]
         pty_expt['process']['common']['source']['energy'] = [float(np.array(meta_values['ht_value(V)']))]
         pty_expt['process']['common']['scan']['dR'] = [float(np.array(meta_values['step_size(m)'])),
-                                                       float(np.array(meta_values['step_size(m)']))]
+                                                           float(np.array(meta_values['step_size(m)']))]
         # pty_expt['experiment']['optics']['lens']['alpha'] = 2 * float(np.array(meta_values['convergence_semi-angle(rad)']))
         pty_expt['experiment']['optics']['lens']['defocus'] = [float(np.array(meta_values['defocus(nm)']) * 1e-9),
-                                                               float(np.array(meta_values['defocus(nm)']) * 1e-9)]
+                                                                   float(np.array(meta_values['defocus(nm)']) * 1e-9)]
         pty_expt['process']['save_prefix'] = config_name
 
-    with open(config_file, 'w') as f:
-        json.dump(pty_expt, f, indent=4)
+    if os.path.exists(config_file) & ~overwrite:
+        if verbose:
+            print('\nskipping this file as json file already exists, instead edit the exitsing json file or name it'
+                  ' something different\n')
+    else:
+        if overwrite & verbose:
+            print('\noverwriting existing File...\n')
+        with open(config_file, 'w') as f:
+            json.dump(pty_expt, f, indent=4)
 
 
-def Meta2Config(acc,nCL,aps):
+
+def Meta2Config(acc,nCL,aps,factor=1.7,verbose=False):
+
+
     '''This function converts the meta data from the 4DSTEM data set into parameters to be used in a ptyREX json file'''
 
     '''The rotation angles noted here are from ptychographic reconstructions which have been successful. see the 
@@ -98,54 +131,70 @@ def Meta2Config(acc,nCL,aps):
      /dls/science/groups/imaging/ePSIC_ptychography/experimental_data'''
     if acc == 80e3:
         rot_angle = 238.5
-        print('Rotation angle = ' + str(rot_angle))
+        if verbose:
+            print('Rotation angle = ' + str(rot_angle))
         if aps == 1:
             conv_angle = 41.65e-3
-            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 2:
             conv_angle = 31.74e-3
-            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 3:
             conv_angle = 24.80e-3
-            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 4:
             conv_angle =15.44e-3
-            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         else:
             print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
     elif acc == 200e3:
         rot_angle = -77.585
-        print('Rotation angle = ' + str(rot_angle) +' Warning: This rotation angle need further calibration')
+        if verbose:
+            print('Rotation angle = ' + str(rot_angle) +' Warning: This rotation angle need further calibration')
         if aps == 1:
             conv_angle = 37.7e-3
-            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 2:
             conv_angle = 28.8e-3
-            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 3:
             conv_angle = 22.4e-3
-            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 4:
             conv_angle = 14.0
-            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 5:
             conv_angle = 6.4
-            print('Condenser aperture size is 10um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 10um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
     elif acc == 300e3:
         rot_angle = -85.5
-        print('Rotation angle = ' + str(rot_angle))
+        if verbose:
+            print('Rotation angle = ' + str(rot_angle))
         if aps == 1:
             conv_angle = 44.7e-3
-            print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 2:
             conv_angle = 34.1e-3
-            print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 3:
             conv_angle = 26.7e-3
-            print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         elif aps == 4:
             conv_angle =16.7e-3
-            print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+            if verbose:
+                print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
         else:
             print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
     else:
@@ -154,11 +203,105 @@ def Meta2Config(acc,nCL,aps):
 
     '''this is incorrect way of calucating the actual camera length but okay for this prototype code'''
     '''TODO: add py4DSTEM workflow which automatic determines the camera length from a small amount of reference data and the known convergence angle'''
-    camera_length = 1.5*nCL
-    print('camera length estimated to be ' + str(camera_length))
+    camera_length = factor*nCL
+    if verbose:
+        print('camera length estimated to be ' + str(camera_length))
 
     return rot_angle,camera_length,conv_angle
 
+def _create_ptyrex_bash_submit(json_files, script_folser, node_type, ptycho_time, verbose=False):
+    bash_ptyrex_path = []
+
+    for num, x in enumerate(json_files):
+        if verbose:
+            print(f'\n{str(num)}: {x}\n')
+        time_stamp_index = x.find('/pty_out')
+        time_stamp = x[time_stamp_index - 6:time_stamp_index]
+        if verbose:
+            print(f'\ntime_stamp = {time_stamp}\n')
+        '''rememeber to self.script_save_path to save these files to the script folder'''
+        bash_ptyrex_path.append(os.path.join(script_folser, f'{time_stamp}_ptyrex_submit.sh'))
+        if verbose:
+            print(f'{num}: {bash_ptyrex_path[num]}')
+        if True:
+            with open(bash_ptyrex_path[num], 'w') as f:
+                f.write('#!/usr/bin/env bash\n')
+                f.write('#SBATCH --partition=cs05r\n')
+                f.write('#SBATCH --job-name=ptyrex_recon\n')
+                f.write('#SBATCH --nodes 1\n')
+                f.write('#SBATCH --tasks-per-node=4\n')
+                f.write('#SBATCH --cpus-per-task 1\n')
+                f.write('#SBATCH --gpus-per-node=4\n')
+                f.write(f'#SBATCH --time {ptycho_time}\n')
+                f.write('#SBATCH --mem 0G\n\n')
+                f.write(f'#SBATCH --constraint=NVIDIA_{node_type}\n')
+
+                f.write(f"#SBATCH --error={script_folser}{os.sep}%j_error.err\n")
+                f.write(f"#SBATCH --output={script_folser}{os.sep}%j_output.out\n")
+
+                f.write(f"cd /home/ejr78941/ptyrex_temp_5/PtyREX")
+
+                f.write('\n\nmodule load python/cuda11.7\n\n')
+                f.write('module load hdf5-plugin/1.12\n\n')
+
+                f.write(f"mpirun -np 4 ptyrex_recon -c {json_files[num]}\n")
+    return bash_ptyrex_path
+
+def _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose=False):
+    '''
+    :param submit_ptyrex_job: a test whether ptyrex jobs should be submitted, used here as addiotnional test
+    to check whether this function should run or not
+    :param tmp_list: a list of json files, this used to determine the directories where should auto ptycho flagging
+    should be generated
+    :param verbose: this is used to determine whether full or minial printout should be used
+    :return:
+    '''
+    if submit_ptyrex_job:
+        # assuming the paths given are the json_paths
+        test_string = 'autoptycho_is_done.txt'
+        default_string = 'this data set has been auto reconstructed already and therefore will skipped in all proceeding auto recons, please detele to restore auto functionality'
+        for x in tmp_list:
+            a = x.find('initial_recon/') + len('initial_recon/')
+            flagging_files = (x[:a] + test_string)
+            if verbose:
+                print(f'\nflag file name: {flagging_files}\n')
+            with open(flagging_files, 'w') as f:
+                f.write(default_string)
+            f.close()
+
+def _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, tmp_list, verbose=False):
+    '''
+    :param bash_list:
+    :param submit_ptyrex_job:
+    :param tmp_list:
+    :param verbose:
+    :return:
+    '''
+    if submit_ptyrex_job:
+        sshProcess = subprocess.Popen(['ssh',
+                                       '-tt',
+                                       'wilson'],
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      universal_newlines=True,
+                                      bufsize=0)
+        sshProcess.stdin.write("ls .\n")
+        sshProcess.stdin.write("echo END\n")
+        for num, x in enumerate(bash_list):
+            sshProcess.stdin.write(f"sbatch {x}\n")
+        sshProcess.stdin.write("uptime\n")
+        sshProcess.stdin.write("logout\n")
+        sshProcess.stdin.close()
+
+        for line in sshProcess.stdout:
+            if line == "END\n":
+                break
+            print(line, end="")
+
+        # to catch the lines up to logout
+        for line in sshProcess.stdout:
+            print(line, end="")
+    _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose)
 
 # ----------------------------------------------------------------------------------------
 class NotebookHelper:
@@ -499,53 +642,51 @@ class convert_info_widget():
                 return self.keys_show_after
                 
 
-    def _ptycho(self, create_ptycho_folder, ptycho_config_name, ptycho_template_path):
-        '''This part of the code is designed to automatic generate Ptyrex Json and associated folders, its uses os.walk 
-           and the inputted year, session and subfolder varibles to find already converted data files, using the 
-           converted data meta file and known dictionary of parameters it is possible fill out the json file
-           frederick allars 09-05-2024'''
-        if create_ptycho_folder:
-            files_tmp = []
-            '''use os.walk to find the date time when the data was collected which corresponds to its folder and file names within the subfolder'''
-            for path, directories, files in os.walk(self.dest_path):
-                if files != []:
-                    files_tmp.extend(files)
-            files_tmp.sort()
-            for f in files_tmp:
-                if f.endswith('_data.hdf5'):
-                    folder_name = f.replace('_data.hdf5','')
+    def _ptycho(self,basedir, year, session, subfolder, create_ptycho_folder, ptycho_config_name, ptycho_template_path,
+                overwrite, verbose):
+        '''
+        This part of the code is designed to automatic generate Ptyrex Json and associated folders, its uses glob.glob
+        and the inputted year, session and subfolder varibles to find already converted data files, using the
+        converted data meta file and known dictionary of parameters it is possible fill out the json file
+        frederick allars 18-08-2025
+        '''
 
-                    '''create folders with standard names and skip if they already exist otherwise an error is incurred'''
-                    pty_dest = self.dest_path + '/' + folder_name + '/' + 'pty_out'
-                    pty_dest_2 = self.dest_path + '/' + folder_name + '/' + 'pty_out/initial_recon'
-                    print(pty_dest)
+        if create_ptycho_folder == True:
+
+            '''define the source path'''
+            src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+
+            '''use glob and os to find the meta data files'''
+            try:
+                os.chdir(src_path)
+
+                for num, file in enumerate(sorted(list(glob.glob('*/*.hdf')))):
+                    '''debug statement to check file paths'''
+                    if verbose == True:
+                        print(str(num) + ': ' + os.path.join(src_path, file))
+                    folder_pty_out = os.path.join(src_path, file[:file.find('/')]) + '/pty_out'
+                    folder_inital = os.path.join(src_path, file[:file.find('/')]) + '/pty_out/initial_recon'
+
+                    if verbose:
+                        print('attempting to create ptychography folder in ' + file[:file.find('/')] + ' ...\n')
                     try:
-                        os.makedirs(pty_dest)
+                        os.makedirs(folder_pty_out)
                     except:
-                        print('skipping this folder as it already has pty_out folder')
+                        if verbose == True:
+                            print('skipping pty_out folder creation as it already has pty_out folder')
                     try:
-                        os.makedirs(pty_dest_2)
+                        os.makedirs(folder_inital)
                     except:
-                        print('skipping this folder as it already has pty_out/initial folder')
+                        if verbose == True:
+                            print('skipping initial folder creation as it already has pty_out/initial folder\n')
 
-                    '''now the objective to get all the data required to fill the Json, we use the folder name to 
-                    create the path to the meta data file'''
-                    meta_file = self.dest_path + '/' + folder_name + '/' + folder_name + '.hdf'
-
-                    '''we can now open the meta data file itself to check the energy which will give us the rotation angle,
-                     the size of the aperture which will tell us the convergence angle, and the camera length which 
-                     we can guess from the nomial camera length with approximate k factor in this case 1.5'''
+                    '''determine the meta data path from the time stamp of the folder'''
+                    meta_file = os.path.join(src_path, file[:file.find('/')]) + '/' + file[:file.find('/')] + '.hdf'
+                    '''debug print below'''
+                    if verbose == True:
+                        print('\nCurrent meatdata file: ' + meta_file + '...\n')
 
                     '''TODO add py4DSTEM code which automatic guess the camera length from the subset of the collected diffraction patterns'''
-                    with h5py.File(meta_file, 'r') as microscope_meta:
-                        meta_values = microscope_meta['metadata']
-                        print(meta_values['aperture_size'][()])
-                        print(meta_values['nominal_camera_length(m)'][()])
-                        print(meta_values['ht_value(V)'][()])
-                        acc = meta_values['ht_value(V)'][()]
-                        nCL = meta_values['nominal_camera_length(m)'][()]
-                        aps = meta_values['aperture_size'][()]
-                    rot_angle,camera_length,conv_angle = Meta2Config(acc, nCL, aps)
 
                     '''check that the config_name parameter has been filled if not give it a default name'''
                     if ptycho_config_name == '':
@@ -559,9 +700,22 @@ class convert_info_widget():
                     else:
                         template_path = ptycho_template_path
 
+                    try:
+                        gen_config(template_path, folder_inital, config_name, meta_file, overwrite = overwrite,
+                                   verbose = verbose)
+                        if verbose:
+                            print('ptychography folder suscessfully created.\n')
+                    except:
+                        print(traceback.format_exc())
+                        print('The metadata for this dataset seems to be missing or might be mid-conversion, '
+                              'please check the file \nskipping for now...')
 
-                    gen_config(template_path, pty_dest_2, config_name, meta_file, rot_angle, camera_length, 2*conv_angle)
-        
+            except:
+                print('\n' + str(sorted(list(glob.glob('*/*.hdf'))) + '\n'))
+                print('the enetred path does not register as a available  path to any E02 data')
+        if create_ptycho_folder == True:
+            print('Ptychography folders and files generated...')
+
       
     def _submit(self, submit_check):
         if submit_check:
@@ -695,35 +849,24 @@ class convert_info_widget():
         basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
         year = Text(description='Year:', style=st)
         session = Text(description='Session:', style=st)
-        subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
         subfolder = Text(description='Subfolder:', style=st)
-
-        meta_check = Checkbox(value=False, description="Show the metadata of converted data", style=st)
-        sort_key = Text(description='Metadata key to sort:', style=st)
-        search_key = Text(description='Metadata key to search:', style=st)
-        search_value = Text(description='Value to search:', style=st)
-        
+        ptycho_config_name = Text(value="ptycho",description='Enter config name (optional) :', style=st)
+        ptycho_template_path = Text(value="/dls_sw/e02/PtyREX_templates/80KeV_template.json",description='Enter template config path (optional) :', style=st)
+        verbose = Checkbox(value=False, description='Use this to report/check for errors', style=st)
+        overwrite = Checkbox(value=False, description='Overwrite existing ptycho json files', style=st)
         create_ptycho_folder = Checkbox(value=False, description='Create a ptychography subfolder', style=st)
-        ptycho_config_name = Text(description='Enter config name (optional) :', style=st)
-        ptycho_template_path = Text(description='Enter template config path (optional) :', style=st)
-
-        self.path = ipywidgets.interact(self._paths,
-                                          basedir=basedir,
-                                          year=year, 
-                                          session=session,
-                                          subfolder_check=subfolder_check,
-                                          subfolder=subfolder)
-
-        self.meta_show = ipywidgets.interact(self._meta_show,
-                                            meta_check=meta_check,
-                                            sort_key=sort_key,
-                                            search_key=search_key,
-                                            search_value=search_value)
+        #detele_ptycho_flags  = Checkbox(value=False, description='Detele a auto processing flags', style=st)
                 
-        self.ptycho = ipywidgets.interact(self._ptycho, 
-                                      create_ptycho_folder=create_ptycho_folder, 
-                                      ptycho_config_name=ptycho_config_name, 
-                                      ptycho_template_path=ptycho_template_path)
+        self.ptycho = ipywidgets.interact(self._ptycho,
+                                        basedir=basedir,
+                                        year=year,
+                                        session=session,
+                                        subfolder=subfolder,
+                                        ptycho_config_name=ptycho_config_name,
+                                        ptycho_template_path=ptycho_template_path,
+                                        verbose = verbose,
+                                        overwrite = overwrite,
+                                        create_ptycho_folder=create_ptycho_folder)
         
     def _virtual_images(self):
         st = {"description_width": "initial"}
@@ -1243,152 +1386,74 @@ class convert_info_widget():
                 mib_to_convert.append(mib_path)
     
         return mib_to_convert
-    
-    def _ptyrex_paths(self, basedir, year, session, subfolder_check, subfolder):
-        self.json_files = []
-        if subfolder == '':
-            self.script_save_path = f'/{basedir}/{year}/{session}/processing/Merlin/scripts'
+
+
+
+    def _ptyrex_paths(self,basedir, year, session, subfolder, ptycho_config_name, create_ptycho_bash_script_check,
+                      node_type, ptycho_time, submit_ptyrex_job, verbose=False):
+        '''define the source path'''
+        src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+        script_folder = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts'
+        tmp_list = []
+        test_string = 'autoptycho_is_done.txt'
+
+        '''use glob and os to find the meta data files'''
+        if basedir == '' or year == '' or session == '' or subfolder == '':
+            print('\nwaiting for the folowing inputs: basedir, year, session, subfolder\n')
         else:
-            self.script_save_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts'
+            os.chdir(src_path)
+            for num, file in enumerate(sorted(list(glob.glob('*/*/*/*' + ptycho_config_name + '.json')))):
+                '''debug statement to check file paths'''
+                if verbose == True:
+                    print(str(num) + ': ' + os.path.join(src_path, file))
+                    # print(str(num) + ': ' + os.path.join(src_path,file.replace(ptycho_config_name + '.json', test_string)))
 
-        if subfolder == '' and subfolder_check:
-            print("**************************************************")
-            print("'subfolder' is not speicified")
-            print("All MIB files in 'Merlin' folder will be converted")
-            print("**************************************************")
-        
-        self.json_sub_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
-        print("source_path: ", self.json_sub_path)
-        if os.path.exists(self.json_sub_path):
-            test_string = 'autoptycho_is_done.txt'
-            cur_string_length = 1000   
-            for p, d, files in os.walk(self.json_sub_path):
-                # look at the files and see if there are any json files there
-                for f in files:
-                    if f.endswith('json'):
-                        tmp_string = os.path.join(p, f)
-                        #print(tmp_string)
-                        tmp_string_length = len(tmp_string)
-                        if tmp_string_length <= cur_string_length:
-                            cur_string_length = tmp_string_length
-                            #print(os.path.isfile(os.path.join(str(p), test_string)))
-                            if os.path.isfile(os.path.join(str(p), test_string)) == False:
-                                self.json_files.append(os.path.join(str(p), str(f)))
-            print(f'\n{self.json_files}\n')
-            self._create_ptyrex_bash_submit(session)#,create_batch_check)
-            #self._ptyrex_ssh_submit()
-        else:
-            print('Path specified does not exist!')
-            src_path_flag = False
+                '''check whether the data has been processed before - if it has then it should have autoptycho_is_done text file'''
+                if os.path.exists(os.path.join(src_path, file.replace(ptycho_config_name + '.json', test_string))):
+                    if verbose:
+                        print(
+                            '\nskipping json as it already been processed, to process this again please clear autoptycho flag\n')
+                else:
+                    tmp_list.append(os.path.join(src_path, file))
+
+            '''Create bash scripts for each of the json files'''
+            if create_ptycho_bash_script_check:
+                print('\nfound json files and creating bash scripts...\n')
+                bash_list = _create_ptyrex_bash_submit(tmp_list, script_folder, node_type, ptycho_time, verbose)
+            '''submit the bash scripts to the cluster'''
+            if submit_ptyrex_job:
+                _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, tmp_list)
+                if verbose:
+                    print(f'submited jobs to wilson')
+            if create_ptycho_bash_script_check and submit_ptyrex_job:
+                return tmp_list, bash_list
 
 
-    def _create_ptyrex_bash_submit(self,session):#,create_batch_check):
-        self.bash_ptyrex_path = []
-        print(f'\n{self.json_files}\n')
-        print(len(self.json_files))
-        counter = 0
-        for x in self.json_files:
-            print(f'\n{x}\n')
-            index = x.find('/pty_out')
-            tmp_string = x[index-6:index]
-            self.bash_ptyrex_path.append(os.path.join(self.script_save_path, f'{tmp_string}_ptyrex_submit.sh'))
-            print(self.bash_ptyrex_path[counter])
-            if 1:            
-                with open (self.bash_ptyrex_path[counter], 'w') as f:
-                    f.write('#!/usr/bin/env bash\n')
-                    f.write('#SBATCH --partition=cs05r\n')
-                    f.write('#SBATCH --job-name=ptyrex_recon\n')
-                    f.write('#SBATCH --nodes 1\n')
-                    f.write('#SBATCH --tasks-per-node=4\n')
-                    f.write('#SBATCH --cpus-per-task 1\n')
-                    f.write('#SBATCH --gpus-per-node=4\n')
-                    f.write('#SBATCH --time 00:30:00\n')
-                    f.write('#SBATCH --mem 0G\n\n')
-                    f.write('#SBATCH --constraint=NVIDIA_Pascal\n')
-                    
-                    f.write(f"#SBATCH --error={self.script_save_path}{os.sep}%j_error.err\n")
-                    f.write(f"#SBATCH --output={self.script_save_path}{os.sep}%j_output.out\n")
-
-                    f.write(f"cd /home/ejr78941/ptyrex_temp_5/PtyREX")
-                     
-                    f.write('\n\nmodule load python/cuda11.7\n\n')  
-                    f.write('module load hdf5-plugin/1.12\n\n')  
-                    
-                    f.write(f"mpirun -np 4 ptyrex_recon -c {self.json_files[counter]}\n")
-                
-            print("sbatch file created: "+ self.bash_ptyrex_path[counter])
-            counter = counter + 1
-    
-    def _create_flagging_text_files(self,submit_ptyrex_job):
-        if submit_ptyrex_job:    
-            #assuming the paths given are the json_paths
-            test_string = 'autoptycho_is_done.txt'
-            default_string = 'this data set has been auto reconstructed already and therefore will skipped in all proceeding auto recons, please detele to restore auto functionality'
-	    #flagging_files = []
-            for x in self.json_files:
-                a = x.find('initial_recon/') + len('initial_recon/')
-                flagging_files = (x[:a]+test_string)
-                with open (flagging_files, 'w') as f:
-            	    f.write(default_string)
-                f.close()
-            print(flagging_files)
-     
-    def _ptyrex_ssh_submit(self, submit_ptyrex_job):
-        counter = 0
-        if submit_ptyrex_job:
-            for x in self.bash_ptyrex_path:
-                sshProcess = subprocess.Popen(['ssh',
-                                   '-tt',
-                                   'wilson'],
-                                   stdin=subprocess.PIPE, 
-                                   stdout = subprocess.PIPE,
-                                   universal_newlines=True,
-                                   bufsize=0)
-                sshProcess.stdin.write("ls .\n")
-                sshProcess.stdin.write("echo END\n")
-                sshProcess.stdin.write(f"sbatch {x}\n")
-                sshProcess.stdin.write("uptime\n")
-                sshProcess.stdin.write("logout\n")
-                sshProcess.stdin.close()
-            
-            
-                for line in sshProcess.stdout:
-                    if line == "END\n":
-                        break
-                    print(line,end="")
-            
-                #to catch the lines up to logout
-                for line in  sshProcess.stdout: 
-                    print(line,end="")
-        self._create_flagging_text_files(submit_ptyrex_job)            
 
     def _ptyrex_submit(self):
         st = {"description_width": "initial"}
         basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
         year = Text(description='Year:', style=st)
         session = Text(description='Session:', style=st)
-        subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
         subfolder = Text(description='Subfolder:', style=st)
-
-        create_batch_check = Checkbox(value=False, description="Create ptyrex submission script", style=st)
-        sort_key = Text(description='Metadata key to sort:', style=st)
-        search_key = Text(description='Metadata key to search:', style=st)
-        search_value = Text(description='Value to search:', style=st)
-
-        submit_ptyrex_job = Checkbox(value=False, description="Submit ptyrex jobs", style=st)
+        ptycho_config_name = Text(description='Name of the json file to process:', style=st)
+        create_ptycho_bash_script_check = Checkbox(value=False, description='Create PtyREX bash script', style=st)
+        node_type = Dropdown(options=['Volta', 'Pascal'], value='Pascal', description='type of gpu to use')
+        ptycho_time = Dropdown(options=['00:30:00', '01:00:00', '02:00:00', '04:00:00', '08:00:00'],value='00:30:00',description='Processing time: (HH:MM:SS)')
+        submit_ptyrex_job = Checkbox(value=False, description='Submit PtyREX job', style=st)
+        verbose = Checkbox(value=False, description='Check this for debugging and error printing', style=st)
 
         self.ptyrex_paths = ipywidgets.interact(self._ptyrex_paths,
                                           basedir=basedir,
                                           year=year, 
                                           session=session,
-                                          subfolder_check=subfolder_check,
-                                          subfolder=subfolder)
-
-        #self.create_ptyrex_bash_submit = ipywidgets.interact(self._create_ptyrex_bash_submit,
-        #                                    session=session,create_batch_check=create_batch_check)
-
-        self.ptyrex_ssh_submit = ipywidgets.interact(self._ptyrex_ssh_submit,
-                                            session=session,submit_ptyrex_job=submit_ptyrex_job)
+                                          subfolder=subfolder,
+                                          ptycho_config_name=ptycho_config_name,
+                                          create_ptycho_bash_script_check=create_ptycho_bash_script_check,
+                                          node_type=node_type,
+                                          ptycho_time=ptycho_time,
+                                          submit_ptyrex_job=submit_ptyrex_job,
+                                          verbose=verbose)
 
 
 
