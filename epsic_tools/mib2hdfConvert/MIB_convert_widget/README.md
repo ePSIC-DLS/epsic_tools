@@ -20,58 +20,83 @@
 - 'Create a ptychography subfolder' will generate a PtyREX parameter file for each 4DSTEM data  
 ![MIB_convert](img/mib_ptyrex.png)
 - The other individual cells in the notebook are made for previously converted 4DSTEM data  
-![MIB_convert](img/mib_other_cells.png)
+    - to generate virtual images (BF, ADF, DPC, Parallax)    
+![MIB_convert](img/mib_virtual_image.png)
+    - to generate PtyREX JSON files
+![MIB_convert](img/mib_ptyrex_json.png)
+    - to submit PtyREX reconstruction jobs
+![MIB_convert](img/mib_ptyrex_submit.png)
+    - to submit Au calibration jobs ([for details](https://github.com/ePSIC-DLS/User-Notebooks/tree/master/ePSIC_Standard_Notebooks))
+![MIB_convert](img/mib_au_cal.png)
+    - to submit radial transformation jobs ([for details](https://github.com/ePSIC-DLS/User-Notebooks/tree/master/ePSIC_Standard_Notebooks))
+![MIB_convert](img/mib_radial.png)
 
 
 # Variable list
-### year 
-year of the session, e.g., 202X  
-### session
-session referenc e.g., mgXXXXX-X
-### All MIB files in 'Merlin' folder:
-if checked and no subfolder name is specified, all MIB files in 'Merlin' folder will be converted
-### subfolder
-subfolder name, it has a higher priority than the widget above
-### Show the path of each MIB file
-if checked, the paths of the MIB files that will be converted are shown
-### Choose a reshaping option
-__Auto reshape__: if checked, the scan region will be automatically reshaped  
-__No reshaping__: if checked, the scan region will not be reshaped into 2D scan dimensions  
-__Flyback__: if checked, the scan region will be completely recovered.  
-__Known shape__: if checked, the scan region will be reshaped as you want (if possible)
-### Scan_X
-x-axis dimension of the scan region for the 'Known_shape' option
-### Scan_Y
-y-axis dimension of the scan region for the 'Known_shape' option
-### Create virtual images
-if checked, virtual images such BF-STEM and ADF-STEM will be generated using py4DSTEM in the save directory    
-### Lower threshold value to detect the disk
-lower threshold value to detect the center disk
-### Upper threshold value to detect the disk
-upper threshold value to detect the center disk   
-### Enter the mask file path (optional)
-mask file path
-### DPC
-if checked, CoM and iCoM DPC images will be generated
-### DPC low pass
-low pass filter for iCoM DPC image
-### DPC high pass
-high pass filter for iCoM DPC image
-### Parallax
-if checked, virtual parallax images and expected experimental conditions will be calculated
-### Bin_nav
-rebin the data for the scan shape and save it as a HSPY file
-### Bin_sig
-rebin the data for the diffraction shape and save it as a HSPY file
-### Create slurm batch file
-if checked, the slurm batch file will be created in the save directory
-### Create conversion info file
-if checked, the information file for the MIB conversion will be created in the save directory
-### Create a ptychography subfolder
-if checked, the json file for the ptyrex reconstruction will be created in the save directory
-### Enter config name (optional)
-PtyREX recontruction name
-### Enter template config path (optional)
-PtyREX template json file path you want to use
-### Select the cluster node (cs04r recommended)
-select the cluster node to use. 'cs05r' is the GPU cluster node, so please do not use it unnecessarily
+<pre>
+Base directory path:
+    base directory path (e.g., /dls/staging/dls/e02/data, default=/dls/e02/data)
+year:
+    year of the session, e.g., 202X
+session:
+    session referenc e.g., mgXXXXX-X
+All MIB files in 'Merlin' folder:
+    if checked and no subfolder name is specified, all MIB files in 'Merlin' folder will be converted
+subfolder:
+    subfolder name, it has a higher priority than the widget above
+Show the path of each MIB file:
+    if checked, the paths of the MIB files that will be converted are shown
+Choose a reshaping option
+    Auto reshape:
+        if checked, the scan region will be automatically reshaped
+    No reshaping:
+        if checked, the scan region will not be reshaped into 2D scan dimensions
+    Use Fly-back:
+        if checked, the scan region will be completely recovered.
+    Known_shape:
+        if checked, the scan region will be reshaped as you want (if possible)
+Scan_X:
+    x-axis dimension of the scan region for the 'Known_shape' option
+Scan_Y:
+    y-axis dimension of the scan region for the 'Known_shape' option
+Bin_nav:
+    rebin the data for the scan shape and save it as a HSPY file
+Bin_sig:
+    rebin the data for the diffraction shape and save it as a HSPY file
+Select the cluster node (cs04r recommended):
+    select the cluster node to use. 'cs05r' is the GPU cluster node, so please do not use it unnecessarily.
+Number of multiple slurm jobs:
+    determine the number of multiple jobs to submit
+Create slurm batch file:
+    if checked, the slurm batch file will be created in the save directory
+Create conversion info file:
+    if checked, the information file for the MIB conversion will be created in the save directory
+Submit a slurm job
+    if checked, the slurm job will be submitted.
+    Make sure that this is unchecked before you change any widgets
+
+Create virtual images:
+    if checked, virtual images such BF-STEM and ADF-STEM will be generated using py4DSTEM in the save directory    
+Lower threshold value to detect the disk:
+    lower threshold value to detect the center disk
+Upper threshold value to detect the disk:
+    upper threshold value to detect the center disk   
+Enter the mask file path (optional):
+    mask file path
+DPC:
+    if checked, CoM and iCoM DPC images will be generated
+DPC low pass:
+    low pass filter for iCoM DPC image
+DPC high pass:
+    high pass filter for iCoM DPC image
+Parallax:
+    if checked, virtual parallax images and expected experimental conditions will be calculated
+    
+
+Create a ptychography subfolder:
+    if checked, the json file for the ptyrex reconstruction will be created in the save directory
+Enter config name (optional):
+    PtyREX recontruction name
+Enter template config path (optional):
+    PtyREX template json file path you want to use
+</pre>
