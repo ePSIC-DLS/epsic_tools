@@ -362,13 +362,13 @@ class NotebookHelper:
         """
         Set settings to new values and saves a new version of notebook.
         """
-#TODO: here the loading of notebook is repeated - maybe have it as a separate function?
+#to do: here the loading of notebook is repeated - maybe have it as a separate function?
         ipynb_filename = os.path.join(self.__notebook_paths , f"{self.__notebook_name}.ipynb")
 
         # Read the notebook into memory.
         with open(ipynb_filename, "r") as stream:
             notebook = nbformat.read(stream, as_version=4)
-#TODO: Check here not to overwrite the dictionary
+#to do: Check here not to overwrite the dictionary
 
         source = []
         for key, value in new_settings.items():
@@ -380,14 +380,11 @@ class NotebookHelper:
         notebook["cells"][blank_cell_index]["source"] = source
         nbformat.write(notebook, save_path)
         return
-#TODO: Bring submit option / code here
+#to do: Bring submit option / code here
 
 
 # Widgets
 class convert_info_widget():
-    
-    software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
-    # software_basedir = '/home/hgl95221/Desktop/RYU_at_ePSIC/MIB_convert/develop/scripts/'
 
     meta_keys = ['filename', 'A1_value_(kV)', 'A2_value_(kV)', 'aperture_size',
        'convergence_semi-angle(rad)', 'current_OLfine', 'deflector_values',
@@ -411,7 +408,8 @@ class convert_info_widget():
                        virtual_image=False, 
                        ptyrex_submit=False, 
                        au_calibration_submit=False,
-                       radial_transformation_submit=False):
+                       radial_transformation_submit=False,
+                       software_basedir=None):
         if ptyrex_json:
             self._ptyrex_json()
         elif virtual_image:
@@ -424,6 +422,11 @@ class convert_info_widget():
             self._radial_transformation_submit()
         else:
             self._activate()
+            
+        if sw_basedir != None:
+            self.software_basedir = '/'+software_basedir
+        else:
+            self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
 
     def _paths(self, basedir, year, session, subfolder_check, subfolder):
 
@@ -766,8 +769,8 @@ class convert_info_widget():
                             description='Choose a reshaping option',
                             disabled=False, style=st)
         
-        Scan_X = IntText(description='Scan_X: (avaiable for Known_shape)', style=st)
-        Scan_Y = IntText(description='Scan_Y: (avaiable for Known_shape)', style=st)
+        Scan_X = IntText(description='Scan_X: (available for Known_shape)', style=st)
+        Scan_Y = IntText(description='Scan_Y: (available for Known_shape)', style=st)
 
         bin_nav_widget = IntSlider(
                                 value=2,
