@@ -410,6 +410,13 @@ class convert_info_widget():
                        au_calibration_submit=False,
                        radial_transformation_submit=False,
                        software_basedir=None):
+
+        if software_basedir != None:
+            self.software_basedir = '/'+software_basedir
+        else:
+            self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
+
+
         if ptyrex_json:
             self._ptyrex_json()
         elif virtual_image:
@@ -423,10 +430,6 @@ class convert_info_widget():
         else:
             self._activate()
             
-        if sw_basedir != None:
-            self.software_basedir = '/'+software_basedir
-        else:
-            self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
 
     def _paths(self, basedir, year, session, subfolder_check, subfolder):
 
