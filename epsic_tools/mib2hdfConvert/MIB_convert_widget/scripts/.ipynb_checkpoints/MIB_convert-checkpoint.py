@@ -410,6 +410,13 @@ class convert_info_widget():
                        au_calibration_submit=False,
                        radial_transformation_submit=False,
                        software_basedir=None):
+
+        if software_basedir != None:
+            self.software_basedir = '/'+software_basedir
+        else:
+            self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
+
+
         if ptyrex_json:
             self._ptyrex_json()
         elif virtual_image:
@@ -423,10 +430,6 @@ class convert_info_widget():
         else:
             self._activate()
             
-        if sw_basedir != None:
-            self.software_basedir = '/'+software_basedir
-        else:
-            self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
 
     def _paths(self, basedir, year, session, subfolder_check, subfolder):
 
@@ -503,7 +506,7 @@ class convert_info_widget():
                   disk_upper_thresh,DPC_check,parallax_check,
                   create_batch_check,create_info_check):
 
-        self.python_script_path = self.software_basedir + 'MIB_convert_submit.py'
+        self.python_script_path = self.software_basedir + '/MIB_convert_submit.py'
         
         self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
         self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
@@ -951,7 +954,7 @@ class convert_info_widget():
                     converted_path = self.dest_path + '/' + folder_name + '/' + f
                     converted_files.append(converted_path)
         
-        python_script_path = self.software_basedir + 'py4DSTEM_virtual_image.py'
+        python_script_path = self.software_basedir + '/py4DSTEM_virtual_image.py'
         bash_script_path = os.path.join(self.script_save_path, 'virtual_submit.sh')
         info_path = os.path.join(self.script_save_path, 'py4DSTEM_info.txt')
         
@@ -1209,7 +1212,7 @@ class convert_info_widget():
                               n_jobs, node_check, create_info_check, 
                               create_batch_check, submit_check):
 
-        script_path = self.software_basedir + 'apply_elliptical_correction_polardatacube.py'
+        script_path = self.software_basedir + '/apply_elliptical_correction_polardatacube.py'
         YEAR = year
         VISIT = session
         sub = subfolder
