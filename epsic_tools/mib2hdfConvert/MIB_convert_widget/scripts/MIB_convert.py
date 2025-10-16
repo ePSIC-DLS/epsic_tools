@@ -1296,7 +1296,7 @@ class convert_info_widget():
                 f.write("#SBATCH --nodes=1\n")
                 f.write("#SBATCH --ntasks-per-node=4\n")
                 f.write("#SBATCH --cpus-per-task=1\n")
-                f.write("#SBATCH --time=2:00:00\n")
+                f.write("#SBATCH --time=4:00:00\n")
                 f.write("#SBATCH --mem=128G\n")
                 f.write("#SBATCH --output=%s/%%j.out\n"%code_path)
                 f.write("#SBATCH --error=%s/%%j.error\n\n"%code_path)

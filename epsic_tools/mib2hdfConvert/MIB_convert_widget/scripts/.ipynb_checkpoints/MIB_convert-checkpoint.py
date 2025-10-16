@@ -1077,7 +1077,7 @@ class convert_info_widget():
 
         # Specify the root directory for the Merlin folders
         merlin_root = basedir+ '/' + year + '/' + session + '/processing/Merlin/' + au_cal_folder
-        hdf5_file_paths = glob.glob(merlin_root+ '/*/*.hdf5', recursive=True)
+        hdf5_file_paths = glob.glob(merlin_root+ '/*/*_data.hdf5', recursive=True)
 
         # Output the paths
         hdf5_file_paths.sort()
@@ -1184,6 +1184,7 @@ class convert_info_widget():
                             readout_format='d', style=st)
         
         node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
+        overwrite_check = Checkbox(value=True, description='Ignore the previously transformed data', style=st)
         
         create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
         create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
@@ -1201,6 +1202,7 @@ class convert_info_widget():
                                                         fast_origin=fast_origin, 
                                                         n_jobs=n_jobs,
                                                         node_check=node_check,
+                                                        overwrite_check=overwrite_check,
                                                         create_info_check=create_info_check,        
                                                         create_batch_check=create_batch_check,
                                                         submit_check=submit_check)
@@ -1209,10 +1211,11 @@ class convert_info_widget():
     
     def _radial_transformation(self, basedir, year, session, subfolder, au_cal_folder,
                               R_Q_ROTATION, also_rpl, mask_path, fast_origin,
-                              n_jobs, node_check, create_info_check, 
+                              n_jobs, node_check, overwrite_check, create_info_check, 
                               create_batch_check, submit_check):
 
         script_path = self.software_basedir + '/apply_elliptical_correction_polardatacube.py'
+        print(script_path)
         YEAR = year
         VISIT = session
         sub = subfolder
@@ -1245,19 +1248,23 @@ class convert_info_widget():
                 if file_adrs == []:
                     print("Please make sure that the base directory and subfolder name are correct.")
 
-        print(len(file_adrs))
-        print(*file_adrs, sep='\n')
+        # print(len(file_adrs))
+        # print(*file_adrs, sep='\n')
         
         data_labels = []
         for adr in file_adrs:
             datetime = adr.split('/')[-2]
-            if os.path.exists(os.path.dirname(adr) + "/" + datetime + "_azimuthal_data_centre.png"):
-                continue
+            if overwrite_check:
+                if os.path.exists(os.path.dirname(adr) + "/" + datetime + "_azimuthal_data_centre.png"):
+                    continue
+                else:
+                    data_labels.append(sub+'/'+adr.split('/')[-2])
+                    
             else:
                 data_labels.append(sub+'/'+adr.split('/')[-2])
 
-        # print(len(data_labels))
-        # print(*data_labels, sep='\n')
+        print(len(data_labels))
+        print(*data_labels, sep='\n')
 
         if create_info_check:
             code_path = base_dir + '/' + sub + '/cluster_logs'
@@ -1289,7 +1296,7 @@ class convert_info_widget():
                 f.write("#SBATCH --nodes=1\n")
                 f.write("#SBATCH --ntasks-per-node=4\n")
                 f.write("#SBATCH --cpus-per-task=1\n")
-                f.write("#SBATCH --time=2:00:00\n")
+                f.write("#SBATCH --time=4:00:00\n")
                 f.write("#SBATCH --mem=128G\n")
                 f.write("#SBATCH --output=%s/%%j.out\n"%code_path)
                 f.write("#SBATCH --error=%s/%%j.error\n\n"%code_path)
