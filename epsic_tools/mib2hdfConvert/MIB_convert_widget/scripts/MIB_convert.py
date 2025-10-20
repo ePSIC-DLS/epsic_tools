@@ -412,7 +412,7 @@ class convert_info_widget():
                        software_basedir=None):
 
         if software_basedir != None:
-            self.software_basedir = '/'+software_basedir
+            self.software_basedir = '/'+software_basedir+'/'
         else:
             self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
 
@@ -980,7 +980,7 @@ class convert_info_widget():
             print("submission python file: "+python_script_path)        
 
         if mask_path == '':
-            mask_path = self.software_basedir + '29042024_12bitmask.h5'
+            mask_path = self.software_basedir + '/29042024_12bitmask.h5'
             
         if create_info_check:
             with open (info_path, 'w') as f:
