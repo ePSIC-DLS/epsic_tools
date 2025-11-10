@@ -479,13 +479,13 @@ class NotebookHelper:
         """
         Set settings to new values and saves a new version of notebook.
         """
-#TODO: here the loading of notebook is repeated - maybe have it as a separate function?
+#to do: here the loading of notebook is repeated - maybe have it as a separate function?
         ipynb_filename = os.path.join(self.__notebook_paths , f"{self.__notebook_name}.ipynb")
 
         # Read the notebook into memory.
         with open(ipynb_filename, "r") as stream:
             notebook = nbformat.read(stream, as_version=4)
-#TODO: Check here not to overwrite the dictionary
+#to do: Check here not to overwrite the dictionary
 
         source = []
         for key, value in new_settings.items():
@@ -497,14 +497,11 @@ class NotebookHelper:
         notebook["cells"][blank_cell_index]["source"] = source
         nbformat.write(notebook, save_path)
         return
-#TODO: Bring submit option / code here
+#to do: Bring submit option / code here
 
 
 # Widgets
 class convert_info_widget():
-    
-    software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
-    # software_basedir = '/home/hgl95221/Desktop/RYU_at_ePSIC/MIB_convert/develop/scripts/'
 
     meta_keys = ['filename', 'A1_value_(kV)', 'A2_value_(kV)', 'aperture_size',
        'convergence_semi-angle(rad)', 'current_OLfine', 'deflector_values',
@@ -529,7 +526,15 @@ class convert_info_widget():
                        ptyrex_submit=False, 
                        ptyrex_single=False,
                        au_calibration_submit=False,
-                       radial_transformation_submit=False):
+                       radial_transformation_submit=False,
+                       software_basedir=None):
+
+        if software_basedir != None:
+            self.software_basedir = '/'+software_basedir+'/'
+        else:
+            self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
+
+
         if ptyrex_json:
             self._ptyrex_json()
         elif virtual_image:
@@ -544,6 +549,7 @@ class convert_info_widget():
             self._ptyrex_single_recon()
         else:
             self._activate()
+            
 
     def prefill_boxes(self):
         '''
@@ -649,7 +655,7 @@ class convert_info_widget():
                   disk_upper_thresh,DPC_check,parallax_check,
                   create_batch_check,create_info_check):
 
-        self.python_script_path = self.software_basedir + 'MIB_convert_submit.py'
+        self.python_script_path = self.software_basedir + '/MIB_convert_submit.py'
         
         self.bash_script_path = os.path.join(self.script_save_path, 'cluster_submit.sh')
         self.info_path = os.path.join(self.script_save_path, 'convert_info.txt')
@@ -916,8 +922,8 @@ class convert_info_widget():
                             description='Choose a reshaping option',
                             disabled=False, style=st)
         
-        Scan_X = IntText(description='Scan_X: (avaiable for Known_shape)', style=st)
-        Scan_Y = IntText(description='Scan_Y: (avaiable for Known_shape)', style=st)
+        Scan_X = IntText(description='Scan_X: (available for Known_shape)', style=st)
+        Scan_Y = IntText(description='Scan_Y: (available for Known_shape)', style=st)
 
         bin_nav_widget = IntSlider(
                                 value=2,
@@ -1095,7 +1101,7 @@ class convert_info_widget():
                     converted_path = self.dest_path + '/' + folder_name + '/' + f
                     converted_files.append(converted_path)
         
-        python_script_path = self.software_basedir + 'py4DSTEM_virtual_image.py'
+        python_script_path = self.software_basedir + '/py4DSTEM_virtual_image.py'
         bash_script_path = os.path.join(self.script_save_path, 'virtual_submit.sh')
         info_path = os.path.join(self.script_save_path, 'py4DSTEM_info.txt')
         
@@ -1121,7 +1127,7 @@ class convert_info_widget():
             print("submission python file: "+python_script_path)        
 
         if mask_path == '':
-            mask_path = self.software_basedir + '29042024_12bitmask.h5'
+            mask_path = self.software_basedir + '/29042024_12bitmask.h5'
             
         if create_info_check:
             with open (info_path, 'w') as f:
@@ -1216,7 +1222,7 @@ class convert_info_widget():
 
         # Specify the root directory for the Merlin folders
         merlin_root = basedir+ '/' + year + '/' + session + '/processing/Merlin/' + au_cal_folder
-        hdf5_file_paths = glob.glob(merlin_root+ '/*/*.hdf5', recursive=True)
+        hdf5_file_paths = glob.glob(merlin_root+ '/*/*_data.hdf5', recursive=True)
 
         # Output the paths
         hdf5_file_paths.sort()
@@ -1321,6 +1327,7 @@ class convert_info_widget():
                             readout_format='d', style=st)
         
         node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
+        overwrite_check = Checkbox(value=True, description='Ignore the previously transformed data', style=st)
         
         create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
         create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
@@ -1338,6 +1345,7 @@ class convert_info_widget():
                                                         fast_origin=fast_origin, 
                                                         n_jobs=n_jobs,
                                                         node_check=node_check,
+                                                        overwrite_check=overwrite_check,
                                                         create_info_check=create_info_check,        
                                                         create_batch_check=create_batch_check,
                                                         submit_check=submit_check)
@@ -1346,10 +1354,11 @@ class convert_info_widget():
     
     def _radial_transformation(self, basedir, year, session, subfolder, au_cal_folder,
                               R_Q_ROTATION, also_rpl, mask_path, fast_origin,
-                              n_jobs, node_check, create_info_check, 
+                              n_jobs, node_check, overwrite_check, create_info_check, 
                               create_batch_check, submit_check):
 
-        script_path = self.software_basedir + 'apply_elliptical_correction_polardatacube.py'
+        script_path = self.software_basedir + '/apply_elliptical_correction_polardatacube.py'
+        print(script_path)
         YEAR = year
         VISIT = session
         sub = subfolder
@@ -1382,19 +1391,23 @@ class convert_info_widget():
                 if file_adrs == []:
                     print("Please make sure that the base directory and subfolder name are correct.")
 
-        print(len(file_adrs))
-        print(*file_adrs, sep='\n')
+        # print(len(file_adrs))
+        # print(*file_adrs, sep='\n')
         
         data_labels = []
         for adr in file_adrs:
             datetime = adr.split('/')[-2]
-            if os.path.exists(os.path.dirname(adr) + "/" + datetime + "_azimuthal_data_centre.png"):
-                continue
+            if overwrite_check:
+                if os.path.exists(os.path.dirname(adr) + "/" + datetime + "_azimuthal_data_centre.png"):
+                    continue
+                else:
+                    data_labels.append(sub+'/'+adr.split('/')[-2])
+                    
             else:
                 data_labels.append(sub+'/'+adr.split('/')[-2])
 
-        # print(len(data_labels))
-        # print(*data_labels, sep='\n')
+        print(len(data_labels))
+        print(*data_labels, sep='\n')
 
         if create_info_check:
             code_path = base_dir + '/' + sub + '/cluster_logs'
@@ -1426,7 +1439,7 @@ class convert_info_widget():
                 f.write("#SBATCH --nodes=1\n")
                 f.write("#SBATCH --ntasks-per-node=4\n")
                 f.write("#SBATCH --cpus-per-task=1\n")
-                f.write("#SBATCH --time=2:00:00\n")
+                f.write("#SBATCH --time=4:00:00\n")
                 f.write("#SBATCH --mem=128G\n")
                 f.write("#SBATCH --output=%s/%%j.out\n"%code_path)
                 f.write("#SBATCH --error=%s/%%j.error\n\n"%code_path)

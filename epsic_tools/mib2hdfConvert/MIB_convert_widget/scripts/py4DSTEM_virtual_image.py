@@ -102,7 +102,7 @@ meta_path = data_path[:-10]+".hdf"
 data_name = data_path.split("/")[-1].split(".")[0]
 time_stamp = data_name[:-5]
 if info["mask_path"] == '':
-    mask_path = '/dls/science/groups/e02/Ryu/epsic_code/MIB_convert/develop/scripts/29042024_12bitmask.h5'
+    mask_path = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/29042024_12bitmask.h5'
 else:
     mask_path = info["mask_path"]
 save_dir = os.path.dirname(data_path) # directory for saving the results

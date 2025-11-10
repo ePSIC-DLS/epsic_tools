@@ -1347,10 +1347,20 @@ if create_virtual_image:
     print(np.min(original_stack), np.max(original_stack))
 
     # masking
-    if mask_path != '' and type(mask) == np.ndarray:
-        for i in range(original_stack.shape[0]):
-            for j in range(original_stack.shape[1]):
-                original_stack[i, j] = np.multiply(original_stack[i, j], mask)
+    if original_stack.shape[2] == 515:
+        if mask_path != '' and type(mask) == np.ndarray:
+            for i in range(original_stack.shape[0]):
+                for j in range(original_stack.shape[1]):
+                    original_stack[i, j] = np.multiply(original_stack[i, j], mask)
+                    
+    elif original_stack.shape[2] == 256:
+         if mask_path != '' and type(mask) == np.ndarray:
+            for i in range(original_stack.shape[0]):
+                for j in range(original_stack.shape[1]):
+                    original_stack[i, j] = np.multiply(original_stack[i, j], mask[:256, :256])
+            
+    else:
+        print('No mask')
 
     dataset = py4DSTEM.DataCube(data=original_stack)
     print("original dataset")

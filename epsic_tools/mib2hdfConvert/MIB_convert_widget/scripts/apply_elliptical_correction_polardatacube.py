@@ -207,6 +207,17 @@ ax.axis('off')
 fig.tight_layout()
 fig.savefig(f'{save_dir}{os.sep}{cal_timestamp}_original_max_dp.png')
 
+data.get_virtual_diffraction(method='mean',
+                             name='dp_mean_raw',
+                             shift_center=False)
+
+fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+ax.imshow(np.sqrt(data.tree('dp_mean_raw').data), cmap='gray')
+ax.axis('off')
+fig.tight_layout()
+fig.savefig(f'{save_dir}{os.sep}{cal_timestamp}_original_mean_dp.png')
+
+
 if fast_origin:
     ## Get origin shifts
     (qx0, qy0) = fast_find_origin(data, dp=data.tree('dp_max_raw').data)
@@ -338,5 +349,12 @@ ax.imshow(np.sqrt(max_dp.data.clip(min=0.0)), cmap='gray')
 ax.axis('off')
 fig.tight_layout()
 fig.savefig(f'{save_dir}{os.sep}{cal_timestamp}_azimuthal_data_centre.png')
+
+mean_dp = data_hs.mean(axis=(0, 1))
+fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+ax.imshow(np.sqrt(mean_dp.data.clip(min=0.0)), cmap='gray')
+ax.axis('off')
+fig.tight_layout()
+fig.savefig(f'{save_dir}{os.sep}{cal_timestamp}_azimuthal_data_centre_mean.png')
 
 data_hs.save(f'{save_dir}{os.sep}{cal_timestamp}_corrected_scaled', overwrite=True, extension='hspy')
