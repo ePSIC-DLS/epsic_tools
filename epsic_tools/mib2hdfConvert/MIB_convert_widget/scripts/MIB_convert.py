@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 import sys
 import pprint
+import time
 import hyperspy.api as hs
 print(f"hyperspy version: {hs.__version__}")
 import pyxem as pxm
@@ -27,6 +28,7 @@ import yaml
 import json
 import re
 
+#error tracking imports
 import traceback
 
 
@@ -91,10 +93,11 @@ def gen_config(template_path, dest_path, config_name, meta_file_path, factor=1.7
         acc = meta_values['ht_value(V)'][()]
         nCL = meta_values['nominal_camera_length(m)'][()]
         aps = meta_values['aperture_size'][()]
+        rot = meta_values['nominal_scan_rotation'][()]
 
         '''detemine the rotation angle and camera length from the HT value (accerlation voltage) and nomial camera length,
         also determine the convergence angle from the aperture size used'''
-        rotation_angle, camera_length, conv_angle = Meta2Config(acc, nCL, aps, factor, verbose)
+        rotation_angle, camera_length, conv_angle = Meta2Config(acc, nCL, aps, rot, factor, verbose)
 
         pty_expt['process']['common']['scan']['rotation'] = rotation_angle
         pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
@@ -121,7 +124,7 @@ def gen_config(template_path, dest_path, config_name, meta_file_path, factor=1.7
 
 
 
-def Meta2Config(acc,nCL,aps,factor=1.7,verbose=False):
+def Meta2Config(acc,nCL,aps,rot,factor=1.7, verbose=False):
 
 
     '''This function converts the meta data from the 4DSTEM data set into parameters to be used in a ptyREX json file'''
@@ -130,7 +133,7 @@ def Meta2Config(acc,nCL,aps,factor=1.7,verbose=False):
     following directory for example reconstruction from which these values are derived:
      /dls/science/groups/imaging/ePSIC_ptychography/experimental_data'''
     if acc == 80e3:
-        rot_angle = 238.5
+        rot_angle = 238.5 - rot
         if verbose:
             print('Rotation angle = ' + str(rot_angle))
         if aps == 1:
@@ -152,7 +155,7 @@ def Meta2Config(acc,nCL,aps,factor=1.7,verbose=False):
         else:
             print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
     elif acc == 200e3:
-        rot_angle = -77.585
+        rot_angle = -77.585 - rot
         if verbose:
             print('Rotation angle = ' + str(rot_angle) +' Warning: This rotation angle need further calibration')
         if aps == 1:
@@ -176,7 +179,7 @@ def Meta2Config(acc,nCL,aps,factor=1.7,verbose=False):
             if verbose:
                 print('Condenser aperture size is 10um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
     elif acc == 300e3:
-        rot_angle = -85.5
+        rot_angle = -85.5 - rot
         if verbose:
             print('Rotation angle = ' + str(rot_angle))
         if aps == 1:
@@ -209,7 +212,7 @@ def Meta2Config(acc,nCL,aps,factor=1.7,verbose=False):
 
     return rot_angle,camera_length,conv_angle
 
-def _create_ptyrex_bash_submit(json_files, script_folser, node_type, ptycho_time, verbose=False):
+def _create_ptyrex_bash_submit(json_files, script_folder, node_type, ptycho_time, verbose=False):
     bash_ptyrex_path = []
 
     for num, x in enumerate(json_files):
@@ -220,7 +223,7 @@ def _create_ptyrex_bash_submit(json_files, script_folser, node_type, ptycho_time
         if verbose:
             print(f'\ntime_stamp = {time_stamp}\n')
         '''rememeber to self.script_save_path to save these files to the script folder'''
-        bash_ptyrex_path.append(os.path.join(script_folser, f'{time_stamp}_ptyrex_submit.sh'))
+        bash_ptyrex_path.append(os.path.join(script_folder, f'{time_stamp}_ptyrex_submit.sh'))
         if verbose:
             print(f'{num}: {bash_ptyrex_path[num]}')
         if True:
@@ -236,8 +239,8 @@ def _create_ptyrex_bash_submit(json_files, script_folser, node_type, ptycho_time
                 f.write('#SBATCH --mem 0G\n\n')
                 f.write(f'#SBATCH --constraint=NVIDIA_{node_type}\n')
 
-                f.write(f"#SBATCH --error={script_folser}{os.sep}%j_error.err\n")
-                f.write(f"#SBATCH --output={script_folser}{os.sep}%j_output.out\n")
+                f.write(f"#SBATCH --error={script_folder}{os.sep}%j_error.err\n")
+                f.write(f"#SBATCH --output={script_folder}{os.sep}%j_output.out\n")
 
                 f.write(f"cd /home/ejr78941/ptyrex_temp_5/PtyREX")
 
@@ -269,7 +272,25 @@ def _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose=False):
                 f.write(default_string)
             f.close()
 
-def _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, tmp_list, verbose=False):
+def delete_ptycho_flagging_files(basedir,year,session,subfolder,verbose=False):
+    '''This function is for deleting the autoptycho_is_done.txt files which prevent recontructions
+       from being run more than once'''
+
+    '''determine path path being searched and change directory to that path for glob'''
+    dest_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+    os.chdir(dest_path)
+    print('File being searched: ' + dest_path)
+
+
+    '''use glob and os to find and then remove the files'''
+    for num,file in enumerate(sorted(list(glob.glob('*/*/*/*autoptycho_is_done.txt')))):
+
+        '''debug: print out all of the files before deleting them'''
+        os.remove(os.path.join(dest_path,file))
+        if verbose:
+            print(str(num) + ' deleting: ' + os.path.join(dest_path,file))
+
+def _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, tmp_list=None, verbose=False):
     '''
     :param bash_list:
     :param submit_ptyrex_job:
@@ -301,7 +322,103 @@ def _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, tmp_list, verbose=False):
         # to catch the lines up to logout
         for line in sshProcess.stdout:
             print(line, end="")
-    _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose)
+    if tmp_list != None:
+        _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose)
+
+def ptyrex_json_helper(json_name,val):
+    '''camera length = ['experiment']['detector']['position']
+       scan rotation = ['process']['common']['scan']['rotation']
+       defocus       = ['experiment']['optics']['lens']['defocus']
+       object update = ['process']['PIE']['object']['alpha']
+       probe_update  = ['process']['PIE']['object']['alpha']
+       slices        = ['process']['PIE']['MultiSlice']['slices']
+       thickness     = ['process']['PIE']['MultiSlice']['S_distance']
+       
+    '''
+    if json_name == 'camera length':
+        keys = ['experiment','detector','position']
+        val = [0,0,val]
+    elif json_name == 'scan rotation':
+        keys = ['process','common','scan','rotation']
+    elif json_name == 'defocus':
+        keys = ['experiment','optics','lens','defocus']
+        val = [val,val]
+    elif json_name == 'object update':
+        keys = ['process','PIE','object','alpha']
+    elif json_name == 'probe update':
+        keys = ['process','PIE','probe','alpha']
+    elif json_name == 'number of slices':
+        keys = ['process','PIE','MultiSlice','slices']
+    elif json_name == 'slice thickness':
+        keys = ['process','PIE','MultiSlice','S_distance']
+    return keys, val
+
+def get_current_json_val(json_path,key_name):
+    '''
+    this function is to obtain the current value in the json for a particular key
+    such that it can be displayed before it is changed
+    '''
+    with open(json_path, 'r') as f:
+        pty_expt = json.load(f)
+
+    keys,new_val = ptyrex_json_helper(key_name,0)
+
+    if len(keys) == 3:
+        current_val = pty_expt[keys[0]][keys[1]][keys[2]]
+    elif len(keys) == 4:
+        current_val = pty_expt[keys[0]][keys[1]][keys[2]][keys[3]]
+    else:
+        print('error: unkown keys')
+    if isinstance(current_val,list):
+        if len(current_val) == 2:
+            current_val = current_val[0]
+        elif len(current_val) == 3:
+            current_val = current_val[2]
+    return current_val
+
+def edit_ptyrex_json_parameter(json_path,key_name, new_val,verbose=False):
+    
+    with open(json_path, 'r') as f:
+        pty_expt = json.load(f)
+
+        keys,new_val = ptyrex_json_helper(key_name,new_val)
+
+        '''in the case of changing the number of slices make sure that this a int and not a float
+        to avoid issues during the reading of the json within ptyrex'''
+        if keys[-1] == 'slices':
+            new_val = int(new_val)
+
+        if len(keys) == 3:
+            pty_expt[keys[0]][keys[1]][keys[2]] = new_val
+        elif len(keys) == 4:
+            pty_expt[keys[0]][keys[1]][keys[2]][keys[3]] = new_val
+        else:
+            print('error: unkown keys')
+
+        if verbose:
+            print(f'editing the following json: {json_path}...')
+                
+        with open(json_path, 'w') as f:
+            json.dump(pty_expt, f, indent=4)
+
+def edit_all_ptycho_json_paramter(year,session,subfolder,json_name,key_name, new_val, verbose=False):
+    
+    '''determine path path being searched and change directory to that path for glob'''
+    dest_path = f'/dls/e02/data/{year}/{session}/processing/Merlin/{subfolder}'
+    os.chdir(dest_path)
+    print('File being searched: ' + dest_path)
+
+    '''use glob and os to find and then edit the files'''
+    for num,file in enumerate(sorted(list(glob.glob('*/*/*/*' + json_name + '.json')))):
+
+        '''debug: print out all of the files before editing them'''
+        if verbose:
+            print(str(num) + ': ' + os.path.join(dest_path,file))
+
+        edit_ptyrex_json_parameter(os.path.join(dest_path,file),key_name, new_val, verbose)
+
+
+
 
 # ----------------------------------------------------------------------------------------
 class NotebookHelper:
@@ -410,6 +527,7 @@ class convert_info_widget():
     def __init__(self, ptyrex_json=False, 
                        virtual_image=False, 
                        ptyrex_submit=False, 
+                       ptyrex_single=False,
                        au_calibration_submit=False,
                        radial_transformation_submit=False):
         if ptyrex_json:
@@ -422,8 +540,39 @@ class convert_info_widget():
             self._au_calibration_submit()
         elif radial_transformation_submit:
             self._radial_transformation_submit()
+        elif ptyrex_single:
+            self._ptyrex_single_recon()
         else:
             self._activate()
+
+    def prefill_boxes(self):
+        '''
+        This function is used to prefill the basedir, year and session boxes in 
+        the ipython widgets such that users do not have repeatly enter in the 
+        same information if they are running different cells within the same notebook
+        this only works if the folder which the note book is in is associated with a 
+        particular user session and this can work with staged data as well. so is based
+        strongly on os.chdir function.
+        '''
+        #ToDo make these varibles be stored in self such that once it has been filled out one
+
+        st = {"description_width": "initial"}
+        current_dir = os.getcwd()
+        if current_dir[:13] == '/dls/e02/data':
+            basedir = Text(value=current_dir[0:13], description='Base data directory path:', style=st)
+            year = Text(value=current_dir.split('/')[4],description='Year:', style=st)
+            session = Text(value=current_dir.split('/')[5],description='Session:', style=st)
+        elif current_dir == '/dls/staging/dls/e02/data':
+            basedir = Text(value=current_dir[0:25], description='Base data directory path:', style=st)
+            year = Text(value=current_dir.split('/')[6],description='Year:', style=st)
+            session = Text(value=current_dir.split('/')[7],description='Session:', style=st)
+        else:
+            basedir = Text(description='Base data directory path:', style=st)
+            year = Text(description='Year:', style=st)
+            session = Text(description='Session:', style=st)
+        return basedir, year, session
+
+
 
     def _paths(self, basedir, year, session, subfolder_check, subfolder):
 
@@ -655,6 +804,8 @@ class convert_info_widget():
 
             '''define the source path'''
             src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+            if verbose:
+                print(f'looking at this path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
 
             '''use glob and os to find the meta data files'''
             try:
@@ -749,10 +900,9 @@ class convert_info_widget():
         print('Make sure that <Submit checkbox> is unchecked before changing any other variables')
         print('*********************************************************************************')
         
+        basedir, year, session = self.prefill_boxes()
+
         st = {"description_width": "initial"}
-        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
-        year = Text(description='Year:', style=st)
-        session = Text(description='Session:', style=st)
         
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
         subfolder = Text(description='Subfolder:', style=st)
@@ -845,10 +995,8 @@ class convert_info_widget():
 
 
     def _ptyrex_json(self):
+        basedir,year,session = self.prefill_boxes()
         st = {"description_width": "initial"}
-        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
-        year = Text(description='Year:', style=st)
-        session = Text(description='Session:', style=st)
         subfolder = Text(description='Subfolder:', style=st)
         ptycho_config_name = Text(value="ptycho",description='Enter config name (optional) :', style=st)
         ptycho_template_path = Text(value="/dls_sw/e02/PtyREX_templates/80KeV_template.json",description='Enter template config path (optional) :', style=st)
@@ -869,10 +1017,9 @@ class convert_info_widget():
                                         create_ptycho_folder=create_ptycho_folder)
         
     def _virtual_images(self):
+
+        basedir, year, session = self.prefill_boxes()
         st = {"description_width": "initial"}
-        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
-        year = Text(description='Year:', style=st)
-        session = Text(description='Session:', style=st)
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
         subfolder = Text(description='Subfolder:', style=st)
 
@@ -1020,9 +1167,7 @@ class convert_info_widget():
                 
     def _au_calibration_submit(self):
         st = {"description_width": "initial"}
-        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
-        year = Text(description='Year:', style=st)
-        session = Text(description='Session:', style=st)
+        basedir,year,session = self.prefill_boxes()
         au_cal_folder = Text(description='Au data folder name:', style=st)
         
         pixel_size_factor = FloatText(description='Multi. factor for the initial pixel size guess', value=1.0, style=st)
@@ -1156,9 +1301,7 @@ class convert_info_widget():
         
     def _radial_transformation_submit(self):
         st = {"description_width": "initial"}
-        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
-        year = Text(description='Year:', style=st)
-        session = Text(description='Session:', style=st)
+        basedir,year,session = self.prefill_boxes()
         subfolder = Text(description='Subfolder:', style=st)
         au_cal_folder = Text(description='Au data folder name:', style=st)
         
@@ -1390,57 +1533,77 @@ class convert_info_widget():
 
 
     def _ptyrex_paths(self,basedir, year, session, subfolder, ptycho_config_name, create_ptycho_bash_script_check,
-                      node_type, ptycho_time, submit_ptyrex_job, verbose=False):
+                      node_type, ptycho_time, submit_ptyrex_job, delete_flaggin_files, verbose=False):
         '''define the source path'''
         src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
         script_folder = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts'
+
         tmp_list = []
         test_string = 'autoptycho_is_done.txt'
 
         '''use glob and os to find the meta data files'''
-        if basedir == '' or year == '' or session == '' or subfolder == '':
-            print('\nwaiting for the folowing inputs: basedir, year, session, subfolder\n')
+        if basedir == '' or year == '' or session == '' or subfolder == '' or ptycho_config_name == '':
+            print('\nwaiting for the folowing inputs: basedir, year, session, subfolder and config_name\n')
+            print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
         else:
-            os.chdir(src_path)
-            for num, file in enumerate(sorted(list(glob.glob('*/*/*/*' + ptycho_config_name + '.json')))):
-                '''debug statement to check file paths'''
-                if verbose == True:
-                    print(str(num) + ': ' + os.path.join(src_path, file))
-                    # print(str(num) + ': ' + os.path.join(src_path,file.replace(ptycho_config_name + '.json', test_string)))
-
-                '''check whether the data has been processed before - if it has then it should have autoptycho_is_done text file'''
-                if os.path.exists(os.path.join(src_path, file.replace(ptycho_config_name + '.json', test_string))):
-                    if verbose:
-                        print(
-                            '\nskipping json as it already been processed, to process this again please clear autoptycho flag\n')
-                else:
-                    tmp_list.append(os.path.join(src_path, file))
-
-            '''Create bash scripts for each of the json files'''
-            if create_ptycho_bash_script_check:
-                print('\nfound json files and creating bash scripts...\n')
-                bash_list = _create_ptyrex_bash_submit(tmp_list, script_folder, node_type, ptycho_time, verbose)
-            '''submit the bash scripts to the cluster'''
-            if submit_ptyrex_job:
-                _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, tmp_list)
+            '''try statement is used here to catch the case where all parameters have inputs but are still not correct mid type'''
+            try:
+                os.chdir(src_path)
+                print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}\n')
                 if verbose:
-                    print(f'submited jobs to wilson')
-            if create_ptycho_bash_script_check and submit_ptyrex_job:
-                return tmp_list, bash_list
+                    print(f'json files found in the current path are listed below:\n')
+                for num, file in enumerate(sorted(list(glob.glob('*/*/*/*' + ptycho_config_name + '.json')))):
+                    '''debug statement to check file paths'''
+                    if verbose == True:
+                        print(str(num) + ': ' + os.path.join(src_path, file))
+                        # print(str(num) + ': ' + os.path.join(src_path,file.replace(ptycho_config_name + '.json', test_string)))
+
+                    '''check whether the data has been processed before - if it has then it should have autoptycho_is_done text file'''
+                    #ToDo fix this to test whether even in the case where only a subsection of the code matches (it must be a whole match)
+                    #for example ptycho_Sample and 2_ptycho_Sample will be brought up by ptycho_Sample as they share strings
+                    if os.path.exists(os.path.join(src_path, file.replace(ptycho_config_name + '.json', test_string))):
+                        if verbose:
+                            print(
+                                '\nskipping json as it already been processed, to process this again please delete flagging files\n')
+                    else:
+                        tmp_list.append(os.path.join(src_path, file))
+
+                '''check whether the scripting folder exists, if not create the folder'''
+                if os.path.exists(script_folder) == False:
+                    os.mkdir(script_folder)
+
+                '''delete auto ptycho flagging  files if there are any'''
+                if delete_flaggin_files:
+                    delete_ptycho_flagging_files(basedir,year,session,subfolder,verbose)
+                
+                '''Create bash scripts for each of the json files'''
+                if create_ptycho_bash_script_check:
+                    print('\n***\nFound json files and creating bash scripts...\n***\n')
+                    bash_list = _create_ptyrex_bash_submit(tmp_list, script_folder, node_type, ptycho_time, verbose)
+                '''submit the bash scripts to the cluster'''
+                if submit_ptyrex_job:
+                    _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, tmp_list)
+                    if verbose:
+                        print(f'submited jobs to wilson')
+                if create_ptycho_bash_script_check and submit_ptyrex_job:
+                    return tmp_list, bash_list
+            
+            except:
+                print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+                print(f'\nEither the entered path does not exist, Path searched: {src_path}, or a different error has occured\n')
 
 
 
     def _ptyrex_submit(self):
+        basedir,year,session = self.prefill_boxes()
         st = {"description_width": "initial"}
-        basedir = Text(value="/dls/e02/data", description='Base data directory path:', style=st)
-        year = Text(description='Year:', style=st)
-        session = Text(description='Session:', style=st)
         subfolder = Text(description='Subfolder:', style=st)
-        ptycho_config_name = Text(description='Name of the json file to process:', style=st)
+        ptycho_config_name = Text(value='ptycho',description='Name of the json file to process:', style=st)
         create_ptycho_bash_script_check = Checkbox(value=False, description='Create PtyREX bash script', style=st)
         node_type = Dropdown(options=['Volta', 'Pascal'], value='Pascal', description='type of gpu to use')
         ptycho_time = Dropdown(options=['00:30:00', '01:00:00', '02:00:00', '04:00:00', '08:00:00'],value='00:30:00',description='Processing time: (HH:MM:SS)')
         submit_ptyrex_job = Checkbox(value=False, description='Submit PtyREX job', style=st)
+        delete_flaggin_files = ToggleButton(value=False,description='delete flagging files', disabled=False, button_style='')
         verbose = Checkbox(value=False, description='Check this for debugging and error printing', style=st)
 
         self.ptyrex_paths = ipywidgets.interact(self._ptyrex_paths,
@@ -1453,7 +1616,133 @@ class convert_info_widget():
                                           node_type=node_type,
                                           ptycho_time=ptycho_time,
                                           submit_ptyrex_job=submit_ptyrex_job,
+                                          delete_flaggin_files = delete_flaggin_files,
                                           verbose=verbose)
+        
+
+    
+    def _single_recon(self,basedir, year, session, subfolder, ptycho_config_name,
+                      Choose_timestamp, Choose_recon_parameter, current_value,
+                      new_value, update_json, submit_ptyrex_job, verbose=False):
+        self.tmp_list = []
+        self.timestamp_list = []
+        self.recon_timestamp_list = []
+        self.recon_list = []
+
+        '''use glob and os to find the meta data files'''
+        if basedir == '' or year == '' or session == '' or subfolder == '' or ptycho_config_name == '':
+            print('\nwaiting for the folowing inputs: basedir, year, session, subfolder and config_name\n')
+            print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+        else:
+            if verbose:
+                print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+            '''this part of the code finds all of the timestamps to populate timestamp_list'''
+            src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+            os.chdir(src_path)
+            for num, file in enumerate(sorted(list(glob.glob('*/*/*/*' + ptycho_config_name + '.json')))):
+                if verbose:
+                    print(str(num) + ': ' + os.path.join(src_path, file))
+                self.tmp_list.append(os.path.join(src_path, file))
+                time_stamp_index = os.path.join(src_path, file).find('/pty_out')
+                self.timestamp_list.append(os.path.join(src_path, file)[time_stamp_index - 15:time_stamp_index])
+            if verbose:
+                print(self.timestamp_list)
+            self.single_recon.widget.children[5].options = self.timestamp_list
+            #self.single_recon.widget.children[5].value = self.timestamp_list[0]
+            
+            try:
+                indexer = self.timestamp_list.index(Choose_timestamp)
+                current_file = self.tmp_list[indexer]
+                current_folder = current_file.replace(f'{ptycho_config_name}.json','')
+
+                '''
+                get the current value of the paramter being indexed and update the value so that the user has
+                some understanding want the unit of the value should be? maybe we should implment units later?
+                '''
+                self.single_recon.widget.children[7].value = get_current_json_val(current_file,Choose_recon_parameter)
+                #for i in self.single_recon.widget.children:
+                #    print(i.value)
+
+                if self.single_recon.widget.children[5].value != 'empty':
+                    print('timestamp chosen')
+                    #print(dir(self.single_recon.widget.children[7]))
+                    self.single_recon.widget.children[9].disabled = False
+                    self.single_recon.widget.children[10].disabled = False
+                else:
+                    print('cannot edit file or submit jobs with incomplete recon section')
+
+                '''
+                edit_ptyrex_json_parameter changes the json immendiately this might be a problem the current soultion is 
+                gate the function with a toogle button. the issue with this, is that this requires multiple presses of 
+                the toggle button to mutiple different values. maybe we store changes and then apply all at once later?
+                '''
+                print(f'The currently selected json is: {current_file}')
+                if update_json:
+                    edit_ptyrex_json_parameter(current_file, Choose_recon_parameter, new_value, verbose)
+                    '''There is a delay in saving the file so I think we have sleep and the update the value in the new_value box'''
+                    self.single_recon.widget.children[7].value = get_current_json_val(current_file,Choose_recon_parameter)
+                    self.single_recon.widget.children[9].value = False
+                    #self.single_recon.widget.children[7].value = new_value
+                    #time.sleep(1)
+
+                if submit_ptyrex_job:
+                    script_folder = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts/'
+                    if os.path.exists(script_folder) != True:
+                        os.mkdir(script_folder)
+                    bash_list = _create_ptyrex_bash_submit([current_file], script_folder, 'Volta', '04:00:00', verbose=False)
+                    #bash_list = [f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts/{Choose_timestamp[-6:]}_ptyrex_submit.sh']
+                    if verbose:
+                        print(bash_list)
+                    
+                    _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, verbose=False)
+                    self.single_recon.widget.children[10].value = False
+            except:
+                print('Please select a timestamp, if the timestamp option is unreponsive and the path is correct an error has\n' \
+                'occured. please click the debugging checkbox for detials')
+                
+
+
+
+
+
+
+
+
+
+
+    def _ptyrex_single_recon(self):
+        st = {"description_width": "initial           a"}
+        basedir,year,session = self.prefill_boxes()
+        subfolder = Text(description='Subfolder:', style=st)
+        ptycho_config_name = Text(description='Name of the json file to process:', style=st)
+        Choose_timestamp = Dropdown(options=['empty'], value='empty', description='choose a timestamp', style=st)
+        Choose_recon_parameter = Dropdown(options=['camera length','scan rotation','defocus','object update',
+                                                   'probe update','number of slices', 'slice thickness'], 
+                                                   value='defocus', description='choose a parameter to change', style=st)
+        current_value = FloatText(value=1e-9,description = 'The current value of the chosen parameter', style=st,disabled=True)
+        new_value = FloatText(value=1e-9,description = 'enter a new value for the chosen parameter', style=st)
+        update_json = ToggleButton(value=False,description='update the current json', disabled=True, button_style='', style=st)
+        submit_ptyrex_job = ToggleButton(value=False,description='submit the ptyrex json to the cluster for processing', disabled=True, style=st)
+        verbose = Checkbox(value=False, description='Check this for debugging and error printing', style=st)
+
+        
+        
+        
+
+        self.single_recon = ipywidgets.interact(self._single_recon,
+                                            basedir=basedir,
+                                            year=year, 
+                                            session=session,
+                                            subfolder=subfolder,
+                                            ptycho_config_name=ptycho_config_name,
+                                            Choose_timestamp = Choose_timestamp,
+                                            Choose_recon_parameter = Choose_recon_parameter,
+                                            current_value=current_value,
+                                            new_value = new_value,
+                                            update_json = update_json,
+                                            submit_ptyrex_job = submit_ptyrex_job,
+                                            verbose = verbose)
+        
 
 
 
