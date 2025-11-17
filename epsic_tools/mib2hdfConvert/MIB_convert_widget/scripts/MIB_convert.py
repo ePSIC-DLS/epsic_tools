@@ -28,6 +28,10 @@ import yaml
 import json
 import re
 
+from PIL import Image
+from io import BytesIO
+import base64
+
 #error tracking imports
 import traceback
 
@@ -418,6 +422,41 @@ def edit_all_ptycho_json_paramter(year,session,subfolder,json_name,key_name, new
         edit_ptyrex_json_parameter(os.path.join(dest_path,file),key_name, new_val, verbose)
 
 
+def numpy_array_to_base64_uri(np_array, format="PNG"):
+    """
+    Converts a NumPy array representing an image to a Base64 data URI.
+
+    Args:
+        np_array (np.array): The NumPy array representing the image.
+                             Expected shape: (height, width, channels) for color,
+                             or (height, width) for grayscale.
+        format (str): The image format for encoding (e.g., "PNG", "JPEG").
+
+    Returns:
+        str: A Base64 data URI string.
+    """
+    # Ensure the array is in a format PIL can understand (e.g., uint8)
+    if np_array.dtype != np.uint8:
+        np_array = np_array.astype(np.uint8)
+
+    # Convert NumPy array to PIL Image
+    # Handle grayscale vs. color images
+    if np_array.ndim == 2: # Grayscale
+        pil_img = Image.fromarray(np_array, mode='L')
+    elif np_array.ndim == 3: # Color (RGB or RGBA)
+        if np_array.shape[2] == 3: # RGB
+            pil_img = Image.fromarray(np_array, mode='RGB')
+        elif np_array.shape[2] == 4: # RGBA
+            pil_img = Image.fromarray(np_array, mode='RGBA')
+        else:
+            raise ValueError(f"Unsupported number of channels: {np_array.shape[2]}")
+    else:
+        raise ValueError(f"Unsupported NumPy array dimensions: {np_array.ndim}")
+
+    buffered = BytesIO()
+    pil_img.save(buffered, format=format)
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return f"data:image/{format.lower()};base64,{img_str}"
 
 
 # ----------------------------------------------------------------------------------------
@@ -532,8 +571,8 @@ class convert_info_widget():
         if software_basedir != None:
             self.software_basedir = '/'+software_basedir+'/'
         else:
-            self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
-
+            # self.software_basedir = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts/'
+            self.software_basedir = '/dls/science/groups/e02/Mohsen/code/Git_Repos/epsic_tools/epsic_tools/mib2hdfConvert/MIB_convert_widget/scripts'
 
         if ptyrex_json:
             self._ptyrex_json()
@@ -873,6 +912,7 @@ class convert_info_widget():
         if create_ptycho_folder == True:
             print('Ptychography folders and files generated...')
 
+
       
     def _submit(self, submit_check):
         if submit_check:
@@ -899,7 +939,73 @@ class convert_info_widget():
             #to catch the lines up to logout
             for line in  sshProcess.stdout: 
                 print(line,end="")
-        
+
+    
+    def _viz(self, viz_check, year, session):
+        # print(viz_check)
+        if viz_check:
+            print("Visualisation page is now being built...")
+            # print(f"year is {year}")
+            # print(f"session id is {session}")
+            dest_dir = f'/dls/e02/data/{year}/{session}/processing/viz'
+            if not os.path.exists(dest_dir):
+                os.mkdir(dest_dir)
+
+            def get_ts(file_path):
+                return os.path.basename(file_path)[:15]
+            
+            _data_path = f'/dls/e02/data/2025/{session}/processing/Merlin/'
+
+            metadata_files = sorted(glob.glob(_data_path + '/*/????????_??????/*.hdf'), key=get_ts)
+            sample_subfolders = [_p.split('/')[8] for _p in metadata_files]
+
+            data = []
+            for i, _file in enumerate(metadata_files):
+                if 'data' not in _file[-10:]:
+                    # print(i, _file)
+                    with h5py.File(_file, 'r') as f:
+                        x_pos = 1e6 * f['metadata/x_pos(m)'][()] # in um
+                        y_pos = 1e6 * f['metadata/y_pos(m)'][()] # in um
+                        ts = os.path.basename(_file).split('.')[0]
+                        # print(ts)
+                        im_path = os.path.join(os.path.dirname(_file), f"{ts}_iBF.jpg")
+                        # print(os.path.exists(im_path))
+
+                        try:
+                            im = hs.load(im_path)
+                            img_data_uri = numpy_array_to_base64_uri(im.data)
+
+                            data.append({
+                                "id": i + 1,
+                                "sample_name": sample_subfolders[i],
+                                "x_pos": x_pos,
+                                "y_pos": y_pos,
+                                "time_stamp": ts,
+                                "image_data_uri": img_data_uri, # Base64 encoded image for direct embedding
+                                # "image_data_uri_analysis": img_data_uri_analysis,
+                                "magnification": str(f['metadata/magnification'][()])
+                            })
+                        except ValueError:
+                            print("skipped", _file)
+                            pass
+
+
+            data_json_string = json.dumps(data)
+
+            output_js_content = f"const embeddedData = {data_json_string};"
+            output_filename = os.path.join(dest_dir,"data.js")
+
+            with open(output_filename, "w", encoding="utf-8") as f:
+                f.write(output_js_content)
+            
+            # print(self.software_basedir)
+            shutil.copy(os.path.join(self.software_basedir, 'index.html'), dest_dir)
+            shutil.copy(os.path.join(self.software_basedir, 'app.js'), dest_dir)
+
+            print(f"Open the index.html page here: {dest_dir}")
+                        
+
+
     
     def _activate(self):
         print('*********************************************************************************')
@@ -954,6 +1060,8 @@ class convert_info_widget():
         create_batch_check = Checkbox(value=False, description='Create slurm batch file', style=st)
         create_info_check = Checkbox(value=False, description='Create conversion info file', style=st)
         submit_check = Checkbox(value=False, description='Submit a slurm job', style=st)
+        viz_check = Checkbox(value=False, description='Start visualisation', style=st)
+        
 
         node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
         n_jobs = IntSlider(value=3, min=1, max=9, step=1,
@@ -998,6 +1106,7 @@ class convert_info_widget():
                                           create_info_check=create_info_check)
         
         self.submit = ipywidgets.interact(self._submit, submit_check=submit_check)
+        self.viz = ipywidgets.interact(self._viz, viz_check=viz_check, year=year, session =session)
 
 
     def _ptyrex_json(self):
