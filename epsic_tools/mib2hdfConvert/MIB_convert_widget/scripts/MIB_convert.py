@@ -3,12 +3,12 @@ import sys
 import pprint
 import time
 import hyperspy.api as hs
-print(f"hyperspy version: {hs.__version__}")
+# print(f"hyperspy version: {hs.__version__}")
 import pyxem as pxm
-print(f"pyxem version: {pxm.__version__}")
+# print(f"pyxem version: {pxm.__version__}")
 import numpy as np
 import py4DSTEM
-print(f"py4DSTEM version: {py4DSTEM.__version__}")
+# print(f"py4DSTEM version: {py4DSTEM.__version__}")
 import dask.array as da
 from rsciio.quantumdetector import load_mib_data, parse_exposures
 from rsciio.quantumdetector import file_reader
@@ -28,6 +28,11 @@ import nbformat
 import yaml
 import json
 import re
+
+# HTML Visualisation imports
+from PIL import Image
+from io import BytesIO
+import base64
 
 #error tracking imports
 import traceback
@@ -339,10 +344,13 @@ class convert_info_widget():
 
             display(self.keys_show)
                 
-    def _organize(self, reshaping,Scan_X, Scan_Y,bin_nav_widget,bin_sig_widget,
+    def _organize(self, basedir, year, session, reshaping,Scan_X, Scan_Y,bin_nav_widget,bin_sig_widget,
                   node_check,n_jobs,create_virtual_image,mask_path,disk_lower_thresh,
                   disk_upper_thresh,DPC_check,parallax_check):
 
+        self.basedir = basedir
+        self.year = year
+        self.session = session
         self.reshaping = reshaping
         self.Scan_X = Scan_X
         self.Scan_Y = Scan_Y
@@ -422,8 +430,9 @@ class convert_info_widget():
                 f"DPC = {self.DPC_check}\n"
                 f"parallax = {self.parallax_check}\n"
                     )
-            
+        print("*********************************************")   
         print("conversion info file created: "+self.info_path)
+        print("*********************************************")   
 
     def _create_batch_script(self):
         self.python_script_path = self.software_basedir + '/MIB_convert_submit.py'
@@ -452,9 +461,16 @@ class convert_info_widget():
             f.write('sleep 10\n')
             f.write(f"python {self.python_script_path} {self.info_path} $SLURM_ARRAY_TASK_ID\n")
 
+        print("*********************************************") 
         print("sbatch file created: "+self.bash_script_path)
-        print("submission python file: "+self.python_script_path)        
-        
+        print("submission python file: "+self.python_script_path)
+        print("*********************************************") 
+
+    def _create_html_on_click(self, b):
+        with self.html_out:
+            self.html_out.clear_output(wait=True)
+            self._html_visualisation()
+
     def _create_info_on_click(self, b):
         with self.info_out:
             self.info_out.clear_output(wait=True)
@@ -485,7 +501,6 @@ class convert_info_widget():
         sshProcess.stdin.write("logout\n")
         sshProcess.stdin.close()
         
-        
         for line in sshProcess.stdout:
             if line == "END\n":
                 break
@@ -495,7 +510,22 @@ class convert_info_widget():
         for line in  sshProcess.stdout: 
             print(line,end="")
             
+        print("*********************************************")
+        print("Job submitted") 
+        print("*********************************************")
+            
     def _activate(self):
+        print("*************Please read the instructions below*************")
+        print("1. Submit a conversion job")
+        print("After determining all conversion parameters:")
+        print("First, press 'Create a conversion info file' button")
+        print("Second, press 'Create a slurm batch file' button")
+        print("Finally, press 'Submit a slurm job' button\n")
+        print("2. Create a data visualisation page")
+        print("Enter the base directory path, year and session id")
+        print("Press 'Create a data visualisation page' button")
+        print("************************************************************")
+        
         st = {"description_width": "initial"}
         basedir, year, session = self.prefill_boxes()
         subfolder_check = Checkbox(value=False, description="All MIB files in 'Merlin' folder", style=st)
@@ -512,8 +542,9 @@ class convert_info_widget():
         node_check = RadioButtons(options=['cs04r', 'cs05r'], description='Select the cluster node (cs04r recommended)', disabled=False)
         n_jobs = IntSlider(value=3, min=1, max=9, step=1, description='Number of multiple slurm jobs:', style=st)
 
-        create_batch_button = Button(description='Create a slurm batch file', button_style='info', layout=Layout(width='auto'))
-        create_info_button = Button(description='Create a conversion info file', button_style='info', layout=Layout(width='auto'))
+        html_visual_button = Button(description='Create a data visualisation page', button_style='success', layout=Layout(width='auto'))
+        create_info_button = Button(description='1st - Create a conversion info file', button_style='info', layout=Layout(width='auto'))
+        create_batch_button = Button(description='2nd - Create a slurm batch file', button_style='info', layout=Layout(width='auto'))
 
         create_virtual_image = Checkbox(value=False, description='Create virtual images', style=st)
         disk_lower_thresh = FloatText(description='Lower disk threshold', value=0.01, style=st)
@@ -522,11 +553,11 @@ class convert_info_widget():
         DPC_check = Checkbox(value=False, description='DPC', style=st)
         parallax_check = Checkbox(value=False, description='Parallax', style=st)
 
-        submit_check = Button(description='Submit a slurm job',
-                              button_style='primary', # Main button is primary
+        submit_check = Button(description='3rd - Submit a slurm job',
+                              button_style='primary',
                               layout=Layout(width='auto'))
 
-        grid = GridspecLayout(3, 3, height='400px', layout=Layout(width='70%'))
+        grid = GridspecLayout(3, 3, height='400px', layout=Layout(width='100%'))
         
         grid[0, 0] = VBox([basedir, year, session])
         grid[1, 0] = VBox([subfolder_check, subfolder, path_verbose])
@@ -539,6 +570,7 @@ class convert_info_widget():
         grid[1, 2] = VBox([create_virtual_image, mask_path])
         grid[2, 2] = VBox([disk_lower_thresh, disk_upper_thresh, DPC_check, parallax_check])
 
+        self.html_out = ipywidgets.Output()
         self.submit_out = ipywidgets.Output()
         self.batch_out = ipywidgets.Output()
         self.info_out = ipywidgets.Output()
@@ -547,7 +579,8 @@ class convert_info_widget():
                           'subfolder_check': subfolder_check, 'subfolder': subfolder}
         controls_verbose = {'path_verbose': path_verbose}
 
-        controls_organize = {'reshaping': reshaping, 'Scan_X': Scan_X, 'Scan_Y': Scan_Y,
+        controls_organize = {'basedir': basedir, 'year': year, 'session': session,
+                             'reshaping': reshaping, 'Scan_X': Scan_X, 'Scan_Y': Scan_Y,
                              'bin_nav_widget': bin_nav_widget, 'bin_sig_widget': bin_sig_widget,
                              'node_check': node_check, 'n_jobs': n_jobs,
                              'create_virtual_image': create_virtual_image, 'mask_path': mask_path,
@@ -562,13 +595,17 @@ class convert_info_widget():
         submit_check.on_click(self._submit_on_click)
         create_batch_button.on_click(self._create_batch_on_click)
         create_info_button.on_click(self._create_info_on_click)
+        html_visual_button.on_click(self._create_html_on_click)
+        html_visual_box = HBox([html_visual_button])
         button_box = HBox([create_info_button, create_batch_button, submit_check])
 
         final_layout = VBox([
             grid,
+            html_visual_box,
             button_box,
             self.path_out,
             self.values_out,
+            self.html_out,
             self.submit_out,
             self.batch_out,
             self.info_out,
@@ -847,6 +884,19 @@ class convert_info_widget():
                 nb.set_settings(new_setting, new_notebook_path)
                 new_notebook_paths_list.append(new_notebook_path)
 
+            note_book_path_file = os.path.join(code_path, 'notebook_list.txt')
+            with open (note_book_path_file, 'w') as f:
+                f.write('\n'.join(new_notebook_paths_list))
+            
+            bash_script_path = os.path.join(code_path, 'cluster_submit.sh')
+            with open (bash_script_path, 'w') as f:
+                f.write('#!/usr/bin/env bash\n')
+                f.write('#SBATCH --partition %s\n'%node_check)
+                f.write('#SBATCH --job-name epsic_notebook\n')
+                f.write('#SBATCH --time 02:00:00\n')
+                f.write('#SBATCH --nodes 1\n')
+                f.write('#SBATCH --tasks-per-node 1\n')
+                f.write('#SBATCH --mem 0G\n')
 
             note_book_path_file = os.path.join(code_path, 'notebook_list.txt')
             with open (note_book_path_file, 'w') as f:
@@ -1065,7 +1115,69 @@ class convert_info_widget():
             #to catch the lines up to logout
             for line in  sshProcess.stdout: 
                 print(line,end="")    
-    # Radial Transformation Section End---------------------------------------------------        
+    # Radial Transformation Section End---------------------------------------------------
+    
+    # HTML Visualisation Section Start----------------------------------------------------
+    def _html_visualisation(self):
+        # print(viz_check)
+        print("Visualisation page is now being built...")
+        # print(f"year is {year}")
+        # print(f"session id is {session}")
+        dest_dir = f'/{self.basedir}/{self.year}/{self.session}/processing/viz'
+        if not os.path.exists(dest_dir):
+            os.mkdir(dest_dir)
+
+        def get_ts(file_path):
+            return os.path.basename(file_path)[:15]
+        
+        _data_path = f'/{self.basedir}/{self.year}/{self.session}/processing/Merlin/'
+
+        metadata_files = sorted(glob.glob(_data_path + '/*/????????_??????/*.hdf'), key=get_ts)
+        sample_subfolders = [_p.split('/')[-3] for _p in metadata_files]
+
+        data = []
+        for i, _file in enumerate(metadata_files):
+            if 'data' not in _file[-10:]:
+                # print(i, _file)
+                with h5py.File(_file, 'r') as f:
+                    x_pos = 1e6 * f['metadata/x_pos(m)'][()] # in um
+                    y_pos = 1e6 * f['metadata/y_pos(m)'][()] # in um
+                    ts = os.path.basename(_file).split('.')[0]
+                    # print(ts)
+                    im_path = os.path.join(os.path.dirname(_file), f"{ts}_iBF.jpg")
+                    # print(os.path.exists(im_path))
+
+                    try:
+                        im = hs.load(im_path)
+                        img_data_uri = numpy_array_to_base64_uri(im.data)
+
+                        data.append({
+                            "id": i + 1,
+                            "sample_name": sample_subfolders[i],
+                            "x_pos": x_pos,
+                            "y_pos": y_pos,
+                            "time_stamp": ts,
+                            "image_data_uri": img_data_uri, # Base64 encoded image for direct embedding
+                            # "image_data_uri_analysis": img_data_uri_analysis,
+                            "magnification": str(f['metadata/magnification'][()])
+                        })
+                    except ValueError:
+                        print("skipped", _file)
+                        pass
+
+        data_json_string = json.dumps(data)
+        output_js_content = f"const embeddedData = {data_json_string};"
+        output_filename = os.path.join(dest_dir,"data.js")
+
+        with open(output_filename, "w", encoding="utf-8") as f:
+            f.write(output_js_content)
+        
+        # print(self.software_basedir)
+        shutil.copy(os.path.join(self.software_basedir, 'index.html'), dest_dir)
+        shutil.copy(os.path.join(self.software_basedir, 'app.js'), dest_dir)
+
+        print(f"Open the index.html page here: {dest_dir}")
+    # HTML Visualisation Section End------------------------------------------------------        
 
     # Ptycho Method Section Start---------------------------------------------------------
     def _ptyrex_json(self):
@@ -1361,6 +1473,44 @@ class convert_info_widget():
     # Ptycho Method Section End-----------------------------------------------------------        
 
 # Function Zone Start---------------------------------------------------------------------
+# HTML Visualisation Function Start-------------------------------------------------------
+def numpy_array_to_base64_uri(np_array, format="PNG"):
+    """
+    Converts a NumPy array representing an image to a Base64 data URI.
+
+    Args:
+        np_array (np.array): The NumPy array representing the image.
+                             Expected shape: (height, width, channels) for color,
+                             or (height, width) for grayscale.
+        format (str): The image format for encoding (e.g., "PNG", "JPEG").
+
+    Returns:
+        str: A Base64 data URI string.
+    """
+    # Ensure the array is in a format PIL can understand (e.g., uint8)
+    if np_array.dtype != np.uint8:
+        np_array = np_array.astype(np.uint8)
+
+    # Convert NumPy array to PIL Image
+    # Handle grayscale vs. color images
+    if np_array.ndim == 2: # Grayscale
+        pil_img = Image.fromarray(np_array, mode='L')
+    elif np_array.ndim == 3: # Color (RGB or RGBA)
+        if np_array.shape[2] == 3: # RGB
+            pil_img = Image.fromarray(np_array, mode='RGB')
+        elif np_array.shape[2] == 4: # RGBA
+            pil_img = Image.fromarray(np_array, mode='RGBA')
+        else:
+            raise ValueError(f"Unsupported number of channels: {np_array.shape[2]}")
+    else:
+        raise ValueError(f"Unsupported NumPy array dimensions: {np_array.ndim}")
+
+    buffered = BytesIO()
+    pil_img.save(buffered, format=format)
+    img_str = base64.b64encode(buffered.getvalue()).decode()
+    return f"data:image/{format.lower()};base64,{img_str}"
+# HTML Visualisation Function End---------------------------------------------------------
+
 # Ptycho Funtion Start--------------------------------------------------------------------
 def find_metadat_file(timestamp, acquisition_path):
     metadata_file_paths = []

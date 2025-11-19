@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ePSIC Data Visualisation</title>
+    
+    <!-- 1. Load the Plotly.js library -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
+    <style>
+        /* All your styles go here, exactly as before */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 2rem; background-color: #f9f9f9; color: #333;
+        }
+        h1 { text-align: center; color: #444; }
+
+        /* New container for controls */
+        .controls-container {
+            width: 90%;
+            max-width: 900px;
+            margin: 0 auto 1rem auto;
+            padding: 1rem;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        .controls-container label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .controls-container select {
+            font-size: 1rem;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+
+        #plot-div {
+            width: 90%; max-width: 900px; height: 500px; margin: 2rem auto;
+            border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background-color: #ffffff;
+        }
+        #info-modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: #ffffff; margin: auto; padding: 30px; border: 1px solid #888;
+            width: 80%; max-width: 500px; border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2); position: relative;
+        }
+        .close-button {
+            color: #aaa; float: right; font-size: 28px; font-weight: bold;
+            position: absolute; top: 10px; right: 20px;
+        }
+        .close-button:hover, .close-button:focus {
+            color: #000; text-decoration: none; cursor: pointer;
+        }
+        #modal-text { font-size: 1.1rem; line-height: 1.6; }
+        #modal-text img {
+            width: 100%; max-width: 200px; margin: 10px auto;
+            display: block; border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>ePSIC Data Visualisation (V1)</h1>
+    <p style="text-align: center;">Click a data point to see the embedded image and metadata.</p>
+
+    <div class="controls-container">
+        <label for="sample-select">Select Sample:</label>
+        <select id="sample-select">
+            <!-- Options will be populated by app.js -->
+        </select>
+    </div>
+
+
+
+    <!-- 2. The HTML element where the plot will be rendered -->
+    <div id="plot-div"></div>
+
+    <!-- 3. The HTML for the modal popup -->
+    <div id="info-modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <div id="modal-text">
+                <!-- Content will be injected by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+      4. Load the scripts.
+      - data.js contains your `embeddedData` variable.
+      - app.js contains all your Plotly code and must run AFTER data.js.
+      - 'defer' tells the browser to wait until the HTML is parsed.
+    -->
+    <script src="data.js"></script>
+    <script src="app.js" defer></script>
+
+</body>
+</html>
