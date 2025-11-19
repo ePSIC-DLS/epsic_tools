@@ -884,6 +884,19 @@ class convert_info_widget():
                 nb.set_settings(new_setting, new_notebook_path)
                 new_notebook_paths_list.append(new_notebook_path)
 
+            note_book_path_file = os.path.join(code_path, 'notebook_list.txt')
+            with open (note_book_path_file, 'w') as f:
+                f.write('\n'.join(new_notebook_paths_list))
+            
+            bash_script_path = os.path.join(code_path, 'cluster_submit.sh')
+            with open (bash_script_path, 'w') as f:
+                f.write('#!/usr/bin/env bash\n')
+                f.write('#SBATCH --partition %s\n'%node_check)
+                f.write('#SBATCH --job-name epsic_notebook\n')
+                f.write('#SBATCH --time 02:00:00\n')
+                f.write('#SBATCH --nodes 1\n')
+                f.write('#SBATCH --tasks-per-node 1\n')
+                f.write('#SBATCH --mem 0G\n')
 
             note_book_path_file = os.path.join(code_path, 'notebook_list.txt')
             with open (note_book_path_file, 'w') as f:
