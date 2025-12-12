@@ -1,0 +1,175 @@
+{
+    "base_dir": "/dls/e02/data/2024/mg35839-1/processing/Merlin/mos2_sample_9_region_2/20240126_101525/pty_out/inital_recons",
+    "experiment": {
+        "data": {
+            "dask": 0,
+            "data_key": "data/frames",
+            "data_path": "/dls/e01/data/2024/cm37230-5/raw/2025-02-26_713D_MES/XC72R/SI data (18) 900C area 1-subsection/data.hdf5",
+            "dead_pixel_flag": 0,
+            "dead_pixel_path": "/dls/science/groups/e02/Frederick/DetecotrMasks/Mask11082023a.h5",
+            "flat_field_flag": 0,
+            "flat_field_path": "None",
+            "load_flag": 1,
+            "meta_type": "hdf"
+        },
+        "detector": {
+            "position": [
+                0,
+                0,
+                0.07335
+            ]
+        },
+        "experiment_ID": "200keV",
+        "optics": {
+            "lens": {
+                "alpha": 0.056,
+                "defocus": [
+                    3.000000000000003e-08,
+                    3.000000000000003e-08
+                ],
+                "use": 1
+            }
+        },
+        "sample": {
+            "position": [
+                0,
+                0,
+                0
+            ]
+        }
+    },
+    "process": {
+        "PIE": {
+            "MultiSlice": {
+                "S_distance": 8e-09,
+                "slices": 1,
+                "test": 1,
+                "type": "phase"
+            },
+            "decay": [
+                1,
+                1,
+                1
+            ],
+            "detector": {
+                "border": [
+                    0,
+                    0
+                ],
+                "border_float": 1,
+                "upsample": [
+                    1,
+                    1
+                ]
+            },
+            "iterations": 200,
+            "object": {
+                "alpha": 0.3,
+                "end": -1,
+                "start": 1
+            },
+            "probe": {
+                "alpha": 0.4,
+                "end": -1,
+                "n": 1,
+                "start": 1
+            },
+            "scan": {
+                "area": [
+                    -1,
+                    -1
+                ],
+                "end": -1,
+                "shift radius": 1,
+                "shift trials": 1,
+                "start": -10,
+                "tilt radius": 1,
+                "tilt trials": 1
+            },
+            "source": {
+                "alpha": 0.3,
+                "end": -1,
+                "start": 1,
+                "sx": 6,
+                "sy": 1
+            }
+        },
+        "common": {
+            "detector": {
+                "bin": [
+                    1,
+                    1
+                ],
+                "crop": [
+                    256,
+                    256
+                ],
+                "mask_flag": 1,
+                "min_max": [
+                    0,
+                    1000
+                ],
+                "name": "pty_data",
+                "optic_axis": [
+                    -1,
+                    -1
+                ],
+                "orientation": "00",
+                "pix_pitch": [
+                    2e-05,
+                    2e-05
+                ]
+            },
+            "object": {
+                "load_flag": 0,
+                "path": "None"
+            },
+            "probe": {
+                "load_flag": 0,
+                "path": ""
+            },
+            "scan": {
+                "N": [
+                    356,
+                    494
+                ],
+                "dR": [
+                    4e-11,
+                    4e-11
+                ],
+                "fast_axis": 1,
+                "load_flag": 0,
+                "orientation": "11",
+                "path": "None",
+                "region": [
+                    0.0,
+                    1.0,
+                    0.0,
+                    1.0,
+                    1,
+                    1
+                ],
+                "rotation": 36.264,
+                "scale": [
+                    1.0,
+                    1.0
+                ],
+                "type": "tv"
+            },
+            "source": {
+                "energy": [
+                    200000.0
+                ],
+                "flux": -1,
+                "radiation": "electron"
+            }
+        },
+        "cores": 4,
+        "gpu_flag": 1,
+        "interaction": "matplotlib",
+        "save_dir": "/dls/e01/data/2024/cm37230-5/raw/2025-02-26_713D_MES/XC72R/SI data (18) 900C area 1-subsection/pty_out/",
+        "save_interval": 1,
+        "save_prefix": "PC9_13_Cs",
+        "subset_type": "random"
+    }
+}
