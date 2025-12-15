@@ -23,10 +23,10 @@ import subprocess
 
 def delete_ptycho_flagging_files(basedir,year,session,subfolder,verbose=False):
     '''This function is for deleting the autoptycho_is_done.txt files which prevent recontructions
-       from being run more than once'''
+       from being run more than once, This code is not yet complete'''
 
     '''determine path path being searched and change directory to that path for glob'''
-    dest_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+    dest_path = f'/{basedir}/{year}/{session}/raw/{subfolder}'
     os.chdir(dest_path)
     print('File being searched: ' + dest_path)
 
@@ -70,6 +70,37 @@ def _create_ptyrex_bash_submit(json_files, script_folder, node_type, ptycho_time
                 f.write(f"mpirun -np 4 ptyrex_recon -c {json_files[num]}\n")
     return bash_ptyrex_path
 
+def _create_dm4_bash(dm4_files, binning, script_folder, verbose=False):
+    bash_path = []
+
+    for num, x in enumerate(dm4_files):
+        if verbose:
+            print(f'\n{str(num)}: {x}\n')
+
+        time_stamp = num
+        if verbose:
+            print(f'\ntime_stamp = {time_stamp}\n')
+        '''rememeber to self.script_save_path to save these files to the script folder'''
+        bash_path.append(os.path.join(script_folder, f'{time_stamp}_dm4_convert_submit.sh'))
+        if verbose:
+            print(f'{num}: {bash_path[num]}')
+        if True:
+            with open(bash_path[num], 'w') as f:
+                f.write('#!/usr/bin/env bash\n')
+                f.write('#SBATCH --partition=cs05r\n')
+                f.write('#SBATCH --job-name=data_reformat\n')
+                f.write('#SBATCH --nodes 1\n')
+                f.write('#SBATCH --tasks-per-node=1\n')
+                f.write('#SBATCH --cpus-per-task 1\n')
+                f.write(f'#SBATCH --time 24:00:00\n')
+                f.write('#SBATCH --mem 0G\n\n')
+                f.write(f"#SBATCH --error={script_folder}{os.sep}%j_error.err\n")
+                f.write(f"#SBATCH --output={script_folder}{os.sep}%j_output.out\n")
+                f.write('\n\nmodule load python/epsic3.10\n\n')
+
+                f.write(f"python /dls/science/groups/e02/Frederick/epsic_tools_2025/epsic_tools/epsic_tools/mib2hdfConvert/E01/Convert_data_inital.py {dm4_files[num]} {binning}\n")
+    return bash_path
+
 def _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose=False):
     '''
     :param submit_ptyrex_job: a test whether ptyrex jobs should be submitted, used here as addiotnional test
@@ -84,7 +115,7 @@ def _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose=False):
         test_string = 'autoptycho_is_done.txt'
         default_string = 'this data set has been auto reconstructed already and therefore will skipped in all proceeding auto recons, please detele to restore auto functionality'
         for x in tmp_list:
-            a = x.find('initial_recon/') + len('initial_recon/')
+            a = x.find('pty_out/') + len('pty_out/')
             flagging_files = (x[:a] + test_string)
             if verbose:
                 print(f'\nflag file name: {flagging_files}\n')
@@ -124,8 +155,11 @@ def _ptyrex_ssh_submit(bash_list, submit_ptyrex_job, tmp_list=None, verbose=Fals
         # to catch the lines up to logout
         for line in sshProcess.stdout:
             print(line, end="")
-    if tmp_list != None:
-        _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose)
+    try:
+        if tmp_list != None:
+            _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose)
+    except:
+        print(traceback.format_exc())
 
 class E01_auto_process():
     def __init__(self,E01_convert=False,json_files=False, run_ptyrex=False):
@@ -143,8 +177,37 @@ class E01_auto_process():
             print('select one of the following modes:\n1: E01_convert=True\njson_files=True')
 
 
+    def prefill_boxes(self):
+        '''
+        This function is used to prefill the basedir, year and session boxes in 
+        the ipython widgets such that users do not have repeatly enter in the 
+        same information if they are running different cells within the same notebook
+        this only works if the folder which the note book is in is associated with a 
+        particular user session and this can work with staged data as well. so is based
+        strongly on os.chdir function.
+        '''
+        #ToDo make these varibles be stored in self such that once it has been filled out one
+
+        st = {"description_width": "initial"}
+        current_dir = os.getcwd()
+        if '/'.join(current_dir.split('/')[1:4]) == 'dls/e01/data':
+            basedir = w.Text(value='/'.join(current_dir.split('/')[1:4]), description='Base data directory path:', style=st)
+            year = w.Text(value=current_dir.split('/')[4],description='Year:', style=st)
+            session = w.Text(value=current_dir.split('/')[5],description='Session:', style=st)
+        elif current_dir == 'dls/staging/dls/e01/data':
+            basedir = w.Text(value='/'.join(current_dir.split('/')[1:5]), description='Base data directory path:', style=st)
+            year = w.Text(value=current_dir.split('/')[6],description='Year:', style=st)
+            session = w.Text(value=current_dir.split('/')[7],description='Session:', style=st)
+        else:
+            basedir = w.Text(value="/dls/e01/data", description='Base data directory path:', style=st)
+            year = w.Text(description='Year:', style=st)
+            session = w.Text(description='Session:', style=st)
+        return basedir, year, session
+
+
     #ToDO Need to change the directory the script which performs the binning to a more central location
-    def convert_to_hdf5_E01(self,ptycho_files,binning=1):
+    def convert_to_hdf5_E01(self,ptycho_files,binning=1, log_path=''):
+        print('log path: %s' % log_path)
         for f in ptycho_files:
             sshProcess = subprocess.Popen(['ssh',
             '-tt',
@@ -155,10 +218,19 @@ class E01_auto_process():
             bufsize=0)
             sshProcess.stdin.write("ls .\n")
             sshProcess.stdin.write("echo END\n")
-            sshProcess.stdin.write(f"sbatch /dls/science/groups/e02/Frederick/0_Ptychography_tools_for_users/E01_scripts/Convert_data_bash.sh '{f}' {str(binning)}\n")
+            sshProcess.stdin.write(f"sbatch /dls/science/groups/e02/Frederick/0_Ptychography_tools_for_users/E01_scripts/Convert_data_bash.sh '{f}' {str(binning)} {log_path}\n")
             sshProcess.stdin.write("uptime\n")
             sshProcess.stdin.write("logout\n")
             sshProcess.stdin.close()
+
+        for line in sshProcess.stdout:
+            if line == "END\n":
+                break
+            print(line, end="")
+
+        # to catch the lines up to logout
+        for line in sshProcess.stdout:
+            print(line, end="")
             
     def find_files(self,basedir,year,session,subfolder,output, Choose_binning, convert_dm, verbose):
         #predefing list and varibles to be used in this section of the code
@@ -169,13 +241,14 @@ class E01_auto_process():
         data_tag = []
         converted_tag = []
         count = 0 #count is required as sometimes there are multiple files with Diffraction SI.dm4 at the end
+        num = -1
         '''
         using the inputs provided construct the path to the data that the user
         is instered in
         '''
         tmpor = basedir + '/' + year + '/' + session
         if basedir == '' or year == '' or session == '' or subfolder == '':
-            print(f'***\ncurrent path: /{basedir}/{year}/{session}/raw/{subfolder}/***\n')
+            print(f'***\ncurrent path: /{basedir}/{year}/{session}/raw/{subfolder}/\n***')
         else:
             print(f'current path: /{basedir}/{year}/{session}/raw/{subfolder}/')
             self.output.value = f'/{basedir}/{year}/{session}/raw/{subfolder}/'
@@ -188,6 +261,11 @@ class E01_auto_process():
             
             try:
                 os.chdir(self.output.value)
+                self.script_path = self.output.value + 'scripts/'
+                if verbose:
+                    print('script path: %s' % self.script_path)
+                if not os.path.exists(self.script_path):                    
+                    os.makedirs(self.script_path)
                 if verbose:
                     print(f'\nsearching for dm4 files...')
                 for num, file in enumerate(sorted(list(glob.glob('*/**Diffraction SI.dm4*')))):
@@ -199,8 +277,9 @@ class E01_auto_process():
                             print(f'file {num}: {self.diffraction_dm_list[count]}')
                         '''increment count'''
                         count = count + 1
-                    
-                print(f'\nSearching for converted files (data.hdf5)...')
+                disp_num = num + 1
+                if verbose:
+                    print(f'\nSearching for converted files (data.hdf5)...')
                 for num, file in enumerate(sorted(list(glob.glob('*/**data.hdf5')))):
                     self.already_converted_list.append(self.output.value+file)
                     converted_tag.append(self.already_converted_list[num].split('/')[-2])
@@ -209,17 +288,19 @@ class E01_auto_process():
                         print(f'converted file {num}: {self.already_converted_list[num]}')
                 '''determine the data which has already been converted using the difference method within python sets to
                    cross reference the tags with each other (typically tags are something like SI-002)'''
+                disp_num = disp_num - (num + 1)
                 data_tag_set = set(data_tag)
                 to_convert_tag = list(data_tag_set.difference(converted_tag))
                 to_convert_tag.sort()
-                print('\nThe following files have not been converted: ')
+                if verbose:
+                    print('\nThe following files have not been converted: ')
                 for num, x in enumerate(to_convert_tag):
                     self.to_convert.append(self.diffraction_dm_list[data_tag.index(x)])
                     if verbose:
                         print(f'{num}: {self.diffraction_dm_list[data_tag.index(x)]}')
-
-                    
+                 
                 
+                print('***\nThe number of unconverted files in this directory is: %i\n***' % disp_num)
                 #if verbose:
                 #    print('***\nthe following data sets Will be converted:\n***\n')
                 #    for num, file in enumerate(sorted(self.to_convert)):
@@ -229,11 +310,14 @@ class E01_auto_process():
                 if convert_dm:
                     if verbose:
                         print(f'\n***\nConverting selected data from dm4 to hdf5\n***')
-                        for num, file in enumerate(sorted(self.to_convert)):
-                            if verbose:
-                                print(f'{num}: {file}')
                     try:
-                        self.convert_to_hdf5_E01(ptycho_files = self.to_convert,binning=Choose_binning)
+                        bash_list = _create_dm4_bash(self.to_convert, Choose_binning, self.script_path, verbose)
+                        _ptyrex_ssh_submit(bash_list, convert_dm, verbose=verbose)
+                    #for num, file in enumerate(sorted(self.to_convert)):
+                    #    if verbose:
+                    #        print(f'{num}: {file}')
+                    #try:
+                    #    self.convert_to_hdf5_E01(ptycho_files = self.to_convert,binning=Choose_binning, log_path = self.script_path)
                     except:
                         print(traceback.format_exc())
                     #self.convert_dm.value=False
@@ -247,9 +331,10 @@ class E01_auto_process():
         
     def _convert_dm_2_hdf5(self):
         st = {"description_width": "initial                     "}
-        self.basedir = w.Text(description='Base data directory path:', style=st,value='dls/e01/data')
-        self.year = w.Text(description='Year:', style=st,value='2024')
-        self.session = w.Text(description='Session:', style=st,value='cm37230-5')
+        self.basedir, self.year, self.session = self.prefill_boxes()
+        #self.basedir = w.Text(description='Base data directory path:', style=st,value='dls/e01/data')
+        #self.year = w.Text(description='Year:', style=st,value='2024')
+        #self.session = w.Text(description='Session:', style=st,value='cm37230-5')
         self.subfolder = w.Text(description='subfolder:', style=st,disabled=False,value='')
         self.output = w.Text(description='output:', style=st,disabled=True,value='Empty')
         self.Choose_binning = w.Dropdown(options=['1','2','4','8'], value='2', description='choose a binning value', style=st)
@@ -283,8 +368,10 @@ class E01_auto_process():
 
 
     def create_E01_json(self,hdf_data_list,template_json='',verbose=True):
+         num = -1
          if template_json == '':
-             template_json = '/dls/science/groups/e02/Frederick/0_Ptychography_tools_for_users/E01_scripts/E01_template.json'
+             template_json = '/dls/science/groups/e02/Frederick/epsic_tools_2025/epsic_tools/epsic_tools/mib2hdfConvert/E01/E01_template.json'
+             #'/dls/science/groups/e02/Frederick/0_Ptychography_tools_for_users/E01_scripts/E01_template.json'
              if verbose:
                 print(f'\nusing the standard json as no template was entered, see the following location:\n {template_json}\n')
          else:
@@ -340,6 +427,7 @@ class E01_auto_process():
                  print(f'{num}. json file name: {self.json_name[num]}')
              with open(self.json_name[num],'w') as json_write:
                 json.dump(pty_expt,json_write,indent=4)
+         print(f'\n***\ncreated {num+1} json files\n***')
 
 
 
@@ -385,9 +473,10 @@ class E01_auto_process():
 
     def widget_Gen_json_files(self):
         st = {"description_width": "initial                     "}
-        self.basedir = w.Text(description='Base data directory path:', style=st,value='dls/e01/data')
-        self.year = w.Text(description='Year:', style=st,value='2024')
-        self.session = w.Text(description='Session:', style=st,value='cm37230-5')
+        self.basedir, self.year, self.session = self.prefill_boxes()
+        #self.basedir = w.Text(description='Base data directory path:', style=st,value='dls/e01/data')
+        #self.year = w.Text(description='Year:', style=st,value='2024')
+        #self.session = w.Text(description='Session:', style=st,value='cm37230-5')
         self.subfolder = w.Text(description='subfolder:', style=st,disabled=False,value='')
         self.output = w.Text(description='output:', style=st,disabled=True,value='Empty')
         self.data_name = w.Text(description='name of hdf5 file to use:', style=st,disabled=False,value='')
@@ -482,17 +571,18 @@ class E01_auto_process():
             
             except:
                 print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
-                print(f'\nEither the entered path does not exist, Path searched: {src_path}, or a different error has occured\n')
+                print(f'\nEither the entered path does not exist, Path searched: {src_path}, or a different error has occurred\n')
 
 
 
     def _ptyrex_submit(self):
         st = {"description_width": "initial"}
-        self.basedir = w.Text(description='Base data directory path:', style=st,value='dls/e01/data')
-        self.year = w.Text(description='Year:', style=st,value='2024')
-        self.session = w.Text(description='Session:', style=st,value='cm37230-5')
+        self.basedir, self.year, self.session = self.prefill_boxes()
+        #self.basedir = w.Text(description='Base data directory path:', style=st,value='dls/e01/data')
+        #self.year = w.Text(description='Year:', style=st,value='2024')
+        #self.session = w.Text(description='Session:', style=st,value='cm37230-5')
         self.subfolder = w.Text(description='Subfolder:', style=st,disabled=False,value='')
-        self.ptycho_config_name = w.Text(value='ptycho',description='Name of the json file to process:', style=st)
+        self.ptycho_config_name = w.Text(value='E01_auto',description='Name of the json file to process:', style=st)
         self.create_ptycho_bash_script_check = w.Checkbox(value=False, description='Create PtyREX bash script', style=st)
         self.node_type = w.Dropdown(options=['Volta', 'Pascal'], value='Pascal', description='type of gpu to use')
         self.ptycho_time = w.Dropdown(options=['00:15:00','00:30:00', '01:00:00', '02:00:00', '04:00:00', '08:00:00'],value='00:30:00',description='Processing time: (HH:MM:SS)')
