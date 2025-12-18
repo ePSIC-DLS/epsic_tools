@@ -204,33 +204,6 @@ class E01_auto_process():
             session = w.Text(description='Session:', style=st)
         return basedir, year, session
 
-
-    #ToDO Need to change the directory the script which performs the binning to a more central location
-    def convert_to_hdf5_E01(self,ptycho_files,binning=1, log_path=''):
-        print('log path: %s' % log_path)
-        for f in ptycho_files:
-            sshProcess = subprocess.Popen(['ssh',
-            '-tt',
-            'wilson'],
-            stdin=subprocess.PIPE, 
-            stdout = subprocess.PIPE,
-            universal_newlines=True,
-            bufsize=0)
-            sshProcess.stdin.write("ls .\n")
-            sshProcess.stdin.write("echo END\n")
-            sshProcess.stdin.write(f"sbatch /dls/science/groups/e02/Frederick/0_Ptychography_tools_for_users/E01_scripts/Convert_data_bash.sh '{f}' {str(binning)} {log_path}\n")
-            sshProcess.stdin.write("uptime\n")
-            sshProcess.stdin.write("logout\n")
-            sshProcess.stdin.close()
-
-        for line in sshProcess.stdout:
-            if line == "END\n":
-                break
-            print(line, end="")
-
-        # to catch the lines up to logout
-        for line in sshProcess.stdout:
-            print(line, end="")
             
     def find_files(self,basedir,year,session,subfolder,output, Choose_binning, convert_dm, verbose):
         #predefing list and varibles to be used in this section of the code
@@ -301,11 +274,6 @@ class E01_auto_process():
                  
                 
                 print('***\nThe number of unconverted files in this directory is: %i\n***' % disp_num)
-                #if verbose:
-                #    print('***\nthe following data sets Will be converted:\n***\n')
-                #    for num, file in enumerate(sorted(self.to_convert)):
-                #        #print(f'{num}: /{basedir}/{year}/{session}/raw/{subfolder}/{file}')
-                #        print(f'{num}: {self.to_convert[num]}')
                 print(f'\nbinning value chosen: {eval(Choose_binning)}')
                 if convert_dm:
                     if verbose:
@@ -313,11 +281,6 @@ class E01_auto_process():
                     try:
                         bash_list = _create_dm4_bash(self.to_convert, Choose_binning, self.script_path, verbose)
                         _ptyrex_ssh_submit(bash_list, convert_dm, verbose=verbose)
-                    #for num, file in enumerate(sorted(self.to_convert)):
-                    #    if verbose:
-                    #        print(f'{num}: {file}')
-                    #try:
-                    #    self.convert_to_hdf5_E01(ptycho_files = self.to_convert,binning=Choose_binning, log_path = self.script_path)
                     except:
                         print(traceback.format_exc())
                     #self.convert_dm.value=False
@@ -370,7 +333,7 @@ class E01_auto_process():
     def create_E01_json(self,hdf_data_list,template_json='',verbose=True):
          num = -1
          if template_json == '':
-             template_json = '/dls/science/groups/e02/Frederick/epsic_tools_2025/epsic_tools/epsic_tools/mib2hdfConvert/E01/E01_template.json'
+             template_json = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/E01/E01_template.json'
              #'/dls/science/groups/e02/Frederick/0_Ptychography_tools_for_users/E01_scripts/E01_template.json'
              if verbose:
                 print(f'\nusing the standard json as no template was entered, see the following location:\n {template_json}\n')
