@@ -98,7 +98,7 @@ def _create_dm4_bash(dm4_files, binning, script_folder, verbose=False):
                 f.write(f"#SBATCH --output={script_folder}{os.sep}%j_output.out\n")
                 f.write('\n\nmodule load python/epsic3.10\n\n')
 
-                f.write(f"python /dls/science/groups/e02/Frederick/epsic_tools_2025/epsic_tools/epsic_tools/mib2hdfConvert/E01/Convert_data_inital.py {dm4_files[num]} {binning}\n")
+                f.write(f"python /dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/E01/Convert_data_inital.py {dm4_files[num]} {binning}\n")
     return bash_path
 
 def _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose=False):
@@ -334,7 +334,6 @@ class E01_auto_process():
          num = -1
          if template_json == '':
              template_json = '/dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/E01/E01_template.json'
-             #'/dls/science/groups/e02/Frederick/0_Ptychography_tools_for_users/E01_scripts/E01_template.json'
              if verbose:
                 print(f'\nusing the standard json as no template was entered, see the following location:\n {template_json}\n')
          else:
