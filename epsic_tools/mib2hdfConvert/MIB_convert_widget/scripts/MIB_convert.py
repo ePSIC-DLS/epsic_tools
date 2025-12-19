@@ -191,7 +191,7 @@ class convert_info_widget():
 
         st = {"description_width": "initial"}
         current_dir = os.getcwd()
-        if current_dir[:13] == '/dls/e02/data':
+        if current_dir[:13] == '/dls/e02/data' or '/dls/e01/data':
             basedir = Text(value=current_dir[0:13], description='Base data directory path:', style=st)
             year = Text(value=current_dir.split('/')[4],description='Year:', style=st)
             session = Text(value=current_dir.split('/')[5],description='Session:', style=st)
@@ -1374,19 +1374,35 @@ class convert_info_widget():
         '''use glob and os to find the meta data files'''
         if basedir == '' or year == '' or session == '' or subfolder == '' or ptycho_config_name == '':
             print('\nwaiting for the folowing inputs: basedir, year, session, subfolder and config_name\n')
-            print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+            if basedir == 'dls/e02/data':
+                print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+            elif basedir == 'dls/e01/data':
+                print(f'current path: /{basedir}/{year}/{session}/raw/{subfolder}')
         else:
             if verbose:
-                print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+                if basedir == 'dls/e02/data':
+                    print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+                elif basedir == 'dls/e01/data':
+                    print(f'current path: /{basedir}/{year}/{session}/raw/{subfolder}')
             '''this part of the code finds all of the timestamps to populate timestamp_list'''
-            src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+            if basedir == 'dls/e01/data':
+                src_path = f'/{basedir}/{year}/{session}/raw/{subfolder}'
+                search_depth = '*/*/*'
+            else:
+                src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+                search_depth = '*/*/*/*'
             os.chdir(src_path)
-            for num, file in enumerate(sorted(list(glob.glob('*/*/*/*' + ptycho_config_name + '.json')))):
+            for num, file in enumerate(sorted(list(glob.glob(search_depth + ptycho_config_name + '.json')))):
                 if verbose:
                     print(str(num) + ': ' + os.path.join(src_path, file))
                 self.tmp_list.append(os.path.join(src_path, file))
-                time_stamp_index = os.path.join(src_path, file).find('/pty_out')
-                self.timestamp_list.append(os.path.join(src_path, file)[time_stamp_index - 15:time_stamp_index])
+                #time_stamp_index = os.path.join(src_path, file).find('/pty_out')
+                #self.timestamp_list.append(os.path.join(src_path, file)[time_stamp_index - 15:time_stamp_index])
+                if basedir == 'dls/e01/data':
+                    self.timestamp_list.append(self.tmp_list[num].split('/')[-3])
+                else:
+                    self.timestamp_list.append(self.tmp_list[num].split('/')[-4])
+
             if verbose:
                 print(self.timestamp_list)
             self.single_recon.widget.children[5].options = self.timestamp_list
