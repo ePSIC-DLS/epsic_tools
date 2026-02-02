@@ -1202,81 +1202,175 @@ class convert_info_widget():
                                         overwrite = overwrite,
                                         create_ptycho_folder=create_ptycho_folder)
 
-    def _ptycho(self,basedir, year, session, subfolder, create_ptycho_folder, ptycho_config_name, ptycho_template_path,
-                overwrite, verbose):
+    
+    def _ptycho(self, basedir: str, year: int, session: str, subfolder: str, create_ptycho_folder: bool, ptycho_config_name: str, ptycho_template_path: str,
+                overwrite: bool, verbose: bool)->None:
+        
         '''
         This part of the code is designed to automatic generate Ptyrex Json and associated folders, its uses glob.glob
-        and the inputted year, session and subfolder varibles to find already converted data files, using the
-        converted data meta file and known dictionary of parameters it is possible fill out the json file
+        and the inputted year, session and subfolder varibles to find already converted data files, this then compared 
+        to the list of already converted json files (also obtained by glob). Then using the converted data meta file 
+        and known dictionary of parameters it is possible fill out the json file
         frederick allars 18-08-2025
         '''
 
-        if create_ptycho_folder == True:
-
+        self.hdf_list = []
+        self.hdf_tags = []
+        self.json_list = []
+        self.json_tags = []
+        num  = -1
+        num2 = -1
+        '''use glob and os to find the meta data files'''
+        if basedir == '' or year == '' or session == '' or subfolder == '' or ptycho_config_name == '':
+            print('\nwaiting for the folowing inputs: basedir, year, session, subfolder and config_name\n')
+            print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+        else:
             '''define the source path'''
-            src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+            src_path = f'{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
             if verbose:
-                print(f'looking at this path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+                print(f'looking at this path: {basedir}/{year}/{session}/processing/Merlin/{subfolder}')
 
             '''use glob and os to find the meta data files'''
             try:
                 os.chdir(src_path)
 
+                #search for hdf files and create associated tags for comparsion
                 for num, file in enumerate(sorted(list(glob.glob('*/*.hdf')))):
-                    '''debug statement to check file paths'''
-                    if verbose == True:
-                        print(str(num) + ': ' + os.path.join(src_path, file))
-                    folder_pty_out = os.path.join(src_path, file[:file.find('/')]) + '/pty_out'
-                    folder_inital = os.path.join(src_path, file[:file.find('/')]) + '/pty_out/initial_recon'
-
+                    self.hdf_list.append(src_path + '/' + file)
+                    self.hdf_tags.append(file.split('/')[0])
                     if verbose:
-                        print('attempting to create ptychography folder in ' + file[:file.find('/')] + ' ...\n')
-                    try:
-                        os.makedirs(folder_pty_out)
-                    except:
-                        if verbose == True:
-                            print('skipping pty_out folder creation as it already has pty_out folder')
-                    try:
-                        os.makedirs(folder_inital)
-                    except:
-                        if verbose == True:
-                            print('skipping initial folder creation as it already has pty_out/initial folder\n')
+                        print('%i: %s, tag = %s' % (num,file,file.split('/')[0]))
+                    if not os.path.exists(src_path + '/' + file.split('/')[0] + '/pty_out'):
+                        os.makedirs(src_path + '/' + file.split('/')[0] + '/pty_out')
+                    if not os.path.exists(src_path + '/' + file.split('/')[0] + '/pty_out/initial_recon'):
+                        os.makedirs(src_path + '/' + file.split('/')[0] + '/pty_out/initial_recon')
 
-                    '''determine the meta data path from the time stamp of the folder'''
-                    meta_file = os.path.join(src_path, file[:file.find('/')]) + '/' + file[:file.find('/')] + '.hdf'
-                    '''debug print below'''
-                    if verbose == True:
-                        print('\nCurrent meatdata file: ' + meta_file + '...\n')
+                print('Found %i hdf files in the path provided' % (num+1))
+                
+                #search for jsons and create associated tags for comparsion
+                for num2, file in enumerate(sorted(list(glob.glob(f'*/*/*/{ptycho_config_name}.json')))):
+                    self.json_list.append(src_path + '/' + file)
+                    self.json_tags.append(file.split('/')[0])
+                    if verbose:
+                        print('%i: %s, tag = %s' %(num2,file,file.split('/')[0]))
+                print('Found %i already created json files in the path provided' % (num2+1))
 
-                    '''TODO add py4DSTEM code which automatic guess the camera length from the subset of the collected diffraction patterns'''
+                #compare tags to determine the list of unconverted data
+                hdf_set = set(self.hdf_tags)
+                if not overwrite:
+                    jsons2gen_tags = list(hdf_set.difference(self.json_tags))
+                else:
+                    jsons2gen_tags = list(hdf_set.difference([]))
 
-                    '''check that the config_name parameter has been filled if not give it a default name'''
-                    if ptycho_config_name == '':
-                        config_name = 'pty_recon'
-                    else:
-                        config_name = ptycho_config_name
+                jsons2gen_tags.sort()
 
-                    '''TODO: set up some standard ptyREX config files to reference at different energies'''
-                    if ptycho_template_path == '':
-                        template_path = self.software_basedir + 'UserExampleJson.json'
-                    else:
-                        template_path = ptycho_template_path
+                #convert the data which matches to unconverted tags
+                if create_ptycho_folder:
+                    if verbose:
+                        print('\nThe following files require jsons: ')
+                    for num, x in enumerate(jsons2gen_tags):
+                        tmp_file = self.hdf_list[self.hdf_tags.index(x)]
+                        tmp_folder = '/'.join(tmp_file.split('/')[:-1]) + '/pty_out/initial_recon'
+                        if verbose: # Debug statement
+                            print(f'{num}: {tmp_file}')
+                        #    print(f'\n{num}: {tmp_folder}')
+                        #    print(f'\n{ptycho_config_name}\n')
 
-                    try:
-                        gen_config(template_path, folder_inital, config_name, meta_file, overwrite = overwrite,
-                                   verbose = verbose)
-                        if verbose:
-                            print('ptychography folder suscessfully created.\n')
-                    except:
-                        print(traceback.format_exc())
-                        print('The metadata for this dataset seems to be missing or might be mid-conversion, '
-                              'please check the file \nskipping for now...')
-
+                        try:
+                            gen_config(ptycho_template_path, tmp_folder, ptycho_config_name, tmp_file, overwrite = overwrite,
+                                        verbose = verbose)
+                            if verbose:
+                                    print('ptychography folder suscessfully created.\n')
+                        except:
+                            print('checking for errors...')
+                            print(traceback.format_exc())
+                            print('The metadata for this dataset seems to be missing or might be mid-conversion, '
+                                    'please check the file \nskipping for now...')
             except:
-                print('\n' + str(sorted(list(glob.glob('*/*.hdf'))) + '\n'))
-                print('the enetred path does not register as a available  path to any E02 data')
-        if create_ptycho_folder == True:
-            print('Ptychography folders and files generated...')
+                print('checking for errors...')
+                print(traceback.format_exc())
+            print('the end of the code has been reached...')
+    
+    # def _ptycho(self, basedir, year, session, subfolder, create_ptycho_folder, ptycho_config_name, ptycho_template_path,
+    #             overwrite, verbose):
+    #     '''
+    #     This part of the code is designed to automatic generate Ptyrex Json and associated folders, its uses glob.glob
+    #     and the inputted year, session and subfolder varibles to find already converted data files, using the
+    #     converted data meta file and known dictionary of parameters it is possible fill out the json file
+    #     frederick allars 18-08-2025
+    #     '''
+
+    #     '''use glob and os to find the meta data files'''
+    #     if basedir == '' or year == '' or session == '' or subfolder == '' or ptycho_config_name == '':
+    #         print('\nwaiting for the folowing inputs: basedir, year, session, subfolder and config_name\n')
+    #         print(f'current path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+    #     else:
+    #         '''define the source path'''
+    #         src_path = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}'
+    #         if verbose:
+    #             print(f'looking at this path: /{basedir}/{year}/{session}/processing/Merlin/{subfolder}')
+
+    #         '''use glob and os to find the meta data files'''
+    #         try:
+    #             os.chdir(src_path)
+
+    #             for num, file in enumerate(sorted(list(glob.glob('*/*.hdf')))):
+    #                 '''debug statement to check file paths'''
+    #                 if verbose == True:
+    #                     print(str(num) + ': ' + os.path.join(src_path, file))
+    #                 folder_pty_out = os.path.join(src_path, file[:file.find('/')]) + '/pty_out'
+    #                 folder_inital = os.path.join(src_path, file[:file.find('/')]) + '/pty_out/initial_recon'
+
+    #                 if create_ptycho_folder == True:
+
+    #                     if verbose:
+    #                         print('attempting to create ptychography folder in ' + file[:file.find('/')] + ' ...\n')
+    #                     try:
+    #                         os.makedirs(folder_pty_out)
+    #                     except:
+    #                         if verbose == True:
+    #                             print('skipping pty_out folder creation as it already has pty_out folder')
+    #                     try:
+    #                         os.makedirs(folder_inital)
+    #                     except:
+    #                         if verbose == True:
+    #                             print('skipping initial folder creation as it already has pty_out/initial folder\n')
+
+    #                     '''determine the meta data path from the time stamp of the folder'''
+    #                     meta_file = os.path.join(src_path, file[:file.find('/')]) + '/' + file[:file.find('/')] + '.hdf'
+    #                     '''debug print below'''
+    #                     if verbose == True:
+    #                         print('\nCurrent meatdata file: ' + meta_file + '...\n')
+
+    #                     '''TODO add py4DSTEM code which automatic guess the camera length from the subset of the collected diffraction patterns'''
+
+    #                     '''check that the config_name parameter has been filled if not give it a default name'''
+    #                     if ptycho_config_name == '':
+    #                         config_name = 'pty_recon'
+    #                     else:
+    #                         config_name = ptycho_config_name
+
+    #                     '''TODO: set up some standard ptyREX config files to reference at different energies'''
+    #                     if ptycho_template_path == '':
+    #                         template_path = self.software_basedir + 'UserExampleJson.json'
+    #                     else:
+    #                         template_path = ptycho_template_path
+
+    #                     try:
+    #                         gen_config(template_path, folder_inital, config_name, meta_file, overwrite = overwrite,
+    #                                 verbose = verbose)
+    #                         if verbose:
+    #                             print('ptychography folder suscessfully created.\n')
+    #                     except:
+    #                         print(traceback.format_exc())
+    #                         print('The metadata for this dataset seems to be missing or might be mid-conversion, '
+    #                             'please check the file \nskipping for now...')
+
+    #        except:
+    #            print('\n' + str(sorted(list(glob.glob('*/*.hdf'))) + '\n'))
+    #            print('the enetred path does not register as a available  path to any E02 data')
+    #    if create_ptycho_folder == True:
+    #        print('Ptychography folders and files generated...')
                
     def _ptyrex_paths(self,basedir, year, session, subfolder, ptycho_config_name, create_ptycho_bash_script_check,
                       node_type, ptycho_time, submit_ptyrex_job, delete_flaggin_files, verbose=False):
@@ -1544,6 +1638,47 @@ def find_metadat_file(timestamp, acquisition_path):
     logger.debug('No metadata file could be matched.')
     return 
 
+
+def guess_shape(num_dps):
+    if num_dps == 262144:
+        Scan_X = 512
+        Scan_Y = 512
+        print("The scan shape will be 512*512")
+    elif num_dps == 261632:
+        Scan_X = 512
+        Scan_Y = 511
+        print("The scan shape will be 512*511")
+    elif num_dps == 261121:
+        Scan_X = 511
+        Scan_Y = 511
+        print("The scan shape will be 511*511")
+    elif num_dps == 65536:
+        Scan_X = 256
+        Scan_Y = 256
+        print("The scan shape will be 256*256")
+    elif num_dps == 65280:
+        Scan_X = 256
+        Scan_Y = 255
+        print("The scan shape will be 256*255")
+    elif num_dps == 65025:
+        Scan_X = 255
+        Scan_Y = 255
+        print("The scan shape will be 255*255")
+    elif num_dps == 16384:
+        Scan_X = 128
+        Scan_Y = 128
+        print("The scan shape will be 128*128")
+    elif num_dps == 16256:
+        Scan_X = 128
+        Scan_Y = 127
+        print("The scan shape will be 128*127")
+    elif num_dps == 16129:
+        Scan_X = 127
+        Scan_Y = 127
+    else:
+        print("A proper scan shape was not detected, leaving template json scan parameters as they are...") 
+    return Scan_X, Scan_Y 
+
 def gen_config(template_path, dest_path, config_name, meta_file_path, factor=1.7, overwrite = False, verbose=False):
     '''
     A function to generate json file for PtyREX recontrsution for data collected on E02 using the meta data .hdf5
@@ -1586,8 +1721,16 @@ def gen_config(template_path, dest_path, config_name, meta_file_path, factor=1.7
         pty_expt['process']['common']['scan']['rotation'] = rotation_angle
         pty_expt['experiment']['detector']['position'] = [0, 0, camera_length]
         pty_expt['experiment']['optics']['lens']['alpha'] = conv_angle * 2
-        pty_expt['process']['common']['scan']['N'] = [int(meta_values['4D_shape'][:2][0]),
+        try:
+            pty_expt['process']['common']['scan']['N'] = [int(meta_values['4D_shape'][:2][0]),
                                                           int(meta_values['4D_shape'][:2][1])]
+        except:
+            print('4D data shape is unavailable from the meta data trying a different method...')
+            try:
+                guess_shape(microscope_meta['data']['frames'].shape[0])
+            except:
+                pass
+
         pty_expt['process']['common']['source']['energy'] = [float(np.array(meta_values['ht_value(V)']))]
         pty_expt['process']['common']['scan']['dR'] = [float(np.array(meta_values['step_size(m)'])),
                                                            float(np.array(meta_values['step_size(m)']))]
