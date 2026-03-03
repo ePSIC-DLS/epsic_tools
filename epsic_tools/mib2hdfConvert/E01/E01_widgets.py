@@ -214,7 +214,7 @@ class E01_auto_process():
         data_tag = []
         converted_tag = []
         count = 0 #count is required as sometimes there are multiple files with Diffraction SI.dm4 at the end
-        num = -1
+        count2 = 0 
         '''
         using the inputs provided construct the path to the data that the user
         is instered in
@@ -250,13 +250,13 @@ class E01_auto_process():
                 for num, file in enumerate(sorted(list(glob.glob('*/**Diffraction SI.dm4*')))):
                     if file.split('/')[1] == 'Diffraction SI.dm4':
                         self.diffraction_dm_list.append(self.output.value+file)
-                        data_tag.append(self.diffraction_dm_list[count].split('/')[-2])
+                        data_tag.append(self.diffraction_dm_list[count].split('/')[-2].replace(' ', '_'))
                         if verbose:
                             print(f'tag {num}: {data_tag[count]}')
                             print(f'file {num}: {self.diffraction_dm_list[count]}')
                         '''increment count'''
                         count = count + 1
-                disp_num = num + 1
+                disp_num = count
 
                 #switch to procesing folder as this is destiation of the converted data
                 pf = '/'.join(self.script_path.split('/')[:-2]) + '/'
@@ -270,9 +270,10 @@ class E01_auto_process():
                     if verbose:
                         print(f'tag {num}: {converted_tag[num]}')
                         print(f'converted file {num}: {self.already_converted_list[num]}')
+                    count2 = count2 + 1
                 '''determine the data which has already been converted using the difference method within python sets to
                    cross reference the tags with each other (typically tags are something like SI-002)'''
-                disp_num = disp_num - (num + 1)
+                disp_num = disp_num - count2
                 data_tag_set = set(data_tag)
                 to_convert_tag = list(data_tag_set.difference(converted_tag))
                 to_convert_tag.sort()

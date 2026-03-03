@@ -82,9 +82,8 @@ def main():
     
     #determine save path from the directory the data was loaded from
     #ToDo make this not the raw directory as users should be able to write to it
-    l = data_path.split('/')
-    #replace raw with processing
-    l[-4] = 'processing'
+    l = data_path.replace('/raw/','/processing/')
+    l = l.split('/')
     #remove the spaces from the path
     l[-2] = l[-2].replace(' ','_')
     save_path = '/'.join(l[:-1]) + '/'
