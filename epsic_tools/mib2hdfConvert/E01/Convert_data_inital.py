@@ -81,9 +81,19 @@ def main():
     print(f'pixel size after post experiment binnig: {binning*pixel_size}')
     
     #determine save path from the directory the data was loaded from
-    save_path, file = os.path.split(data_path)
-    save_path = save_path + '/'
-    print('save_path =', save_path)
+    #ToDo make this not the raw directory as users should be able to write to it
+    l = data_path.replace('/raw/','/processing/')
+    l = l.split('/')
+    #remove the spaces from the path
+    l[-2] = l[-2].replace(' ','_')
+    save_path = '/'.join(l[:-1]) + '/'
+    if not os.path.exists(save_path):
+        print('The save directory: %s\ndoes not exist, creating it now...' %save_path)
+        os.makedirs(save_path)
+    else:
+        print('save_path =', save_path)
+    #save_path, file = os.path.split(data_path)
+    #save_path = save_path + '/'
     #index = data_path.find('(')
     #save_num = data_path[index+1]
     default_prefix = 'data'

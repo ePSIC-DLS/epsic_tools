@@ -62,12 +62,12 @@ def _create_ptyrex_bash_submit(json_files, script_folder, node_type, ptycho_time
                 f.write(f"#SBATCH --error={script_folder}{os.sep}%j_error.err\n")
                 f.write(f"#SBATCH --output={script_folder}{os.sep}%j_output.out\n")
 
-                f.write(f"cd /home/ejr78941/ptyrex_temp_5/PtyREX")
+                f.write(f"cd /dls_sw/e02/software/PtyREX2026/PtyREX")
 
                 f.write('\n\nmodule load python/cuda11.7\n\n')
                 f.write('module load hdf5-plugin/1.12\n\n')
 
-                f.write(f"mpirun -np 4 ptyrex_recon -c {json_files[num]}\n")
+                f.write(f"mpirun -np 4 ptyrex_recon -c '{json_files[num]}'\n")
     return bash_ptyrex_path
 
 def _create_dm4_bash(dm4_files, binning, script_folder, verbose=False):
@@ -98,7 +98,7 @@ def _create_dm4_bash(dm4_files, binning, script_folder, verbose=False):
                 f.write(f"#SBATCH --output={script_folder}{os.sep}%j_output.out\n")
                 f.write('\n\nmodule load python/epsic3.10\n\n')
 
-                f.write(f"python /dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/E01/Convert_data_inital.py {dm4_files[num]} {binning}\n")
+                f.write(f"python /dls_sw/e02/software/epsic_tools/epsic_tools/mib2hdfConvert/E01/Convert_data_inital.py '{dm4_files[num]}' {binning}\n")
     return bash_path
 
 def _create_flagging_text_files(submit_ptyrex_job, tmp_list, verbose=False):
@@ -214,7 +214,7 @@ class E01_auto_process():
         data_tag = []
         converted_tag = []
         count = 0 #count is required as sometimes there are multiple files with Diffraction SI.dm4 at the end
-        num = -1
+        count2 = 0 
         '''
         using the inputs provided construct the path to the data that the user
         is instered in
@@ -234,7 +234,13 @@ class E01_auto_process():
             
             try:
                 os.chdir(self.output.value)
-                self.script_path = self.output.value + 'scripts/'
+                #construct the script path
+                self.script_path = self.output.value.split('/')
+                self.script_path[-3] = 'processing'
+                self.script_path = '/'.join(self.script_path)
+                self.script_path = self.script_path + 'scripts/'
+                #old
+                #self.script_path = self.output.value + 'scripts/'
                 if verbose:
                     print('script path: %s' % self.script_path)
                 if not os.path.exists(self.script_path):                    
@@ -244,24 +250,30 @@ class E01_auto_process():
                 for num, file in enumerate(sorted(list(glob.glob('*/**Diffraction SI.dm4*')))):
                     if file.split('/')[1] == 'Diffraction SI.dm4':
                         self.diffraction_dm_list.append(self.output.value+file)
-                        data_tag.append(self.diffraction_dm_list[count].split('/')[-2])
+                        data_tag.append(self.diffraction_dm_list[count].split('/')[-2].replace(' ', '_'))
                         if verbose:
                             print(f'tag {num}: {data_tag[count]}')
                             print(f'file {num}: {self.diffraction_dm_list[count]}')
                         '''increment count'''
                         count = count + 1
-                disp_num = num + 1
+                disp_num = count
+
+                #switch to procesing folder as this is destiation of the converted data
+                pf = '/'.join(self.script_path.split('/')[:-2]) + '/'
+                print('switching to processing folder to check for coverted data:\n%s' %pf)
+                os.chdir(pf)
                 if verbose:
                     print(f'\nSearching for converted files (data.hdf5)...')
                 for num, file in enumerate(sorted(list(glob.glob('*/**data.hdf5')))):
-                    self.already_converted_list.append(self.output.value+file)
+                    self.already_converted_list.append(pf+file)
                     converted_tag.append(self.already_converted_list[num].split('/')[-2])
                     if verbose:
                         print(f'tag {num}: {converted_tag[num]}')
                         print(f'converted file {num}: {self.already_converted_list[num]}')
+                    count2 = count2 + 1
                 '''determine the data which has already been converted using the difference method within python sets to
                    cross reference the tags with each other (typically tags are something like SI-002)'''
-                disp_num = disp_num - (num + 1)
+                disp_num = disp_num - count2
                 data_tag_set = set(data_tag)
                 to_convert_tag = list(data_tag_set.difference(converted_tag))
                 to_convert_tag.sort()
@@ -405,10 +417,10 @@ class E01_auto_process():
         '''
         tmpor = basedir + '/' + year + '/' + session
         if basedir == '' or year == '' or session == '' or subfolder == '':
-            print(f'current path: /{basedir}/{year}/{session}/raw/{subfolder}/')
+            print(f'current path: /{basedir}/{year}/{session}/processing/{subfolder}/')
         else:
-            print(f'current path: /{basedir}/{year}/{session}/raw/{subfolder}/')
-            self.output.value = f'/{basedir}/{year}/{session}/raw/{subfolder}/'
+            print(f'current path: /{basedir}/{year}/{session}/processing/{subfolder}/')
+            self.output.value = f'/{basedir}/{year}/{session}/processing/{subfolder}/'
 
             '''
             now that path has been constructed use it as starting point
@@ -478,8 +490,8 @@ class E01_auto_process():
     def _ptyrex_paths(self,basedir, year, session, subfolder, ptycho_config_name, create_ptycho_bash_script_check,
                       node_type, ptycho_time, submit_ptyrex_job, delete_flaggin_files, verbose=False):
         '''define the source path'''
-        src_path = f'/{basedir}/{year}/{session}/raw/{subfolder}'
-        script_folder = f'/{basedir}/{year}/{session}/raw/{subfolder}/scripts'
+        src_path = f'/{basedir}/{year}/{session}/processing/{subfolder}'
+        script_folder = f'/{basedir}/{year}/{session}/processing/{subfolder}/scripts'
 
         tmp_list = []
         test_string = 'autoptycho_is_done.txt'
@@ -487,12 +499,12 @@ class E01_auto_process():
         '''use glob and os to find the meta data files'''
         if basedir == '' or year == '' or session == '' or subfolder == '' or ptycho_config_name == '':
             print('\nwaiting for the folowing inputs: basedir, year, session, subfolder and config_name\n')
-            print(f'current path: /{basedir}/{year}/{session}/raw/{subfolder}')
+            print(f'current path: /{basedir}/{year}/{session}/processing/{subfolder}')
         else:
             '''try statement is used here to catch the case where all parameters have inputs but are still not correct mid type'''
             try:
                 os.chdir(src_path)
-                print(f'current path: /{basedir}/{year}/{session}/raw/{subfolder}\n')
+                print(f'current path: /{basedir}/{year}/{session}/processing/{subfolder}\n')
                 if verbose:
                     print(f'json files found in the current path are listed below:\n')
                 for num, file in enumerate(sorted(list(glob.glob('*/*/*' + ptycho_config_name + '.json')))):
@@ -580,3 +592,4 @@ class E01_auto_process():
                                           'verbose': grid.children[10]})
         display(grid,self.ptyrex_paths)
         
+
