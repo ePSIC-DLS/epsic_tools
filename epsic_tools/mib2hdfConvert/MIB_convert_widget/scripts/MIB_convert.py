@@ -1867,7 +1867,7 @@ def _create_ptyrex_bash_submit(json_files, script_folder, node_type, ptycho_time
                 f.write(f"#SBATCH --error={script_folder}{os.sep}%j_error.err\n")
                 f.write(f"#SBATCH --output={script_folder}{os.sep}%j_output.out\n")
 
-                f.write(f"cd /home/ejr78941/ptyrex_temp_5/PtyREX")
+                f.write(f"cd /dls_sw/e02/software/PtyREX2026/PtyREX/")
 
                 f.write('\n\nmodule load python/cuda11.7\n\n')
                 f.write('module load hdf5-plugin/1.12\n\n')
