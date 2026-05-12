@@ -731,6 +731,22 @@ if auto_reshape:
         Scan_Y = 127
         print("Going to use the 'known_shape' option")
         print("The scan shape will be 128*127")
+    elif mib_properties['sequence_number'][-1] == 1024:
+        no_reshaping = False
+        use_fly_back = True
+        known_shape = False
+        Scan_X = 32
+        Scan_Y = 31
+        print("Going to use the 'known_shape' option")
+        print("The scan shape will be 32*31")
+    elif mib_properties['sequence_number'][-1] == 256:
+        no_reshaping = False
+        use_fly_back = True
+        known_shape = False
+        Scan_X = 16
+        Scan_Y = 15
+        print("Going to use the 'known_shape' option")
+        print("The scan shape will be 16*15")
     else:
         no_reshaping = True
         use_fly_back = False

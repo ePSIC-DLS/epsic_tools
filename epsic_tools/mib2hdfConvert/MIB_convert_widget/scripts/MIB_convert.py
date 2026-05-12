@@ -1675,6 +1675,10 @@ def guess_shape(num_dps):
     elif num_dps == 16129:
         Scan_X = 127
         Scan_Y = 127
+    elif num_dps == 256:
+        Scan_X = 16
+        Scan_Y = 16
+        print("The scan shape will be 16*16")
     else:
         print("A proper scan shape was not detected, leaving template json scan parameters as they are...") 
     return Scan_X, Scan_Y 
