@@ -1438,7 +1438,7 @@ class convert_info_widget():
         subfolder = Text(description='Subfolder:', style=st)
         ptycho_config_name = Text(value='ptycho',description='Name of the json file to process:', style=st)
         create_ptycho_bash_script_check = Checkbox(value=False, description='Create PtyREX bash script', style=st)
-        node_type = Dropdown(options=['Volta', 'Pascal'], value='Pascal', description='type of gpu to use')
+        node_type = Dropdown(options=['Volta', 'L40S','Blackwell'], value='Blackwell', description='type of gpu to use')
         ptycho_time = Dropdown(options=['00:30:00', '01:00:00', '02:00:00', '04:00:00', '08:00:00'],value='00:30:00',description='Processing time: (HH:MM:SS)')
         submit_ptyrex_job = Checkbox(value=False, description='Submit PtyREX job', style=st)
         delete_flaggin_files = ToggleButton(value=False,description='delete flagging files', disabled=False, button_style='')
@@ -1541,7 +1541,7 @@ class convert_info_widget():
                     script_folder = f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts/'
                     if os.path.exists(script_folder) != True:
                         os.mkdir(script_folder)
-                    bash_list = _create_ptyrex_bash_submit([current_file], script_folder, 'Volta', '04:00:00', verbose=False)
+                    bash_list = _create_ptyrex_bash_submit([current_file], script_folder, 'Blackwell', '04:00:00', verbose=False)
                     #bash_list = [f'/{basedir}/{year}/{session}/processing/Merlin/{subfolder}/scripts/{Choose_timestamp[-6:]}_ptyrex_submit.sh']
                     if verbose:
                         print(bash_list)
@@ -1559,7 +1559,8 @@ class convert_info_widget():
         ptycho_config_name = Text(description='Name of the json file to process:', style=st)
         Choose_timestamp = Dropdown(options=['empty'], value='empty', description='choose a timestamp', style=st)
         Choose_recon_parameter = Dropdown(options=['camera length','scan rotation','defocus','object update',
-                                                   'probe update','number of slices', 'slice thickness'], 
+                                                   'probe update','number of slices', 'slice thickness','iterations',
+                                                   'modes alpha', 'modes number','crop','bin','region %'], 
                                                    value='defocus', description='choose a parameter to change', style=st)
         current_value = FloatText(value=1e-9,description = 'The current value of the chosen parameter', style=st,disabled=True)
         new_value = FloatText(value=1e-9,description = 'enter a new value for the chosen parameter', style=st)
@@ -1865,15 +1866,15 @@ def _create_ptyrex_bash_submit(json_files, script_folder, node_type, ptycho_time
                 f.write('#SBATCH --cpus-per-task 1\n')
                 f.write('#SBATCH --gpus-per-node=4\n')
                 f.write(f'#SBATCH --time {ptycho_time}\n')
-                f.write('#SBATCH --mem 0G\n\n')
+                f.write('#SBATCH --mem 200G\n\n')
                 f.write(f'#SBATCH --constraint=NVIDIA_{node_type}\n')
 
                 f.write(f"#SBATCH --error={script_folder}{os.sep}%j_error.err\n")
                 f.write(f"#SBATCH --output={script_folder}{os.sep}%j_output.out\n")
 
-                f.write(f"cd /dls_sw/e02/software/PtyREX2026/PtyREX/")
+                f.write(f"cd /dls_sw/e02/software/PtyREX2026/PtyREX_cuda12/")
 
-                f.write('\n\nmodule load python/cuda11.7\n\n')
+                f.write('\n\nmodule load python/cuda12.9\n\n')
                 f.write('module load hdf5-plugin/1.12\n\n')
 
                 f.write(f"mpirun -np 4 ptyrex_recon -c {json_files[num]}\n")
@@ -1962,24 +1963,50 @@ def ptyrex_json_helper(json_name,val):
        probe_update  = ['process']['PIE']['object']['alpha']
        slices        = ['process']['PIE']['MultiSlice']['slices']
        thickness     = ['process']['PIE']['MultiSlice']['S_distance']
+       iterations    = ['process']['PIE']['iterations']
+       modes number  = ['process']['PIE']['Source']['sx']
+       modes alpha   = ['process']['PIE']['Source']['alpha']
        
     '''
-    if json_name == 'camera length':
-        keys = ['experiment','detector','position']
-        val = [0,0,val]
-    elif json_name == 'scan rotation':
-        keys = ['process','common','scan','rotation']
-    elif json_name == 'defocus':
-        keys = ['experiment','optics','lens','defocus']
-        val = [val,val]
-    elif json_name == 'object update':
-        keys = ['process','PIE','object','alpha']
-    elif json_name == 'probe update':
-        keys = ['process','PIE','probe','alpha']
-    elif json_name == 'number of slices':
-        keys = ['process','PIE','MultiSlice','slices']
-    elif json_name == 'slice thickness':
-        keys = ['process','PIE','MultiSlice','S_distance']
+    try:
+        if json_name == 'camera length':
+            keys = ['experiment','detector','position']
+            val = [0,0,val]
+        elif json_name == 'scan rotation':
+            keys = ['process','common','scan','rotation']
+        elif json_name == 'defocus':
+            keys = ['experiment','optics','lens','defocus']
+            val = [val,val]
+        elif json_name == 'object update':
+            keys = ['process','PIE','object','alpha']
+        elif json_name == 'probe update':
+            keys = ['process','PIE','probe','alpha']
+        elif json_name == 'number of slices':
+            keys = ['process','PIE','MultiSlice','slices']
+        elif json_name == 'slice thickness':
+            keys = ['process','PIE','MultiSlice','S_distance']
+        elif json_name == 'iterations':
+            keys = ['process','PIE','iterations']
+        elif json_name == 'modes number':
+            keys = ['process','PIE','source','sx']
+        elif json_name == 'modes alpha':
+            keys = ['process','PIE','source','alpha']
+        elif json_name == 'crop':
+            val = [int(val),int(val)]
+            keys = ['process','common','detector','crop']
+        elif json_name == 'bin':
+            keys = ['process','common','detector','bin']
+            val = [int(val),int(val)]
+        elif json_name == 'region %':
+            keys = ['process','common','scan','region']
+            percent = val/100
+            upper = 0.5 + percent/2
+            lower = 0.5 - percent/2
+            val = [lower,upper,lower,upper,1,1]
+    except:
+        with open("/dls/science/users/ejr78941/epsic_tools/errors/logging.txt",'w') as ofile:
+                print(traceback.format_exc(),file=ofile)
+
     return keys, val
 
 def get_current_json_val(json_path,key_name):
@@ -2003,6 +2030,10 @@ def get_current_json_val(json_path,key_name):
             current_val = current_val[0]
         elif len(current_val) == 3:
             current_val = current_val[2]
+        elif len(current_val) == 6:
+            lr = current_val[1] - current_val[0]
+            tb = current_val[3] - current_val[2]
+            current_val = (lr+tb)/2
     return current_val
 
 def edit_ptyrex_json_parameter(json_path,key_name, new_val,verbose=False):
@@ -2014,15 +2045,23 @@ def edit_ptyrex_json_parameter(json_path,key_name, new_val,verbose=False):
 
         '''in the case of changing the number of slices make sure that this a int and not a float
         to avoid issues during the reading of the json within ptyrex'''
-        if keys[-1] == 'slices':
+        if keys[-1] == 'slices' or keys[-1] == 'sx':
             new_val = int(new_val)
 
-        if len(keys) == 3:
-            pty_expt[keys[0]][keys[1]][keys[2]] = new_val
-        elif len(keys) == 4:
-            pty_expt[keys[0]][keys[1]][keys[2]][keys[3]] = new_val
-        else:
-            print('error: unkown keys')
+        try:
+            if len(keys) == 3:
+                pty_expt[keys[0]][keys[1]][keys[2]] = new_val
+            elif len(keys) == 4:
+                pty_expt[keys[0]][keys[1]][keys[2]][keys[3]] = new_val
+            else:
+                print('error: unkown keys')
+            print(f'{key_name} has been updated to the following value:\n{new_val}')
+        except:
+            with open("/dls/science/users/ejr78941/epsic_tools/errors/logging.txt",'w') as ofile:
+              print(traceback.format_exc(),file=ofile)
+            print(traceback.format_exc())
+
+
 
         if verbose:
             print(f'editing the following json: {json_path}...')
