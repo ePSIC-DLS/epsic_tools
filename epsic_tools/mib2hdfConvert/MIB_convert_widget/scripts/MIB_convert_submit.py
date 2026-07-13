@@ -490,6 +490,28 @@ def Meta2Config(acc,nCL,aps):
     '''The rotation angles noted here are from ptychographic reconstructions which have been successful. see the
     following directory for example reconstruction from which these values are derived:
      /dls/science/groups/imaging/ePSIC_ptychography/experimental_data'''
+    if acc == 60e3:
+        rot_angle = 225 - rot
+        if verbose:
+            print('Rotation angle = ' + str(rot_angle))
+        if aps == 1:
+            conv_angle = 51.5e-3
+            if verbose:
+                print('Condenser aperture size is 50um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 2:
+            conv_angle = 39.1e-3
+            if verbose:
+                print('Condenser aperture size is 40um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 3:
+            conv_angle = 30.6e-3
+            if verbose:
+                print('Condenser aperture size is 30um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        elif aps == 4:
+            conv_angle =19.0e-3
+            if verbose:
+                print('Condenser aperture size is 20um has corresponding convergence semi angle of ' + str(conv_angle * 1e3) + 'mrad')
+        else:
+            print('the aperture being used has unknwon convergence semi angle please consult confluence page or collect calibration data')
     if acc == 80e3:
         rot_angle = 238.5
         print('Rotation angle = ' + str(rot_angle))
